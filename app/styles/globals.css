@@ -1,9 +1,66 @@
+:root {
+  color-scheme: light;
+  --font-body: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --color-bg: #0b1b2b;
+  --color-surface: #0f2439;
+  --color-surface-soft: rgba(9, 20, 36, 0.8);
+  --color-panel: #182c43;
+  --color-panel-muted: rgba(24, 44, 67, 0.35);
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+  --color-text: #e9f0ff;
+  --color-text-muted: rgba(233, 240, 255, 0.64);
+  --color-primary: #ff7a00;
+  --color-primary-strong: #ffba69;
+  --color-secondary: #00d4ff;
+  --color-success: #3dd598;
+  --color-danger: #ff4b55;
+  --color-warning: #f8d047;
+  --shadow-panel: 0 25px 65px rgba(5, 10, 25, 0.45);
+  --backdrop-blur: blur(20px);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #f4f6fb;
+  --color-surface: #fdfdfd;
+  --color-surface-soft: rgba(255, 255, 255, 0.8);
+  --color-panel: #ffffff;
+  --color-panel-muted: rgba(10, 31, 68, 0.08);
+  --color-border: rgba(14, 49, 84, 0.08);
+  --color-border-strong: rgba(14, 49, 84, 0.22);
+  --color-text: #0b1b2b;
+  --color-text-muted: rgba(11, 27, 43, 0.6);
+  --shadow-panel: 0 25px 65px rgba(9, 16, 42, 0.08);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html,
 body {
-  min-height: 100vh;
   padding: 0;
   margin: 0;
-  font-family: system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
 }
 
 a {
@@ -11,6 +68,33 @@ a {
   text-decoration: none;
 }
 
-* {
-  box-sizing: border-box;
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(255, 122, 0, 0.35);
+  color: #fff;
+}
+
+body::-webkit-scrollbar {
+  width: 12px;
+}
+
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: var(--color-panel-muted);
+  border-radius: 999px;
 }
