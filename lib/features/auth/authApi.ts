@@ -1,13 +1,25 @@
 import { baseApi } from "../api/baseApi";
 
 interface LoginWithPhonePayload {
-  phoneNumber: string;
-  password: string;
+  phone: string;
 }
 
 interface RegisterWithPhonePayload extends LoginWithPhonePayload {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   email?: string;
+}
+
+interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user?: {
+    id: string;
+    phone: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  };
 }
 
 interface AuthMessage {
@@ -16,7 +28,7 @@ interface AuthMessage {
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    loginWithPhone: builder.mutation<AuthMessage, LoginWithPhonePayload>({
+    loginWithPhone: builder.mutation<AuthResponse, LoginWithPhonePayload>({
       query: (body) => ({
         url: "/auth/login",
         method: "POST",
@@ -24,7 +36,7 @@ export const authApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Dashboard", "AdminProfile"],
     }),
-    registerWithPhone: builder.mutation<AuthMessage, RegisterWithPhonePayload>({
+    registerWithPhone: builder.mutation<AuthResponse, RegisterWithPhonePayload>({
       query: (body) => ({
         url: "/auth/register",
         method: "POST",

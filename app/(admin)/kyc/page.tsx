@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { useGetKycDocumentsQuery } from "@/lib/features/kyc/kycApi";
+import {
+  useGetPendingKycsQuery,
+  useVerifyKycMutation,
+} from "@/lib/features/kyc/kycApi";
 import type { KycDocument } from "@/lib/features/admin/types";
 
 import shared from "../styles/page.module.css";
@@ -25,17 +28,21 @@ const statusClass = (status: KycDocument["status"]) => {
 };
 
 export default function KycPage() {
-  const { data: documents = [] } = useGetKycDocumentsQuery();
+  const { data: documents } = useGetPendingKycsQuery<any>();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [verifyKyc, { isLoading }] = useVerifyKycMutation();
+
+  console.log("documents", documents);
 
   useEffect(() => {
-    if (!selectedId && documents.length > 0) {
+    if (!selectedId && documents?.length > 0) {
       setSelectedId(documents[0].id);
     }
   }, [documents, selectedId]);
 
   const selected = useMemo(
-    () => documents.find((document) => document.id === selectedId) ?? documents[0],
+    () => documents?.find((document: any) => document?.id === selectedId) ?? documents?.[0],
     [documents, selectedId]
   );
 
@@ -46,7 +53,7 @@ export default function KycPage() {
           <div>
             <h2>Validation KYC</h2>
             <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
-              {documents.length} dossiers synchronisés avec l’API Nest (kyc_documents)
+              {documents?.length} dossiers synchronisés avec l’API Nest (kyc_documents)
             </p>
           </div>
           <div className={shared.toolbar}>
@@ -64,24 +71,26 @@ export default function KycPage() {
 
         <div className={styles.split}>
           <div className={styles.queue}>
-            {documents.map((document) => (
+            {documents?.map((document: any) => (
               <button
                 type="button"
-                key={document.id}
+                key={document?.id}
                 className={`${styles.queueItem} ${
-                  selected?.id === document.id ? styles.active : ""
+                  selected?.id === document?.id ? styles.active : ""
                 }`}
-                onClick={() => setSelectedId(document.id)}
+                onClick={() => setSelectedId(document?.id)}
               >
                 <div className={styles.queueHeader}>
-                  <strong>{document.user.fullName}</strong>
-                  <span className={statusClass(document.status)}>
-                    {document.status}
+                  <strong>
+                    {document?.user?.firstName} {document?.user?.lastName}
+                  </strong>
+                  <span className={statusClass(document?.status)}>
+                    {document?.status}
                   </span>
                 </div>
                 <div className={styles.queueMeta}>
-                  <span>{document.user.email}</span>
-                  <span>Créé {formatDate(document.createdAt)}</span>
+                  <span>{document?.user?.email ?? document?.user?.phone}</span>
+                  <span>Créé {formatDate(document?.createdAt)}</span>
                 </div>
               </button>
             ))}
@@ -90,53 +99,53 @@ export default function KycPage() {
           {selected ? (
             <div className={styles.detail}>
               <div className={shared.card}>
-                <h3>Dossier #{selected.id}</h3>
+                <h3>Dossier #{selected?.id}</h3>
                 <p className={styles.meta}>
-                  {selected.user.fullName} • {selected.user.phoneNumber}
+                  {selected.user.firstName} {selected?.user?.lastName} • {selected?.user?.phone}
                 </p>
                 <div className={shared.timeline}>
                   <div className={shared.timelineItem}>
                     <strong>Soumis</strong>
-                    <span>{formatDate(selected.createdAt)}</span>
+                    <span>{formatDate(selected?.createdAt)}</span>
                   </div>
                   <div className={shared.timelineItem}>
                     <strong>Mise à jour</strong>
-                    <span>{formatDate(selected.updatedAt)}</span>
+                    <span>{formatDate(selected?.updatedAt)}</span>
                   </div>
                   <div className={shared.timelineItem}>
                     <strong>
                       {selected.reviewedBy
-                        ? `Revu par ${selected.reviewedBy}`
+                        ? `Revu par ${selected?.reviewedBy}`
                         : "En attente de revue"}
                     </strong>
-                    <span>{formatDate(selected.reviewedAt)}</span>
+                    <span>{formatDate(selected?.reviewedAt)}</span>
                   </div>
                 </div>
-                {selected.rejectionReason ? (
+                {selected?.rejectionReason ? (
                   <div className={styles.rejection}>
-                    Motif de rejet : {selected.rejectionReason}
+                    Motif de rejet : {selected?.rejectionReason}
                   </div>
                 ) : null}
               </div>
 
               <div className={styles.documentGrid}>
                 <div className={styles.documentPreview}>
-                  {selected.cniFrontUrl ? (
-                    <img src={selected.cniFrontUrl} alt="Carte nationale - Recto" />
+                  {selected?.cniFrontUrl ? (
+                    <img src={selected?.cniFrontUrl} alt="Carte nationale - Recto" />
                   ) : (
                     "Recto CNI non fourni"
                   )}
                 </div>
                 <div className={styles.documentPreview}>
-                  {selected.cniBackUrl ? (
-                    <img src={selected.cniBackUrl} alt="Carte nationale - Verso" />
+                  {selected?.cniBackUrl ? (
+                    <img src={selected?.cniBackUrl} alt="Carte nationale - Verso" />
                   ) : (
                     "Verso CNI non fourni"
                   )}
                 </div>
                 <div className={styles.documentPreview}>
-                  {selected.selfieUrl ? (
-                    <img src={selected.selfieUrl} alt="Selfie contrôle" />
+                  {selected?.selfieUrl ? (
+                    <img src={selected?.selfieUrl} alt="Selfie contrôle" />
                   ) : (
                     "Selfie non fourni"
                   )}
@@ -144,9 +153,16 @@ export default function KycPage() {
               </div>
 
               <div className={shared.card}>
-                <strong>Actions (via POST/PATCH Nest)</strong>
+                <strong>Actions</strong>
                 <div className={shared.toolbar}>
-                  <button type="button" className={shared.primaryButton}>
+                  <button
+                    type="button"
+                    className={shared.primaryButton}
+                    disabled={isLoading}
+                    onClick={() =>
+                      verifyKyc({ kycId: selected?.id, approved: true }).unwrap()
+                    }
+                  >
                     Valider
                   </button>
                   <button
@@ -156,10 +172,32 @@ export default function KycPage() {
                       background: "rgba(255, 75, 85, 0.15)",
                       color: "var(--color-danger)",
                     }}
+                    disabled={isLoading}
+                    onClick={() =>
+                      verifyKyc({
+                        kycId: selected?.id,
+                        approved: false,
+                        reason: rejectReason || "Motif non précisé",
+                      }).unwrap()
+                    }
                   >
                     Rejeter
                   </button>
                 </div>
+                <textarea
+                  placeholder="Motif du rejet (ex: Document illisible, informations manquantes...)"
+                  style={{
+                    borderRadius: 16,
+                    border: "1px solid var(--color-border)",
+                    background: "transparent",
+                    color: "var(--color-text)",
+                    padding: "12px 14px",
+                    minHeight: 80,
+                  }}
+                  value={rejectReason}
+                  onChange={(event) => setRejectReason(event.target.value)}
+                  disabled={isLoading}
+                />
               </div>
             </div>
           ) : null}

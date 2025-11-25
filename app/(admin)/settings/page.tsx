@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { useGetAdminProfileQuery } from "@/lib/features/profile/profileApi";
+import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 
 import shared from "../styles/page.module.css";
 
@@ -13,7 +13,7 @@ type NotificationPref = {
 };
 
 export default function SettingsPage() {
-  const { data: profile } = useGetAdminProfileQuery();
+  const { data: profile } = useGetCurrentUserProfileQuery();
   const [notifications, setNotifications] = useState<NotificationPref>({
     email: false,
     sms: false,
@@ -21,8 +21,13 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
+    // Mock notifications for now - backend doesn't provide this yet
     if (profile) {
-      setNotifications(profile.notifications);
+      setNotifications({
+        email: true,
+        sms: false,
+        push: true,
+      });
     }
   }, [profile]);
 
@@ -46,10 +51,12 @@ export default function SettingsPage() {
           <div className={shared.grid}>
             <article className={shared.card}>
               <strong>Identité admin</strong>
-              <div>{profile.name}</div>
-              <div>{profile.email}</div>
+              <div>
+                {profile.user.firstName} {profile.user.lastName}
+              </div>
+              <div>{profile.user.email ?? profile.user.phone}</div>
               <small style={{ color: "var(--color-text-muted)" }}>
-                {profile.role} • {profile.phone}
+                {profile.user.role} • {profile.user.phone}
               </small>
             </article>
 

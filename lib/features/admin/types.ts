@@ -46,19 +46,36 @@ export interface DriverHighlight {
   rating: number;
 }
 
+// Nest backend enums
+export type UserRole = "driver" | "passenger" | "admin";
+export type UserStatus = "active" | "inactive" | "suspended" | "pending_kyc";
 export type KycStatus = "pending" | "approved" | "rejected";
 
-export interface AdminUserSummary {
+// User entity from Nest
+export interface User {
   id: string;
-  fullName: string;
-  email: string;
-  phoneNumber: string;
+  email?: string;
+  phone: string;
+  firstName: string;
+  lastName: string;
+  profilePicture?: string;
+  role: UserRole;
+  status: UserStatus;
+  fcmToken?: string;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  isActive: boolean;
+  isDriver: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
+// KYC Document entity from Nest
 export interface KycDocument {
   id: string;
   userId: string;
-  user: AdminUserSummary;
+  user: User;
   cniFrontUrl?: string;
   cniBackUrl?: string;
   selfieUrl?: string;
@@ -82,28 +99,83 @@ export interface DashboardResponse {
   kycQueueShortlist: KycDocument[];
 }
 
-export interface UserRecord {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  plan: "Essai" | "Actif" | "Expiré";
-  rides: number;
-  rating: number;
-  status: "actif" | "suspendu" | "en revue";
-  lastRide: string;
+// Admin user profile with stats
+export interface AdminProfile {
+  user: User;
+  stats: {
+    vehicles: number;
+    tripsAsDriver: number;
+    bookingsAsPassenger: number;
+    bookingsAsDriver: number;
+    messagesSent: number;
+  };
 }
 
-export interface RideRecord {
+// Trip types from Nest backend
+export type TripStatus = "upcoming" | "ongoing" | "completed" | "cancelled";
+export type Coordinates = [number, number] | null;
+
+export interface SanitizedUser {
   id: string;
-  driver: string;
-  departure: string;
-  arrival: string;
-  status: "actif" | "terminé" | "annulé";
-  seats: number;
-  price: number;
-  departureTime: string;
-  demandLevel: "haut" | "moyen" | "bas";
+  firstName: string;
+  lastName: string;
+  phone: string;
+  profilePicture: string | null;
+  role: UserRole;
+  status: UserStatus;
+  isDriver: boolean;
+}
+
+export interface Trip {
+  id: string;
+  driverId: string;
+  driver: SanitizedUser | null;
+  departureLocation: string;
+  departureCoordinates: Coordinates;
+  arrivalLocation: string;
+  arrivalCoordinates: Coordinates;
+  departureDate: string;
+  availableSeats: number;
+  pricePerSeat: number;
+  description?: string;
+  status: TripStatus;
+  completedAt?: string;
+  currentLocation?: Coordinates;
+  lastLocationUpdateAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  bookings: Booking[];
+}
+
+// Booking types from Nest backend
+export type BookingStatus = "pending" | "accepted" | "rejected" | "cancelled" | "completed";
+
+export interface Booking {
+  id: string;
+  tripId: string;
+  passengerId: string;
+  passenger: SanitizedUser | null;
+  numberOfSeats: number;
+  status: BookingStatus;
+  rejectionReason?: string | null;
+  acceptedAt?: string | null;
+  cancelledAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Vehicle types from Nest backend
+export interface Vehicle {
+  id: string;
+  ownerId: string;
+  brand: string;
+  model: string;
+  color: string;
+  licensePlate: string;
+  photoUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SubscriptionPlan {
@@ -146,29 +218,14 @@ export interface NotificationItem {
   read: boolean;
 }
 
-export interface AdminProfile {
-  id: string;
-  name: string;
-  role: string;
-  email: string;
-  phone: string;
-  lastConnection: string;
-  avatarUrl?: string;
-  stats: {
-    kycValidated: number;
-    ticketsResolved: number;
-    actionsThisWeek: number;
-    securityLevel: "Standard" | "Renforcé";
-  };
-  notifications: {
-    email: boolean;
-    sms: boolean;
-    push: boolean;
-  };
-  security: {
-    twoFactorEnabled: boolean;
-    lastPasswordChange: string;
-    trustedDevices: string[];
-  };
+// Paginated response from Nest
+export interface PaginatedUsersResponse {
+  users: User[];
+  total: number;
+}
+
+export interface PaginatedTripsResponse {
+  trips: Trip[];
+  total: number;
 }
 

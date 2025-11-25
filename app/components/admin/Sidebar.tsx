@@ -15,7 +15,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { useGetKycDocumentsQuery } from "@/lib/features/kyc/kycApi";
+import { useGetPendingKycsQuery } from "@/lib/features/kyc/kycApi";
 import { useGetReportsQuery } from "@/lib/features/reports/reportsApi";
 import { useAppSelector } from "@/lib/hooks";
 
@@ -75,7 +75,7 @@ export const Sidebar = () => {
   const pathname = usePathname();
   const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
   const { data: reports } = useGetReportsQuery();
-  const { data: kyc } = useGetKycDocumentsQuery();
+  const { data: kyc } = useGetPendingKycsQuery();
 
   const getBadge = (key?: string) => {
     if (key === "reports") {

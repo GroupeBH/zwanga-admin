@@ -1,13 +1,10 @@
 import type {
-  AdminProfile,
   DashboardResponse,
   IncidentReport,
   KycDocument,
   NotificationItem,
-  RideRecord,
   SubscriptionPlan,
   SupportTicket,
-  UserRecord,
 } from "./types";
 
 const wait = (duration = 180) =>
@@ -26,9 +23,18 @@ export const kycDocumentsPayload: KycDocument[] = [
     userId: "USR-901",
     user: {
       id: "USR-901",
-      fullName: "Sandrine Kabeya",
+      firstName: "Sandrine",
+      lastName: "Kabeya",
       email: "sandrine.k@zwanga.cd",
-      phoneNumber: "+243 829 555 410",
+      phone: "+243 829 555 410",
+      role: "driver",
+      status: "pending_kyc",
+      isEmailVerified: true,
+      isPhoneVerified: true,
+      isActive: true,
+      isDriver: true,
+      createdAt: "2025-11-01T00:00:00Z",
+      updatedAt: "2025-11-17T06:55:00Z",
     },
     cniFrontUrl: "https://placehold.co/320x200?text=CNI+Front",
     cniBackUrl: "https://placehold.co/320x200?text=CNI+Back",
@@ -42,9 +48,18 @@ export const kycDocumentsPayload: KycDocument[] = [
     userId: "USR-904",
     user: {
       id: "USR-904",
-      fullName: "David Luwezi",
+      firstName: "David",
+      lastName: "Luwezi",
       email: "david.l@zwanga.cd",
-      phoneNumber: "+243 991 220 500",
+      phone: "+243 991 220 500",
+      role: "driver",
+      status: "active",
+      isEmailVerified: true,
+      isPhoneVerified: true,
+      isActive: true,
+      isDriver: true,
+      createdAt: "2025-11-01T00:00:00Z",
+      updatedAt: "2025-11-16T18:42:00Z",
     },
     cniFrontUrl: "https://placehold.co/320x200?text=CNI+Front",
     cniBackUrl: "https://placehold.co/320x200?text=CNI+Back",
@@ -60,9 +75,18 @@ export const kycDocumentsPayload: KycDocument[] = [
     userId: "USR-905",
     user: {
       id: "USR-905",
-      fullName: "Stéphanie Badika",
+      firstName: "Stéphanie",
+      lastName: "Badika",
       email: "stephanie.b@zwanga.cd",
-      phoneNumber: "+243 829 990 114",
+      phone: "+243 829 990 114",
+      role: "driver",
+      status: "pending_kyc",
+      isEmailVerified: true,
+      isPhoneVerified: true,
+      isActive: true,
+      isDriver: true,
+      createdAt: "2025-11-01T00:00:00Z",
+      updatedAt: "2025-11-15T13:10:00Z",
     },
     cniFrontUrl: "https://placehold.co/320x200?text=CNI+Front",
     cniBackUrl: "https://placehold.co/320x200?text=CNI+Back",
@@ -79,9 +103,18 @@ export const kycDocumentsPayload: KycDocument[] = [
     userId: "USR-902",
     user: {
       id: "USR-902",
-      fullName: "Patrick Mumbere",
+      firstName: "Patrick",
+      lastName: "Mumbere",
       email: "patrick.m@zwanga.cd",
-      phoneNumber: "+243 977 225 148",
+      phone: "+243 977 225 148",
+      role: "driver",
+      status: "pending_kyc",
+      isEmailVerified: true,
+      isPhoneVerified: true,
+      isActive: true,
+      isDriver: true,
+      createdAt: "2025-11-01T00:00:00Z",
+      updatedAt: "2025-11-17T06:10:00Z",
     },
     cniFrontUrl: "https://placehold.co/320x200?text=CNI+Front",
     cniBackUrl: "https://placehold.co/320x200?text=CNI+Back",
@@ -180,7 +213,8 @@ export const dashboardPayload: DashboardResponse = {
   kycQueueShortlist: kycDocumentsPayload.slice(0, 3),
 };
 
-export const usersPayload: UserRecord[] = [
+// Mock users payload - kept for backward compatibility but not used
+export const usersPayload: any[] = [
   {
     id: "USR-901",
     name: "Sandrine Kabeya",
@@ -238,7 +272,8 @@ export const usersPayload: UserRecord[] = [
   },
 ];
 
-export const ridesPayload: RideRecord[] = [
+// Mock rides payload - kept for backward compatibility but not used
+export const ridesPayload: any[] = [
   {
     id: "RIDE-9001",
     driver: "Stéphane B.",
@@ -424,7 +459,8 @@ export const notificationsPayload: NotificationItem[] = [
   },
 ];
 
-export const profilePayload: AdminProfile = {
+// Mock profile payload - kept for backward compatibility but not used
+export const profilePayload: any = {
   id: "ADM-01",
   name: "Eugène Bosuku",
   role: "Head of Operations",

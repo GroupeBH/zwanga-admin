@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 
 import { StoreProvider } from "./StoreProvider";
 import { ThemeWatcher } from "./components/theme/ThemeWatcher";
+import { AuthGuard } from "./components/auth/AuthGuard";
 
 import "./styles/globals.css";
 
@@ -25,10 +26,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Props) {
   return (
     <StoreProvider>
-      <html lang="fr" className={inter.variable}>
-        <body>
+      <html lang="fr" className={inter.variable} suppressHydrationWarning>
+        <body suppressHydrationWarning>
           <ThemeWatcher />
-          {children}
+          <AuthGuard>{children}</AuthGuard>
         </body>
       </html>
     </StoreProvider>

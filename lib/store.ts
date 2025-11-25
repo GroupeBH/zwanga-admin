@@ -3,10 +3,13 @@ import { combineSlices, configureStore } from "@reduxjs/toolkit";
 
 import { baseApi } from "./features/api/baseApi";
 import { uiSlice } from "./features/ui/uiSlice";
+import authReducer from "./features/auth/authSlice";
 
 // `combineSlices` automatically combines the reducers using
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.
-const rootReducer = combineSlices(uiSlice, baseApi);
+const rootReducer = combineSlices(uiSlice, baseApi, {
+  auth: authReducer,
+});
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;
 

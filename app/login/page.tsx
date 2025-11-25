@@ -5,13 +5,17 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 import { useLoginWithPhoneMutation } from "@/lib/features/auth/authApi";
+import { setAuthTokens } from "@/lib/utils/cookies";
+import { useAppDispatch } from "@/lib/hooks";
+import { setAuthenticated } from "@/lib/features/auth/authSlice";
 
 import styles from "./login.module.css";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [password, setPassword] = useState("");
+  const dispatch = useAppDispatch();
+  const [phone, setPhone] = useState("");
+  // const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [login, { isLoading }] = useLoginWithPhoneMutation();
 
@@ -20,7 +24,15 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      await login({ phoneNumber, password }).unwrap();
+      const response = await login({ phone }).unwrap();
+      
+      // Stocker les tokens dans les cookies
+      setAuthTokens(response.accessToken, response.refreshToken);
+      
+      // Mettre à jour l'état Redux
+      dispatch(setAuthenticated(true));
+      
+      // Rediriger vers le dashboard
       router.push("/dashboard");
     } catch (err) {
       const message =
@@ -29,6 +41,8 @@ export default function LoginPage() {
       setError(message);
     }
   };
+
+  console.log(process.env.NEXT_PUBLIC_API_PUBLIC_URL);
 
   return (
     <div className={styles.page}>
@@ -41,17 +55,11 @@ export default function LoginPage() {
           <input
             type="tel"
             placeholder="+243 000 000 000"
-            value={phoneNumber}
-            onChange={(event) => setPhoneNumber(event.target.value)}
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
             required
           />
-          <input
-            type="password"
-            placeholder="Mot de passe"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
+         
           {error ? <p className={styles.error}>{error}</p> : null}
           <button type="submit" disabled={isLoading}>
             {isLoading ? "Connexion..." : "Se connecter"}

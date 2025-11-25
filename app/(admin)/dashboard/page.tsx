@@ -251,8 +251,10 @@ export default function DashboardPage() {
           <div className={styles.kycList}>
             {data.kycQueueShortlist.map((request) => (
               <div key={request.id} className={styles.kycItem}>
-                <strong>{request.user.fullName}</strong>
-                <span>{request.user.email}</span>
+                <strong>
+                  {request.user.firstName} {request.user.lastName}
+                </strong>
+                <span>{request.user.email ?? request.user.phone}</span>
                 <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <span className={`${styles.pill} ${kycStatusClass(request.status)}`}>
                     {request.status}

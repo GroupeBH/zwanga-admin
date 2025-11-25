@@ -1,16 +1,14 @@
 import { baseApi } from "../api/baseApi";
-import { hydrate, profilePayload } from "../admin/mockData";
 import type { AdminProfile } from "../admin/types";
 
 export const profileApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getAdminProfile: builder.query<AdminProfile, void>({
-      queryFn: () => hydrate(profilePayload),
+    getCurrentUserProfile: builder.query<AdminProfile, void>({
+      query: () => "/users/me",
       providesTags: ["AdminProfile"],
     }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetAdminProfileQuery } = profileApi;
-
+export const { useGetCurrentUserProfileQuery } = profileApi;

@@ -14,7 +14,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { toggleSidebar, toggleTheme } from "@/lib/features/ui/uiSlice";
 import { useGetNotificationsQuery } from "@/lib/features/notifications/notificationsApi";
+import { useLogoutMutation } from "@/lib/features/auth/authApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { clearAuthTokens } from "@/lib/utils/cookies";
+import { setAuthenticated } from "@/lib/features/auth/authSlice";
 
 import styles from "./Topbar.module.css";
 
@@ -25,6 +28,24 @@ export const Topbar = () => {
   const [panelOpen, setPanelOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
+  const handleLogout = async () => {
+    try {
+      await logout().unwrap();
+      // Supprimer les cookies d'authentification
+      clearAuthTokens();
+      // Mettre à jour l'état Redux
+      dispatch(setAuthenticated(false));
+      // Rediriger vers la page de connexion
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout failed", error);
+      // Même en cas d'erreur, nettoyer les cookies locaux
+      clearAuthTokens();
+      dispatch(setAuthenticated(false));
+      window.location.href = "/login";
+    }
+  };
 
   const formatter = useMemo(
     () =>
@@ -146,6 +167,14 @@ export const Topbar = () => {
             <span>Head of Ops</span>
           </div>
         </Link>
+        <button
+          type="button"
+          className={styles.ghostButton}
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+        >
+          {isLoggingOut ? "..." : "Logout"}
+        </button>
       </div>
     </header>
   );
