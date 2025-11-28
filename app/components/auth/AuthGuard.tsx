@@ -11,7 +11,12 @@ interface AuthGuardProps {
   children: React.ReactNode;
 }
 
-const PUBLIC_ROUTES = ["/login"];
+const PUBLIC_ROUTES = [
+  "/login",
+  "/privacy",
+  "/terms",
+  "/sales-policy",
+];
 
 export const AuthGuard = ({ children }: AuthGuardProps) => {
   const router = useRouter();
@@ -21,6 +26,12 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
 
   useEffect(() => {
     const checkAuth = () => {
+      // Si on est sur une route publique (sauf login), on n'a pas besoin de vérifier l'auth
+      if (PUBLIC_ROUTES.includes(pathname) && pathname !== "/login") {
+        dispatch(setLoading(false));
+        return;
+      }
+
       dispatch(setLoading(true));
 
       // Vérifier la présence des cookies d'authentification
@@ -44,7 +55,12 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     checkAuth();
   }, [pathname, dispatch, router]);
 
-  // Afficher un loader pendant la vérification
+  // Si on est sur une route publique (pages légales), afficher le contenu immédiatement
+  if (PUBLIC_ROUTES.includes(pathname) && pathname !== "/login") {
+    return <>{children}</>;
+  }
+
+  // Afficher un loader pendant la vérification (seulement pour les routes protégées ou /login)
   if (isLoading) {
     return (
       <div
@@ -60,11 +76,6 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
         <div>Vérification de l'authentification...</div>
       </div>
     );
-  }
-
-  // Si on est sur une route publique, afficher le contenu
-  if (PUBLIC_ROUTES.includes(pathname)) {
-    return <>{children}</>;
   }
 
   // Si on est authentifié, afficher le contenu
