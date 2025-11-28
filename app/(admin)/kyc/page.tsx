@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 
 import {
   useGetPendingKycsQuery,
@@ -131,21 +132,42 @@ export default function KycPage() {
               <div className={styles.documentGrid}>
                 <div className={styles.documentPreview}>
                   {selected?.cniFrontUrl ? (
-                    <img src={selected?.cniFrontUrl} alt="Carte nationale - Recto" />
+                    <Image
+                      src={selected.cniFrontUrl}
+                      alt="Carte nationale - Recto"
+                      width={400}
+                      height={300}
+                      style={{ objectFit: "contain" }}
+                      unoptimized
+                    />
                   ) : (
                     "Recto CNI non fourni"
                   )}
                 </div>
                 <div className={styles.documentPreview}>
                   {selected?.cniBackUrl ? (
-                    <img src={selected?.cniBackUrl} alt="Carte nationale - Verso" />
+                    <Image
+                      src={selected.cniBackUrl}
+                      alt="Carte nationale - Verso"
+                      width={400}
+                      height={300}
+                      style={{ objectFit: "contain" }}
+                      unoptimized
+                    />
                   ) : (
                     "Verso CNI non fourni"
                   )}
                 </div>
                 <div className={styles.documentPreview}>
                   {selected?.selfieUrl ? (
-                    <img src={selected?.selfieUrl} alt="Selfie contrôle" />
+                    <Image
+                      src={selected.selfieUrl}
+                      alt="Selfie contrôle"
+                      width={400}
+                      height={300}
+                      style={{ objectFit: "contain" }}
+                      unoptimized
+                    />
                   ) : (
                     "Selfie non fourni"
                   )}

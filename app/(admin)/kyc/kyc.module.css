@@ -64,7 +64,14 @@
 .documentPreview img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+}
+
+.documentPreview :global(img) {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .documentGrid {

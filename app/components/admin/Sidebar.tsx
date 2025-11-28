@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import clsx from "clsx";
 import {
   AlertTriangle,
+  Calendar,
   CreditCard,
   LayoutDashboard,
   LifeBuoy,
@@ -17,6 +19,7 @@ import {
 
 import { useGetPendingKycsQuery } from "@/lib/features/kyc/kycApi";
 import { useGetReportsQuery } from "@/lib/features/reports/reportsApi";
+import { useGetAllTripsQuery } from "@/lib/features/trips/tripsApi";
 import { useAppSelector } from "@/lib/hooks";
 
 import styles from "./Sidebar.module.css";
@@ -42,6 +45,12 @@ const navItems = [
     label: "Trajets",
     href: "/rides",
     icon: Route,
+  },
+  {
+    label: "Réservations",
+    href: "/bookings",
+    icon: Calendar,
+    badgeKey: "bookings",
   },
   {
     label: "Abonnements",
@@ -76,6 +85,15 @@ export const Sidebar = () => {
   const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
   const { data: reports } = useGetReportsQuery();
   const { data: kyc } = useGetPendingKycsQuery();
+  const { data: tripsData } = useGetAllTripsQuery({ page: 1, limit: 100 });
+
+  const pendingBookingsCount = useMemo(() => {
+    const trips = tripsData?.trips ?? [];
+    return trips.reduce((count, trip) => {
+      const pendingInTrip = trip.bookings?.filter((b) => b.status === "pending").length ?? 0;
+      return count + pendingInTrip;
+    }, 0);
+  }, [tripsData]);
 
   const getBadge = (key?: string) => {
     if (key === "reports") {
@@ -83,6 +101,9 @@ export const Sidebar = () => {
     }
     if (key === "kyc") {
       return kyc?.filter((item) => item.status === "pending").length ?? 0;
+    }
+    if (key === "bookings") {
+      return pendingBookingsCount;
     }
     return undefined;
   };

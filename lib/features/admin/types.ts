@@ -153,8 +153,9 @@ export type BookingStatus = "pending" | "accepted" | "rejected" | "cancelled" | 
 export interface Booking {
   id: string;
   tripId: string;
+  trip?: Trip;
   passengerId: string;
-  passenger: SanitizedUser | null;
+  passenger: User | null;
   numberOfSeats: number;
   status: BookingStatus;
   rejectionReason?: string | null;
