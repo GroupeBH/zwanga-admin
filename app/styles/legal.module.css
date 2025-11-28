@@ -1,0 +1,125 @@
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: 2rem 1rem;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  color: var(--color-text);
+}
+
+.lastUpdated {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.content {
+  line-height: 1.8;
+}
+
+.section {
+  margin-bottom: 3rem;
+}
+
+.section h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem 0;
+  color: var(--color-text);
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.section:first-of-type h2 {
+  border-top: none;
+  padding-top: 0;
+}
+
+.section h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 1.5rem 0 1rem 0;
+  color: var(--color-text);
+}
+
+.section p {
+  margin: 0 0 1.25rem 0;
+  color: var(--color-text);
+}
+
+.section ul {
+  margin: 1rem 0;
+  padding-left: 1.75rem;
+}
+
+.section li {
+  margin: 0.75rem 0;
+  color: var(--color-text);
+}
+
+.section li strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.section a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  transition: opacity 0.2s;
+}
+
+.section a:hover {
+  opacity: 0.8;
+}
+
+.contactInfo {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.contactInfo p {
+  margin: 0;
+  line-height: 1.8;
+}
+
+.contactInfo a {
+  color: var(--color-primary);
+}
+
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 2rem;
+  }
+
+  .section h2 {
+    font-size: 1.5rem;
+  }
+
+  .section h3 {
+    font-size: 1.15rem;
+  }
+
+  .page {
+    padding: 1.5rem 1rem;
+  }
+}
+
