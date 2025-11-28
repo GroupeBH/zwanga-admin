@@ -78,6 +78,11 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     );
   }
 
+  // Si on est sur /login, afficher la page de login (même si pas authentifié)
+  if (pathname === "/login") {
+    return <>{children}</>;
+  }
+
   // Si on est authentifié, afficher le contenu
   if (isAuthenticated) {
     return <>{children}</>;
