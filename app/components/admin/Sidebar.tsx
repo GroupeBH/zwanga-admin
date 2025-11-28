@@ -88,9 +88,9 @@ export const Sidebar = () => {
   const { data: tripsData } = useGetAllTripsQuery({ page: 1, limit: 100 });
 
   const pendingBookingsCount = useMemo(() => {
-    const trips = tripsData?.trips ?? [];
-    return trips.reduce((count, trip) => {
-      const pendingInTrip = trip.bookings?.filter((b) => b.status === "pending").length ?? 0;
+    const trips = tripsData ?? [];
+    return trips.reduce((count: any, trip: any) => {
+      const pendingInTrip = trip.bookings?.filter((b: any) => b.status === "pending")?.length ?? 0;
       return count + pendingInTrip;
     }, 0);
   }, [tripsData]);
