@@ -12,6 +12,7 @@ interface AuthGuardProps {
 }
 
 const PUBLIC_ROUTES = [
+  "/",
   "/login",
   "/privacy",
   "/terms",
