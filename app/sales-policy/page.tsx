@@ -324,7 +324,7 @@ export default function SalesPolicyPage() {
                 <strong>Chat en ligne :</strong> Disponible de 8h à 20h (heure locale)
               </li>
               <li>
-                <strong>Téléphone :</strong> +243 XXX XXX XXX (lun-ven, 9h-18h)
+                <strong>Téléphone :</strong> +243999403012 (lun-ven, 9h-18h)
               </li>
             </ul>
 
@@ -387,7 +387,7 @@ export default function SalesPolicyPage() {
                 <br />
                 Support : <a href="mailto:support@zwanga.com">support@zwanga.com</a>
                 <br />
-                Téléphone : +243 XXX XXX XXX
+                Téléphone : +243999403012
                 <br />
                 Adresse : Kinshasa, République Démocratique du Congo
               </p>

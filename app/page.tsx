@@ -413,7 +413,7 @@ export default function HomePage() {
             <div className={styles.footerSection}>
               <h4 className={styles.footerTitle}>Contact</h4>
               <p className={styles.footerText}>Email: contact@zwanga.com</p>
-              <p className={styles.footerText}>Téléphone: +243 000 000 000</p>
+              <p className={styles.footerText}>Téléphone: +243999403012</p>
             </div>
           </div>
           <div className={styles.footerBottom}>

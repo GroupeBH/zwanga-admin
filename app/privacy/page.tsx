@@ -290,7 +290,7 @@ export default function PrivacyPolicyPage() {
                 <br />
                 Support : <a href="mailto:support@zwanga.com">support@zwanga.com</a>
                 <br />
-                Téléphone : +243 XXX XXX XXX
+                Téléphone : +243999403012
               </p>
             </div>
           </section>
