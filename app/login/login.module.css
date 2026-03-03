@@ -55,6 +55,19 @@
   cursor: not-allowed;
 }
 
+.card .linkButton {
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.card .linkButton:hover {
+  text-decoration: underline;
+}
+
 .error {
   color: var(--color-danger);
   font-size: 0.85rem;

@@ -12,7 +12,7 @@ export const setAuthTokens = (accessToken: string, refreshToken: string) => {
   });
 
   Cookies.set(REFRESH_TOKEN_KEY, refreshToken, {
-    expires: 7, // 7 jours
+    expires: 90, // 90 jours
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
   });

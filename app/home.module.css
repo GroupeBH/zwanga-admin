@@ -70,21 +70,6 @@
   color: var(--color-text);
 }
 
-.loginBtn {
-  background: var(--color-primary);
-  color: #0b1b2b;
-  padding: clamp(8px, 1.5vw, 10px) clamp(16px, 3vw, 24px);
-  border-radius: 24px;
-  font-weight: 600;
-  transition: transform 0.2s, box-shadow 0.2s;
-  font-size: clamp(14px, 1.5vw, 16px);
-}
-
-.loginBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(255, 122, 0, 0.3);
-}
-
 .mobileMenuBtn {
   display: none;
   background: transparent;
@@ -181,6 +166,12 @@
   width: fit-content;
 }
 
+.primaryActionBtn {
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
 .primaryBtn:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(255, 122, 0, 0.4);
@@ -198,29 +189,56 @@
 }
 
 .appBtn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  padding: clamp(10px, 1.5vw, 12px) clamp(16px, 2.5vw, 20px);
-  border-radius: 24px;
-  font-weight: 500;
+  gap: 12px;
+  background: rgba(9, 21, 34, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
   font-size: clamp(12px, 1.5vw, 14px);
   white-space: nowrap;
+  text-decoration: none;
+  min-width: 188px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
 .appBtn:hover {
-  background: var(--color-panel-muted);
   transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
 }
 
 .appBtnIcon {
-  width: clamp(16px, 2vw, 18px);
-  height: clamp(16px, 2vw, 18px);
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.appBtnIconApple {
+  filter: brightness(0) invert(1);
+}
+
+.appBtnLabel {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.appBtnLabelHint {
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  opacity: 0.78;
+  text-transform: uppercase;
+}
+
+.appBtnLabelName {
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 /* Hero Visual */
@@ -742,10 +760,6 @@
     background: var(--color-panel-muted);
   }
 
-  .loginBtn {
-    width: 100%;
-    justify-content: center;
-  }
 }
 
 /* Responsive - Tablet */
@@ -876,8 +890,7 @@
 /* Touch device optimizations */
 @media (hover: none) and (pointer: coarse) {
   .primaryBtn,
-  .appBtn,
-  .loginBtn {
+  .appBtn {
     min-height: 44px;
   }
 

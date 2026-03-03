@@ -15,7 +15,9 @@ export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [phone, setPhone] = useState("");
-  // const [password, setPassword] = useState("");
+  const [pin, setPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [resetPinMode, setResetPinMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [login, { isLoading }] = useLoginWithPhoneMutation();
 
@@ -24,32 +26,30 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await login({ phone }).unwrap();
-      
-      // Stocker les tokens dans les cookies
+      const payload = resetPinMode
+        ? { phone: phone.trim(), newPin: newPin.trim() }
+        : { phone: phone.trim(), pin: pin.trim() };
+
+      const response = await login(payload).unwrap();
       setAuthTokens(response.accessToken, response.refreshToken);
-      
-      // Mettre à jour l'état Redux
       dispatch(setAuthenticated(true));
-      
-      // Rediriger vers le dashboard
       router.push("/dashboard");
     } catch (err) {
+      const backendMessage = (err as { data?: { message?: string | string[] } })?.data?.message;
       const message =
-        (err as { data?: { message?: string } })?.data?.message ??
-        "Authentification impossible. Vérifiez vos identifiants.";
+        Array.isArray(backendMessage)
+          ? backendMessage.join(", ")
+          : backendMessage ?? "Authentification impossible. Verifiez vos identifiants.";
       setError(message);
     }
   };
-
-  console.log(process.env.NEXT_PUBLIC_API_PUBLIC_URL);
 
   return (
     <div className={styles.page}>
       <div className={styles.card}>
         <span>ZWANGA Admin</span>
-        <h1>Connexion sécurisée</h1>
-        <p>Authentification par numéro de téléphone (JWT en cookie sécurisé)</p>
+        <h1>Connexion securisee</h1>
+        <p>Authentification par numero de telephone + code PIN</p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <input
@@ -59,7 +59,46 @@ export default function LoginPage() {
             onChange={(event) => setPhone(event.target.value)}
             required
           />
-         
+
+          {resetPinMode ? (
+            <input
+              type="password"
+              inputMode="numeric"
+              placeholder="Nouveau PIN (4 chiffres)"
+              value={newPin}
+              onChange={(event) => setNewPin(event.target.value)}
+              minLength={4}
+              maxLength={4}
+              pattern="[0-9]{4}"
+              required
+            />
+          ) : (
+            <input
+              type="password"
+              inputMode="numeric"
+              placeholder="PIN (4 chiffres)"
+              value={pin}
+              onChange={(event) => setPin(event.target.value)}
+              minLength={4}
+              maxLength={4}
+              pattern="[0-9]{4}"
+              required
+            />
+          )}
+
+          <button
+            type="button"
+            className={styles.linkButton}
+            onClick={() => {
+              setResetPinMode((prev) => !prev);
+              setError(null);
+              setPin("");
+              setNewPin("");
+            }}
+          >
+            {resetPinMode ? "J'ai mon PIN" : "PIN oublie ? Reinitialiser"}
+          </button>
+
           {error ? <p className={styles.error}>{error}</p> : null}
           <button type="submit" disabled={isLoading}>
             {isLoading ? "Connexion..." : "Se connecter"}
@@ -67,10 +106,9 @@ export default function LoginPage() {
         </form>
 
         <small>
-          Besoin d&apos;un compte ? <Link href="/support">Contacter l&apos;équipe</Link>
+          Besoin d&apos;un compte ? <Link href="/support">Contacter l&apos;equipe</Link>
         </small>
       </div>
     </div>
   );
 }
-

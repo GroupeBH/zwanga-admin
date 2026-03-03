@@ -3,11 +3,73 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { Car, Users, MapPin, Shield, Clock, Star, Download, ArrowRight, Menu, X } from "lucide-react";
+import { Car, Users, MapPin, Shield, Clock, Star, ArrowRight, Menu, X } from "lucide-react";
 import styles from "./home.module.css";
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const androidAppUrl =
+    process.env.NEXT_PUBLIC_ANDROID_APP_URL || "https://play.google.com/store/apps";
+  const iosAppUrl =
+    process.env.NEXT_PUBLIC_IOS_APP_URL || "https://apps.apple.com/";
+
+  const goToDownloadSection = () => {
+    const section = document.getElementById("download-apps");
+    section?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleStartDownload = () => {
+    const userAgent = navigator.userAgent || navigator.vendor;
+    const isAndroid = /android/i.test(userAgent);
+    const isIOS =
+      /iPad|iPhone|iPod/.test(userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    if (isAndroid) {
+      window.location.href = androidAppUrl;
+      return;
+    }
+
+    if (isIOS) {
+      window.location.href = iosAppUrl;
+      return;
+    }
+
+    goToDownloadSection();
+  };
+
+  const renderStoreButtons = () => (
+    <div className={styles.appButtons}>
+      <a href={androidAppUrl} className={styles.appBtn} aria-label="Telecharger sur Google Play">
+        <Image
+          src="/play-store.svg"
+          alt=""
+          width={26}
+          height={26}
+          className={styles.appBtnIcon}
+          aria-hidden="true"
+        />
+        <span className={styles.appBtnLabel}>
+          <span className={styles.appBtnLabelHint}>Disponible sur</span>
+          <span className={styles.appBtnLabelName}>Google Play</span>
+        </span>
+      </a>
+      <a href={iosAppUrl} className={styles.appBtn} aria-label="Telecharger sur App Store">
+        <Image
+          src="/apple.svg"
+          alt=""
+          width={24}
+          height={24}
+          className={`${styles.appBtnIcon} ${styles.appBtnIconApple}`}
+          aria-hidden="true"
+        />
+        <span className={styles.appBtnLabel}>
+          <span className={styles.appBtnLabelHint}>Telecharger dans l'</span>
+          <span className={styles.appBtnLabelName}>App Store</span>
+        </span>
+      </a>
+    </div>
+  );
 
   return (
     <div className={styles.page}>
@@ -31,7 +93,6 @@ export default function HomePage() {
             <Link href="#app-preview" onClick={() => setMobileMenuOpen(false)}>Aperçu</Link>
             <Link href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>Comment ça marche</Link>
             <Link href="#about" onClick={() => setMobileMenuOpen(false)}>À propos</Link>
-            <Link href="/login" className={styles.loginBtn} onClick={() => setMobileMenuOpen(false)}>Connexion</Link>
           </nav>
           <button 
             className={styles.mobileMenuBtn}
@@ -56,20 +117,15 @@ export default function HomePage() {
                 ZWANGA rend le covoiturage simple, sécurisé et économique.
               </p>
               <div className={styles.heroActions}>
-                <Link href="/login" className={styles.primaryBtn}>
+                <button
+                  type="button"
+                  className={`${styles.primaryBtn} ${styles.primaryActionBtn}`}
+                  onClick={handleStartDownload}
+                >
                   Commencer maintenant
                   <ArrowRight className={styles.btnIcon} />
-                </Link>
-                <div className={styles.appButtons}>
-                  <button className={styles.appBtn}>
-                    <Download className={styles.appBtnIcon} />
-                    Google Play
-                  </button>
-                  <button className={styles.appBtn}>
-                    <Download className={styles.appBtnIcon} />
-                    App Store
-                  </button>
-                </div>
+                </button>
+                {renderStoreButtons()}
               </div>
             </div>
             <div className={styles.heroVisual}>
@@ -339,7 +395,7 @@ export default function HomePage() {
       </section>
 
       {/* Download Section */}
-      <section className={styles.download}>
+      <section id="download-apps" className={styles.download}>
         <div className={styles.container}>
           <div className={styles.downloadContent}>
             <div className={styles.downloadText}>
@@ -349,10 +405,7 @@ export default function HomePage() {
                 Que vous ayez besoin d'aller quelque part rapidement ou que vous souhaitiez gagner de l'argent
                 en partageant votre véhicule, ZWANGA offre une solution de classe mondiale.
               </p>
-              <Link href="/login" className={styles.primaryBtn}>
-                Commencer
-                <ArrowRight className={styles.btnIcon} />
-              </Link>
+              {renderStoreButtons()}
             </div>
             <div className={styles.downloadVisual}>
               <div className={styles.phoneMockup}>
