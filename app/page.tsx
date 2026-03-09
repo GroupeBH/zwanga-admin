@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   BellRing,
   Car,
   CheckCircle2,
   Clock3,
+  Headset,
   Menu,
   MessageSquare,
   Minus,
@@ -20,6 +21,13 @@ import {
   Users,
   X,
 } from "lucide-react";
+import {
+  useCreateTicketMutation,
+  useListFaqQuery,
+  type SupportTicketCategory,
+  type SupportTicketPriority,
+} from "@/lib/features/support/supportApi";
+import { getAccessToken } from "@/lib/utils/cookies";
 import styles from "./home.module.css";
 
 type Benefit = {
@@ -35,6 +43,24 @@ type Faq = {
 type SupportTag = {
   label: string;
   value: string;
+};
+
+type PreviewFlow = "Demande" | "Publication" | "Reservation";
+
+type FlowSummary = {
+  id: string;
+  title: string;
+  audience: string;
+  description: string;
+  steps: string[];
+};
+
+type PreviewImage = {
+  src: string;
+  alt: string;
+  flow: PreviewFlow;
+  step: string;
+  title: string;
 };
 
 const passengerBenefits: Benefit[] = [
@@ -151,6 +177,23 @@ const supportTags: { title: string; items: SupportTag[] }[] = [
   },
 ];
 
+const supportCategoryOptions: { label: string; value: SupportTicketCategory }[] = [
+  { label: "Information generale", value: "general" },
+  { label: "Compte", value: "account" },
+  { label: "Paiement", value: "payment" },
+  { label: "Reservation", value: "booking" },
+  { label: "Securite", value: "safety" },
+  { label: "Technique", value: "technical" },
+  { label: "Autre", value: "other" },
+];
+
+const supportPriorityOptions: { label: string; value: SupportTicketPriority }[] = [
+  { label: "Moyenne", value: "medium" },
+  { label: "Basse", value: "low" },
+  { label: "Haute", value: "high" },
+  { label: "Urgente", value: "urgent" },
+];
+
 const faqs: Faq[] = [
   {
     question: "Zwanga, c'est quoi exactement ?",
@@ -197,39 +240,221 @@ const faqs: Faq[] = [
   },
 ];
 
-const previewImages = [
+const flowSummaries: FlowSummary[] = [
   {
-    src: "/Screenshot_20251226_215934.png",
-    alt: "Ecran accueil Zwanga",
+    id: "demande",
+    title: "Flux demande de trajet",
+    audience: "Passager",
+    description:
+      "Quand aucun trajet ne convient, le passager publie une demande precise et attend les propositions.",
+    steps: [
+      "Definir depart et arrivee.",
+      "Choisir date, plage horaire et options.",
+      "Publier la demande et suivre son statut.",
+      "Recevoir une offre conducteur puis confirmer.",
+    ],
   },
   {
-    src: "/Screenshot_20251226_215948.png",
-    alt: "Recherche de trajet Zwanga",
+    id: "publication",
+    title: "Flux publication de trajet",
+    audience: "Conducteur",
+    description:
+      "Le conducteur cree son trajet et le rend reservable avec toutes les infos utiles en quelques etapes.",
+    steps: [
+      "Renseigner l'itineraire.",
+      "Choisir date et heure de depart.",
+      "Selectionner vehicule, places et prix.",
+      "Verifier puis publier le trajet.",
+    ],
   },
   {
-    src: "/Screenshot_20251226_220031.png",
-    alt: "Reservation de place Zwanga",
+    id: "reservation",
+    title: "Flux reservation et suivi",
+    audience: "Passager + conducteur",
+    description:
+      "Une fois le trajet publie, le passager reserve sa place et les deux profils suivent la course en direct.",
+    steps: [
+      "Ouvrir le detail du trajet.",
+      "Reserver puis confirmer la prise en charge.",
+      "Suivre le statut depuis les reservations.",
+      "Continuer avec navigation et securite active.",
+    ],
+  },
+];
+
+const previewImages: PreviewImage[] = [
+  {
+    src: "/Screenshot_20260309_181138.png",
+    alt: "Ecran accueil avec action Demander",
+    flow: "Demande",
+    step: "D1",
+    title: "Choisir Demander depuis l'accueil",
   },
   {
-    src: "/Screenshot_20251226_220124.png",
-    alt: "Profil utilisateur Zwanga",
+    src: "/Screenshot_20260309_181619.png",
+    alt: "Demander un trajet etape itineraire",
+    flow: "Demande",
+    step: "D2",
+    title: "Renseigner votre itineraire",
   },
   {
-    src: "/Screenshot_20251226_220143.png",
-    alt: "Historique de trajets Zwanga",
+    src: "/Screenshot_20260309_181632.png",
+    alt: "Demander un trajet etape date",
+    flow: "Demande",
+    step: "D3",
+    title: "Choisir date et plage horaire",
   },
   {
-    src: "/Screenshot_20251226_220205.png",
-    alt: "Parametres application Zwanga",
+    src: "/Screenshot_20260309_181720.png",
+    alt: "Demander un trajet etape options",
+    flow: "Demande",
+    step: "D4",
+    title: "Completer options et budget",
+  },
+  {
+    src: "/Screenshot_20260309_181728.png",
+    alt: "Resume avant publication de la demande",
+    flow: "Demande",
+    step: "D5",
+    title: "Verifier puis publier la demande",
+  },
+  {
+    src: "/Screenshot_20260309_182028.png",
+    alt: "Demande acceptee avec creation automatique du trajet",
+    flow: "Demande",
+    step: "D6",
+    title: "Demande acceptee et trajet cree",
+  },
+  {
+    src: "/Screenshot_20260309_150711.png",
+    alt: "Publier un trajet etape route",
+    flow: "Publication",
+    step: "P1",
+    title: "Definir depart et arrivee",
+  },
+  {
+    src: "/Screenshot_20260309_150727.png",
+    alt: "Publier un trajet etape date",
+    flow: "Publication",
+    step: "P2",
+    title: "Choisir la date de depart",
+  },
+  {
+    src: "/Screenshot_20260309_150820.png",
+    alt: "Publier un trajet etape vehicule",
+    flow: "Publication",
+    step: "P3",
+    title: "Selectionner le vehicule",
+  },
+  {
+    src: "/Screenshot_20260309_150853.png",
+    alt: "Publier un trajet etape confirmation",
+    flow: "Publication",
+    step: "P4",
+    title: "Verifier le recapitulatif",
+  },
+  {
+    src: "/Screenshot_20260309_150908.png",
+    alt: "Trajet publie avec succes",
+    flow: "Publication",
+    step: "P5",
+    title: "Trajet publie avec succes",
+  },
+  {
+    src: "/Screenshot_20260309_181229.png",
+    alt: "Details du trajet et action reserver",
+    flow: "Reservation",
+    step: "R1",
+    title: "Ouvrir les details et reserver",
+  },
+  {
+    src: "/Screenshot_20260309_182732.png",
+    alt: "Confirmation de reservation",
+    flow: "Reservation",
+    step: "R2",
+    title: "Reservation confirmee",
+  },
+  {
+    src: "/Screenshot_20260309_182608.png",
+    alt: "Banniere de trajet en cours sur l'accueil",
+    flow: "Reservation",
+    step: "R3",
+    title: "Suivre le statut depuis l'accueil",
+  },
+  {
+    src: "/Screenshot_20260309_182815.png",
+    alt: "Ecran en route avec suivi et signalement",
+    flow: "Reservation",
+    step: "R4",
+    title: "Suivi en direct et securite active",
   },
 ];
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [supportSuccessTicketId, setSupportSuccessTicketId] = useState<string | null>(null);
+  const [isSupportAuthenticated, setIsSupportAuthenticated] = useState(false);
+  const [supportSubject, setSupportSubject] = useState("");
+  const [supportCategory, setSupportCategory] = useState<SupportTicketCategory>("general");
+  const [supportPriority, setSupportPriority] = useState<SupportTicketPriority>("medium");
+  const [supportMessage, setSupportMessage] = useState("");
+  const [supportFeedback, setSupportFeedback] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+  const supportSubjectInputRef = useRef<HTMLInputElement | null>(null);
   const androidAppUrl =
     process.env.NEXT_PUBLIC_ANDROID_APP_URL || "https://play.google.com/store/apps";
   const iosAppUrl = process.env.NEXT_PUBLIC_IOS_APP_URL || "https://apps.apple.com/";
+  const [createTicket, { isLoading: isSubmittingSupportTicket }] = useCreateTicketMutation();
+  const { data: faqResponse } = useListFaqQuery();
+
+  const faqItems = useMemo(() => {
+    const backendFaqList = Array.isArray(faqResponse)
+      ? faqResponse
+      : (faqResponse?.data ?? []);
+
+    if (!backendFaqList.length) {
+      return faqs;
+    }
+
+    const normalized = backendFaqList
+      .map((entry) => ({
+        question: entry.question?.trim(),
+        answer: entry.answer?.trim(),
+      }))
+      .filter((entry) => entry.question && entry.answer) as Faq[];
+
+    return normalized.length ? normalized.slice(0, 8) : faqs;
+  }, [faqResponse]);
+
+  useEffect(() => {
+    setIsSupportAuthenticated(Boolean(getAccessToken()));
+  }, []);
+
+  useEffect(() => {
+    if (!isSupportModalOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSupportModalOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isSupportModalOpen]);
 
   const goToDownloadSection = () => {
     const section = document.getElementById("download-apps");
@@ -239,6 +464,21 @@ export default function HomePage() {
   const goToHowItWorks = () => {
     const section = document.getElementById("how-it-works");
     section?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const openSupportCenter = () => {
+    setSupportSuccessTicketId(null);
+    setSupportFeedback(null);
+    setIsSupportModalOpen(true);
+    window.setTimeout(() => supportSubjectInputRef.current?.focus(), 120);
+  };
+
+  const closeSupportModal = () => {
+    setIsSupportModalOpen(false);
+  };
+
+  const closeSupportSuccessModal = () => {
+    setSupportSuccessTicketId(null);
   };
 
   const handleStartDownload = () => {
@@ -259,6 +499,66 @@ export default function HomePage() {
     }
 
     goToDownloadSection();
+  };
+
+  const handleSupportRequest = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSupportFeedback(null);
+
+    if (!isSupportAuthenticated) {
+      closeSupportModal();
+      handleStartDownload();
+      return;
+    }
+
+    const subject = supportSubject.trim();
+    const message = supportMessage.trim();
+
+    if (!subject || !message) {
+      setSupportFeedback({
+        type: "error",
+        message: "Ajoutez un sujet et un message pour envoyer votre demande.",
+      });
+      return;
+    }
+
+    try {
+      const createdTicket = await createTicket({
+        subject,
+        category: supportCategory,
+        priority: supportPriority,
+        message,
+      }).unwrap();
+
+      setSupportFeedback(null);
+      setIsSupportModalOpen(false);
+      setSupportSuccessTicketId(createdTicket.id);
+      setSupportSubject("");
+      setSupportMessage("");
+      setSupportCategory("general");
+      setSupportPriority("medium");
+    } catch (error) {
+      const status = (error as { status?: number })?.status;
+      const backendMessage = (error as { data?: { message?: string | string[] } })?.data?.message;
+      const messageText =
+        Array.isArray(backendMessage) && backendMessage.length
+          ? backendMessage.join(", ")
+          : typeof backendMessage === "string"
+            ? backendMessage
+            : "Impossible de creer le ticket pour le moment.";
+
+      if (status === 401 || status === 403) {
+        setIsSupportAuthenticated(false);
+        closeSupportModal();
+        handleStartDownload();
+        return;
+      }
+
+      setSupportFeedback({
+        type: "error",
+        message: messageText,
+      });
+    }
   };
 
   const toggleFaq = (index: number) => {
@@ -349,8 +649,8 @@ export default function HomePage() {
                 <span className={styles.eyebrow}>Covoiturage Kinshasa</span>
                 <h1 className={styles.heroTitle}>Le covoiturage Kinshasa, simple, rapide et plus sur.</h1>
                 <p className={styles.heroSubtitle}>
-                  Zwanga est l&apos;application de transport qui connecte chaque passager a un
-                  conducteur verifie pour un trajet securise au quotidien.
+                  Zwanga est l&apos;application de transport qui met en relation chaque passager
+                  avec un conducteur verifie pour un trajet securise au quotidien.
                 </p>
                 <div className={styles.heroActions}>
                   <button
@@ -376,7 +676,7 @@ export default function HomePage() {
                 <div className={styles.phoneMockup}>
                   <div className={styles.phoneScreen}>
                     <Image
-                      src="/Screenshot_20251226_215934.png"
+                      src="/Screenshot_20260309_182608.png"
                       alt="Zwanga application de transport a Kinshasa"
                       fill
                       className={styles.screenshot}
@@ -518,8 +818,24 @@ export default function HomePage() {
           <div className={styles.container}>
             <h2 className={styles.sectionTitle}>Apercu de l'application Zwanga</h2>
             <p className={styles.sectionSubtitle}>
-              Une experience mobile locale pour reserver, suivre et finaliser votre course.
+              Trois flux clairs: demande de trajet, publication conducteur et reservation passager.
             </p>
+            <div className={styles.previewFlowGrid}>
+              {flowSummaries.map((flow) => (
+                <article key={flow.id} className={styles.previewFlowCard}>
+                  <div className={styles.previewFlowHead}>
+                    <h3>{flow.title}</h3>
+                    <span>{flow.audience}</span>
+                  </div>
+                  <p>{flow.description}</p>
+                  <ol className={styles.previewFlowSteps}>
+                    {flow.steps.map((step) => (
+                      <li key={`${flow.id}-${step}`}>{step}</li>
+                    ))}
+                  </ol>
+                </article>
+              ))}
+            </div>
             <div className={styles.previewGrid}>
               {previewImages.map((shot) => (
                 <div key={shot.src} className={styles.previewCard}>
@@ -530,11 +846,28 @@ export default function HomePage() {
                     height={600}
                     className={styles.previewImage}
                   />
+                  <div className={styles.previewMeta}>
+                    <div className={styles.previewMetaTop}>
+                      <span
+                        className={`${styles.previewFlowTag} ${
+                          shot.flow === "Demande"
+                            ? styles.previewFlowDemand
+                            : shot.flow === "Publication"
+                              ? styles.previewFlowPublish
+                              : styles.previewFlowReserve
+                        }`}
+                      >
+                        {shot.flow}
+                      </span>
+                      <span className={styles.previewStep}>{shot.step}</span>
+                    </div>
+                    <strong className={styles.previewTitle}>{shot.title}</strong>
+                  </div>
                 </div>
               ))}
             </div>
-            <a href="#download-apps" className={styles.miniCta}>
-              Installer l'application
+            <a href="#download-apps" className={styles.previewCta}>
+              Installer l'application et tester ces flux
             </a>
           </div>
         </section>
@@ -589,18 +922,35 @@ export default function HomePage() {
                     </article>
                   ))}
                 </div>
-                <a href="#download-apps" className={styles.miniCta}>
+                <button type="button" className={styles.inlineHelpButton} onClick={openSupportCenter}>
                   Signaler ou demander de l'aide
-                </a>
+                </button>
               </div>
-              <ul className={styles.supportList}>
-                {supportFlow.map((step) => (
-                  <li key={step}>
-                    <Clock3 size={18} />
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className={styles.supportTools}>
+                <ul className={styles.supportList}>
+                  {supportFlow.map((step) => (
+                    <li key={step}>
+                      <Clock3 size={18} />
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className={styles.supportCallout}>
+                  <h3>Demander de l'aide depuis le site</h3>
+                  <p>
+                    Ouvrez le formulaire en modal pour poser votre question.
+                    <br />
+                    Ticket suivi via l'application. Depuis le site, nous vous guidons vers le telechargement.
+                  </p>
+                  <button type="button" className={styles.supportSubmit} onClick={openSupportCenter}>
+                    Ouvrir le formulaire d'aide
+                  </button>
+                  <div className={styles.supportQuickLinks}>
+                    <a href="#download-apps">Telecharger l'application</a>
+                    <a href="#faq">Voir la FAQ</a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -612,7 +962,7 @@ export default function HomePage() {
               Les reponses claires avant d&apos;installer Zwanga.
             </p>
             <div className={styles.faqList}>
-              {faqs.map((faq, index) => (
+              {faqItems.map((faq, index) => (
                 <article key={faq.question} className={styles.faqItem}>
                   <button
                     type="button"
@@ -667,7 +1017,7 @@ export default function HomePage() {
                 <div className={styles.phoneMockup}>
                   <div className={styles.phoneScreen}>
                     <Image
-                      src="/Screenshot_20251226_215948.png"
+                      src="/Screenshot_20260309_182815.png"
                       alt="Ecran trajet Zwanga"
                       fill
                       className={styles.screenshot}
@@ -679,6 +1029,155 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {isSupportModalOpen ? (
+          <div
+            className={styles.modalBackdrop}
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) {
+                closeSupportModal();
+              }
+            }}
+          >
+            <div className={styles.supportModal}>
+              <button
+                type="button"
+                className={styles.modalClose}
+                aria-label="Fermer le formulaire d'aide"
+                onClick={closeSupportModal}
+              >
+                <X size={18} />
+              </button>
+
+              <h3>Demander de l'aide</h3>
+              <p>
+                Decrivez votre besoin. Nous vous guidons rapidement.
+                <br />
+                Ticket suivi via l'application Zwanga. Sans session, ce bouton ouvre le telechargement.
+              </p>
+
+              <form className={styles.supportForm} onSubmit={handleSupportRequest}>
+                <input
+                  type="text"
+                  ref={supportSubjectInputRef}
+                  value={supportSubject}
+                  onChange={(event) => setSupportSubject(event.target.value)}
+                  placeholder="Sujet de votre demande"
+                  maxLength={120}
+                  required={isSupportAuthenticated}
+                />
+
+                <div className={styles.supportFormRow}>
+                  <select
+                    value={supportCategory}
+                    onChange={(event) => setSupportCategory(event.target.value as SupportTicketCategory)}
+                  >
+                    {supportCategoryOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={supportPriority}
+                    onChange={(event) => setSupportPriority(event.target.value as SupportTicketPriority)}
+                  >
+                    {supportPriorityOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        Priorite {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <textarea
+                  value={supportMessage}
+                  onChange={(event) => setSupportMessage(event.target.value)}
+                  placeholder="Decrivez votre probleme ou votre question"
+                  rows={4}
+                  required={isSupportAuthenticated}
+                />
+
+                {supportFeedback ? (
+                  <p
+                    className={`${styles.supportFeedback} ${
+                      supportFeedback.type === "error"
+                        ? styles.supportFeedbackError
+                        : styles.supportFeedbackInfo
+                    }`}
+                  >
+                    {supportFeedback.message}
+                  </p>
+                ) : null}
+
+                <button
+                  type="submit"
+                  className={styles.supportSubmit}
+                  disabled={isSubmittingSupportTicket}
+                >
+                  {isSubmittingSupportTicket
+                    ? "Envoi en cours..."
+                    : isSupportAuthenticated
+                      ? "Soumettre ma demande"
+                      : "Telecharger l'application"}
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : null}
+
+        {supportSuccessTicketId ? (
+          <div
+            className={styles.modalBackdrop}
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) {
+                closeSupportSuccessModal();
+              }
+            }}
+          >
+            <div className={styles.successModal}>
+              <div className={styles.successIconWrap}>
+                <CheckCircle2 size={26} />
+              </div>
+              <h3>Demande envoyee avec succes</h3>
+              <p>
+                Ticket cree: <strong>{supportSuccessTicketId}</strong>
+                <br />
+                Notre equipe vous repondra dans les plus brefs delais.
+              </p>
+              <div className={styles.successActions}>
+                <button type="button" className={styles.supportSubmit} onClick={closeSupportSuccessModal}>
+                  Fermer
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  onClick={() => {
+                    closeSupportSuccessModal();
+                    goToDownloadSection();
+                  }}
+                >
+                  Continuer sur le site
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          className={styles.helpFab}
+          aria-label="Ouvrir l'aide"
+          onClick={openSupportCenter}
+        >
+          <Headset size={18} />
+          Besoin d'aide ?
+        </button>
       </main>
 
       <footer className={styles.footer}>
@@ -758,7 +1257,7 @@ export default function HomePage() {
             </div>
             <div className={styles.footerSection}>
               <h4 className={styles.footerTitle}>Contact</h4>
-              <p className={styles.footerText}>Email: contact@zwanga.com</p>
+              <p className={styles.footerText}>Email: info@biso-tech.org</p>
               <p className={styles.footerText}>Telephone: +243999403012</p>
             </div>
           </div>
