@@ -1,18 +1,13 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { AdminShell } from "../components/admin/AdminShell";
-
 interface Props {
   readonly children: ReactNode;
 }
 
 export const metadata: Metadata = {
-  title: {
-    default: "Zwanga Admin",
-    template: "%s | Zwanga Admin",
-  },
-  description: "Espace administrateur Zwanga.",
+  title: "Connexion Admin",
+  description: "Acces reserve a l'equipe d'administration Zwanga.",
   robots: {
     index: false,
     follow: false,
@@ -25,7 +20,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AdminLayout({ children }: Props) {
-  return <AdminShell>{children}</AdminShell>;
+export default function LoginLayout({ children }: Props) {
+  return children;
 }
-

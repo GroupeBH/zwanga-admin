@@ -390,6 +390,12 @@ const previewImages: PreviewImage[] = [
   },
 ];
 
+const rawPublicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://zwanga.cd";
+const publicSiteUrl =
+  rawPublicSiteUrl.startsWith("http://") || rawPublicSiteUrl.startsWith("https://")
+    ? rawPublicSiteUrl
+    : `https://${rawPublicSiteUrl}`;
+
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -429,6 +435,46 @@ export default function HomePage() {
 
     return normalized.length ? normalized.slice(0, 8) : faqs;
   }, [faqResponse]);
+
+  const structuredData = useMemo(
+    () => [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: "Zwanga",
+        url: publicSiteUrl,
+        logo: `${publicSiteUrl}/zwanga.png`,
+        email: "info@biso-tech.org",
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "MobileApplication",
+        name: "Zwanga",
+        operatingSystem: "Android, iOS",
+        applicationCategory: "TravelApplication",
+        description:
+          "Application de transport de covoiturage Kinshasa pour passager et conducteur avec trajet securise.",
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqItems.slice(0, 8).map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer,
+          },
+        })),
+      },
+    ],
+    [faqItems],
+  );
 
   useEffect(() => {
     setIsSupportAuthenticated(Boolean(getAccessToken()));
@@ -600,6 +646,12 @@ export default function HomePage() {
 
   return (
     <div className={styles.page}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData),
+        }}
+      />
       <header className={styles.header}>
         <div className={styles.container}>
           <Link href="/" className={styles.logo}>
