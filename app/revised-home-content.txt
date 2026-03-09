@@ -1,0 +1,177 @@
+# ANALYSE ET RÉÉCRITURE DU CONTENU DU SITE ZWANGA
+
+## 1. Mini diagnostic du texte actuel (5 points max)
+
+- **Manque de clarté immédiate** : L'utilisateur ne comprend pas instantanément ce que fait Zwanga (covoiturage urbain à Kinshasa)
+- **Faiblesse en matière de confiance** : Peu d'éléments rassurants sur la sécurité et la fiabilité du service
+- **Appel à l'action flou** : Le CTA "Commencer maintenant" ne précise pas ce qu'on commence
+- **Contenu générique** : Les descriptions ne sont pas spécifiques au contexte local de Kinshasa
+- **Structure peu convaincante** : Manque de preuves sociales et d'incitations à installer l'application
+
+## 2. Message central de marque (1 phrase)
+
+Trouvez, réservez et partagez des trajets en toute sécurité à Kinshasa avec Zwanga, l'application de covoiturage qui connecte les passagers aux conducteurs locaux.
+
+## 3. Hero (titre, sous-titre, CTA principal, CTA secondaire)
+
+### Version A (Rassurante)
+**Titre** : Votre trajet sûr et fiable à Kinshasa
+**Sous-titre** : L'application de covoiturage qui connecte les passagers aux conducteurs vérifiés de Kinshasa. Plus de stress, plus de souci : votre sécurité est notre priorité.
+**CTA principal** : Trouver un trajet sécurisé
+**CTA secondaire** : Découvrir comment ça marche
+
+### Version B (Orientée action)
+**Titre** : Réservez votre trajet en 30 secondes
+**Sous-titre** : Trouvez un trajet disponible, réservez en quelques clics, et voyagez en toute sécurité à Kinshasa.
+**CTA principal** : Réserver maintenant
+**CTA secondaire** : Télécharger l'application
+
+## 4. Bénéfices clés passager (3)
+
+### Version A (Rassurante)
+- **Conducteurs vérifiés** : Tous nos conducteurs passent une vérification d'identité (KYC) pour votre sécurité
+- **Suivi en temps réel** : Suivez votre trajet et partagez votre position avec vos proches pour plus de tranquillité
+- **Prix transparents** : Aucune surprise : le prix est fixé avant la réservation, sans frais cachés
+- **Mini CTA** : Voir les conducteurs vérifiés
+
+### Version B (Orientée action)
+- **Réservation instantanée** : Trouvez et réservez un trajet en moins de 30 secondes
+- **Économisez jusqu'à 40%** : Partagez les frais de déplacement avec d'autres passagers
+- **Zéro tracas** : Plus besoin d'attendre au bord de la route - votre véhicule arrive directement
+- **Mini CTA** : Réserver maintenant
+
+## 5. Bénéfices clés conducteur (3)
+
+### Version A (Rassurante)
+- **Revenus garantis** : Gagnez de l'argent en partageant les sièges libres de votre véhicule
+- **Passagers vérifiés** : Seuls les passagers avec un profil complet peuvent réserver
+- **Assistance 24/7** : Notre équipe est là pour vous soutenir à chaque étape
+- **Mini CTA** : Devenir conducteur vérifié
+
+### Version B (Orientée action)
+- **Gagnez plus** : Transformez vos trajets quotidiens en source de revenus
+- **Flexibilité totale** : Publiez vos trajets quand vous voulez, où vous voulez
+- **Croissance rapide** : Rejoignez une communauté de conducteurs en pleine expansion
+- **Mini CTA** : Gagner de l'argent maintenant
+
+## 6. Comment ça marche (4 étapes passager + 4 étapes conducteur)
+
+### Passager - Version A (Rassurante)
+1. **Téléchargez l'application** : Créez votre compte et complétez votre profil pour plus de sécurité
+2. **Recherchez votre trajet** : Entrez votre point de départ et votre destination
+3. **Réservez en toute confiance** : Choisissez un conducteur avec de bonnes notes et vérifié
+4. **Voyagez en sécurité** : Suivez votre trajet en temps réel et partagez votre position
+- **Mini CTA** : Télécharger Zwanga
+
+### Passager - Version B (Orientée action)
+1. **Installez Zwanga** : Téléchargez l'application en 30 secondes
+2. **Entrez votre trajet** : Indiquez où vous allez et quand
+3. **Confirmez votre réservation** : Sélectionnez votre trajet et payez en ligne
+4. **Partez !** : Votre conducteur arrive à l'heure convenue
+- **Mini CTA** : Réserver maintenant
+
+### Conducteur - Version A (Rassurante)
+1. **Créez votre profil** : Complétez votre vérification d'identité pour plus de confiance
+2. **Publiez vos trajets** : Indiquez vos itinéraires habituels et vos horaires
+3. **Acceptez les réservations** : Gérez les demandes de passagers depuis votre application
+4. **Gagnez de l'argent** : Recevez vos paiements en toute sécurité après chaque trajet
+- **Mini CTA** : Devenir conducteur
+
+### Conducteur - Version B (Orientée action)
+1. **Inscrivez-vous** : Créez votre compte en 2 minutes
+2. **Vérifiez votre identité** : Passez la vérification KYC pour démarrer
+3. **Proposez des trajets** : Publiez vos déplacements quotidiens
+4. **Monétisez** : Transformez vos trajets en revenus
+- **Mini CTA** : Commencer à gagner
+
+## 7. Section Sécurité & Confiance
+
+### Version A (Rassurante)
+Votre sécurité est notre priorité absolue. Chez Zwanga, nous avons mis en place plusieurs couches de protection pour vous rassurer à chaque trajet. Tous nos conducteurs passent une vérification d'identité complète (KYC), y compris la vérification de leur permis de conduire et de leurs documents de véhicule. Nos passagers doivent également compléter leur profil pour garantir une communauté de confiance. Chaque trajet est suivi en temps réel, et vous pouvez partager votre position avec vos proches pour plus de tranquillité. De plus, notre système de notation permet à chaque utilisateur d'évaluer ses expériences passées, favorisant ainsi un environnement de confiance mutuelle.
+- **Mini CTA** : Voir nos mesures de sécurité
+
+### Version B (Orientée action)
+Sécurité garantie à chaque trajet : vérification KYC des conducteurs, suivi GPS en temps réel, système de notation, et partage de position avec vos proches. Rejoignez une communauté de plus de 8 millions d'utilisateurs qui ont déjà adopté Zwanga pour des déplacements sûrs à Kinshasa.
+- **Mini CTA** : Télécharger l'application
+
+## 8. Section Signalement & Assistance
+
+### Version A (Rassurante)
+Besoin d'aide ? Notre équipe d'assistance est disponible 24/7 pour vous accompagner. Si vous rencontrez un problème pendant un trajet ou si vous souhaitez signaler un comportement inapproprié, utilisez la fonction d'alerte d'urgence dans l'application. Vous pouvez également contacter notre centre de support via la messagerie intégrée ou par téléphone. Tous les signalements sont traités avec confidentialité et sérieux. Nous croyons en une communauté respectueuse et sécurisée, et nous agissons rapidement face à tout comportement qui irait à l'encontre de nos valeurs.
+- **Mini CTA** : Contacter le support
+
+### Version B (Orientée action)
+Assistance 24/7 à portée de main : signalez immédiatement tout incident, contactez notre support en un clic, et bénéficiez d'une réponse rapide. Notre système de signalement protège tous les utilisateurs et maintient un environnement de confiance.
+- **Mini CTA** : Accéder à l'assistance
+
+## 9. FAQ (6 à 8 questions)
+
+### Q1 : Comment fonctionne le covoiturage à Kinshasa avec Zwanga ?
+**A (Version A)** : Zwanga met en relation les passagers et les conducteurs à Kinshasa. Les conducteurs publient leurs trajets disponibles, et les passagers réservent une place selon leurs besoins. Cela permet de réduire les frais de déplacement pour les passagers et de générer des revenus pour les conducteurs.
+**A (Version B)** : Trouvez un trajet en quelques secondes, réservez en ligne, et partagez le coût du déplacement. C'est simple, rapide et économique.
+- **Mini CTA** : Essayer le covoiturage Kinshasa
+
+### Q2 : Est-ce que les conducteurs sont fiables ?
+**A (Version A)** : Oui, tous nos conducteurs passent une vérification d'identité complète (KYC), y compris la vérification de leur permis de conduire et de leurs documents de véhicule. Ils sont également évalués par les passagers après chaque trajet.
+**A (Version B)** : Tous les conducteurs sont vérifiés et notés par d'autres passagers. Consultez leurs évaluations avant de réserver.
+- **Mini CTA** : Voir les conducteurs vérifiés
+
+### Q3 : Comment sont fixés les prix des trajets ?
+**A (Version A)** : Les prix sont fixés par les conducteurs en fonction de la distance et du temps de trajet. Ils sont affichés clairement avant la réservation, sans frais cachés.
+**A (Version B)** : Le prix est fixé par le conducteur et affiché avant votre réservation. Aucune surprise !
+- **Mini CTA** : Calculer mon trajet
+
+### Q4 : Quelle est la procédure en cas de problème pendant un trajet ?
+**A (Version A)** : Utilisez la fonction d'alerte d'urgence dans l'application pour contacter immédiatement notre équipe de support. Vous pouvez également contacter les autorités locales si nécessaire.
+**A (Version B)** : Activez l'alerte d'urgence dans l'application ou contactez notre support 24/7.
+- **Mini CTA** : Voir les mesures de sécurité
+
+### Q5 : Puis-je modifier ou annuler ma réservation ?
+**A (Version A)** : Oui, vous pouvez modifier ou annuler votre réservation selon les conditions définies par le conducteur. Les remboursements sont traités selon notre politique d'annulation.
+**A (Version B)** : Annulez ou modifiez selon les conditions du conducteur. Consultez les détails avant de réserver.
+- **Mini CTA** : Gérer mes réservations
+
+### Q6 : Comment les paiements sont-ils sécurisés ?
+**A (Version A)** : Tous les paiements sont traités via des processeurs certifiés PCI-DSS. Vos informations bancaires ne sont jamais stockées sur nos serveurs.
+**A (Version B)** : Paiements sécurisés via des systèmes certifiés. Vos données sont protégées.
+- **Mini CTA** : Voir les méthodes de paiement
+
+### Q7 : Zwanga est-il disponible dans d'autres villes ?
+**A (Version A)** : Actuellement, Zwanga opère principalement à Kinshasa, mais nous prévoyons d'étendre nos services à d'autres villes de la RDC.
+**A (Version B)** : Présent à Kinshasa avec des plans d'expansion vers d'autres villes.
+- **Mini CTA** : Télécharger à Kinshasa
+
+### Q8 : Comment devenir conducteur sur Zwanga ?
+**A (Version A)** : Inscrivez-vous sur l'application, complétez la vérification KYC, et commencez à publier vos trajets. Notre équipe vous accompagne dans le processus.
+**A (Version B)** : Inscrivez-vous, vérifiez votre identité, et commencez à gagner de l'argent immédiatement.
+- **Mini CTA** : Devenir conducteur
+
+## 10. CTA final (3 variantes)
+
+**Variante A (Rassurante)** : Rejoignez une communauté de confiance - Téléchargez Zwanga aujourd'hui et voyagez en toute sécurité à Kinshasa
+**Variante B (Orientée action)** : Commencez à économiser sur vos déplacements - Téléchargez l'application maintenant
+**Variante C (Urgence)** : Votre trajet de demain commence aujourd'hui - Installez Zwanga et trouvez un trajet en 30 secondes
+
+## 11. Microcopie boutons (10 propositions)
+
+1. Trouver un trajet sécurisé
+2. Réserver maintenant
+3. Devenir conducteur
+4. Voir les trajets disponibles
+5. Télécharger l'application
+6. Créer mon compte
+7. Vérifier mon identité
+8. Explorer Kinshasa
+9. Gagner de l'argent
+10. Contacter le support
+
+## 12. Recommandations de placement des CTA sur la page
+
+1. **CTA principal dans le Hero** : Bouton "Trouver un trajet sécurisé" bien visible, accompagné d'un second bouton "Télécharger l'application"
+2. **CTA dans la section Avantages** : Placer des CTAs spécifiques après chaque liste d'avantages (ex: "Devenir passager" et "Devenir conducteur")
+3. **CTA dans la section Comment ça marche** : Bouton "Commencer maintenant" en bas de chaque parcours utilisateur
+4. **CTA dans la section Sécurité** : Bouton "Voir nos mesures de sécurité" pour renforcer la confiance
+5. **CTA dans la section Téléchargement** : Boutons "Télécharger sur Google Play" et "Télécharger sur App Store" bien visibles
+6. **CTA final dans le Footer** : Bouton "Installer Zwanga" dans la section footer pour capter les utilisateurs en fin de parcours
+
+Ces recommandations permettront d'améliorer la conversion en guidant les utilisateurs à travers un parcours clair qui répond à leurs besoins de compréhension, de confiance et d'action.

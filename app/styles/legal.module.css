@@ -29,6 +29,33 @@
   margin: 0;
 }
 
+.languageToggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.langButton {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.langButton:hover {
+  background: var(--color-hover);
+}
+
+.langButton.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
 .content {
   line-height: 1.8;
 }
@@ -43,7 +70,7 @@
   margin: 0 0 1.5rem 0;
   color: var(--color-text);
   padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
+ border-top: 1px solid var(--color-border);
 }
 
 .section:first-of-type h2 {
@@ -120,6 +147,10 @@
 
   .page {
     padding: 1.5rem 1rem;
+  }
+  
+  .languageToggle {
+    flex-direction: column;
   }
 }
 
