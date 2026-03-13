@@ -255,8 +255,10 @@
   border: 1px solid var(--landing-border);
   background: rgba(255, 255, 255, 0.9);
   color: var(--landing-text);
+  font: inherit;
   text-decoration: none;
   box-shadow: 0 10px 20px rgba(9, 16, 42, 0.08);
+  cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
@@ -1114,6 +1116,42 @@
 .successActions {
   display: grid;
   gap: 8px;
+}
+
+.storeNoticeModal {
+  width: min(100%, 460px);
+  border-radius: 20px;
+  border: 1px solid var(--landing-border);
+  background: linear-gradient(160deg, #ffffff, #fff7ee);
+  box-shadow: 0 30px 60px rgba(6, 12, 32, 0.28);
+  padding: 24px 20px;
+  display: grid;
+  gap: 12px;
+  text-align: center;
+  position: relative;
+}
+
+.storeNoticeIconWrap {
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 122, 0, 0.14);
+  color: var(--color-primary);
+  margin: 0 auto;
+}
+
+.storeNoticeModal h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.storeNoticeModal p {
+  margin: 0;
+  color: var(--landing-muted);
+  line-height: 1.5;
 }
 
 .faqList {

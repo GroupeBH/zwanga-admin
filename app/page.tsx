@@ -400,6 +400,7 @@ export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [isAppStoreModalOpen, setIsAppStoreModalOpen] = useState(false);
   const [supportSuccessTicketId, setSupportSuccessTicketId] = useState<string | null>(null);
   const [isSupportAuthenticated, setIsSupportAuthenticated] = useState(false);
   const [supportSubject, setSupportSubject] = useState("");
@@ -412,8 +413,8 @@ export default function HomePage() {
   } | null>(null);
   const supportSubjectInputRef = useRef<HTMLInputElement | null>(null);
   const androidAppUrl =
-    process.env.NEXT_PUBLIC_ANDROID_APP_URL || "https://play.google.com/store/apps";
-  const iosAppUrl = process.env.NEXT_PUBLIC_IOS_APP_URL || "https://apps.apple.com/";
+    process.env.NEXT_PUBLIC_ANDROID_APP_URL ||
+    "https://play.google.com/store/apps/details?id=com.zwanga";
   const [createTicket, { isLoading: isSubmittingSupportTicket }] = useCreateTicketMutation();
   const { data: faqResponse } = useListFaqQuery();
 
@@ -481,7 +482,10 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!isSupportModalOpen) {
+    const hasOpenModal =
+      isSupportModalOpen || Boolean(supportSuccessTicketId) || isAppStoreModalOpen;
+
+    if (!hasOpenModal) {
       return;
     }
 
@@ -490,7 +494,19 @@ export default function HomePage() {
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsSupportModalOpen(false);
+        if (isSupportModalOpen) {
+          setIsSupportModalOpen(false);
+          return;
+        }
+
+        if (supportSuccessTicketId) {
+          setSupportSuccessTicketId(null);
+          return;
+        }
+
+        if (isAppStoreModalOpen) {
+          setIsAppStoreModalOpen(false);
+        }
       }
     };
 
@@ -500,7 +516,7 @@ export default function HomePage() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isSupportModalOpen]);
+  }, [isAppStoreModalOpen, isSupportModalOpen, supportSuccessTicketId]);
 
   const goToDownloadSection = () => {
     const section = document.getElementById("download-apps");
@@ -527,6 +543,14 @@ export default function HomePage() {
     setSupportSuccessTicketId(null);
   };
 
+  const openAppStoreModal = () => {
+    setIsAppStoreModalOpen(true);
+  };
+
+  const closeAppStoreModal = () => {
+    setIsAppStoreModalOpen(false);
+  };
+
   const handleStartDownload = () => {
     const userAgent = navigator.userAgent || navigator.vendor;
     const isAndroid = /android/i.test(userAgent);
@@ -540,7 +564,7 @@ export default function HomePage() {
     }
 
     if (isIOS) {
-      window.location.href = iosAppUrl;
+      openAppStoreModal();
       return;
     }
 
@@ -613,7 +637,13 @@ export default function HomePage() {
 
   const renderStoreButtons = () => (
     <div className={styles.appButtons}>
-      <a href={androidAppUrl} className={styles.appBtn} aria-label="Telecharger sur Google Play">
+      <a
+        href={androidAppUrl}
+        className={styles.appBtn}
+        aria-label="Telecharger sur Google Play"
+        target="_blank"
+        rel="noreferrer"
+      >
         <Image
           src="/play-store.svg"
           alt=""
@@ -627,7 +657,12 @@ export default function HomePage() {
           <span className={styles.appBtnLabelName}>Google Play</span>
         </span>
       </a>
-      <a href={iosAppUrl} className={styles.appBtn} aria-label="Telecharger sur App Store">
+      <button
+        type="button"
+        className={styles.appBtn}
+        aria-label="Telecharger sur App Store"
+        onClick={openAppStoreModal}
+      >
         <Image
           src="/apple.svg"
           alt=""
@@ -640,7 +675,7 @@ export default function HomePage() {
           <span className={styles.appBtnLabelHint}>Telecharger dans l&apos;</span>
           <span className={styles.appBtnLabelName}>App Store</span>
         </span>
-      </a>
+      </button>
     </div>
   );
 
@@ -1216,6 +1251,53 @@ export default function HomePage() {
                 >
                   Continuer sur le site
                 </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {isAppStoreModalOpen ? (
+          <div
+            className={styles.modalBackdrop}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="app-store-coming-soon-title"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) {
+                closeAppStoreModal();
+              }
+            }}
+          >
+            <div className={styles.storeNoticeModal}>
+              <button
+                type="button"
+                className={styles.modalClose}
+                aria-label="Fermer le message App Store"
+                onClick={closeAppStoreModal}
+              >
+                <X size={18} />
+              </button>
+              <div className={styles.storeNoticeIconWrap}>
+                <Clock3 size={26} />
+              </div>
+              <h3 id="app-store-coming-soon-title">Bientot disponible sur App Store</h3>
+              <p>
+                L&apos;application iPhone est en preparation.
+                <br />
+                En attendant, vous pouvez deja la telecharger sur Google Play.
+              </p>
+              <div className={styles.successActions}>
+                <button type="button" className={styles.supportSubmit} onClick={closeAppStoreModal}>
+                  Fermer
+                </button>
+                <a
+                  href={androidAppUrl}
+                  className={styles.secondaryBtn}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Voir sur Google Play
+                </a>
               </div>
             </div>
           </div>
