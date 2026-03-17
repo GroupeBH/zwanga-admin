@@ -702,6 +702,9 @@ export default function HomePage() {
             <span>ZWANGA</span>
           </Link>
           <nav className={`${styles.nav} ${mobileMenuOpen ? styles.navOpen : ""}`}>
+            <Link href="/enquiry" className={styles.docsNavBtn} onClick={() => setMobileMenuOpen(false)}>
+              Demander docs
+            </Link>
             <Link href="#benefits" onClick={() => setMobileMenuOpen(false)}>
               Avantages
             </Link>
@@ -751,6 +754,9 @@ export default function HomePage() {
                   <button type="button" className={styles.secondaryBtn} onClick={goToHowItWorks}>
                     Voir comment ca marche
                   </button>
+                  <Link href="/enquiry" className={styles.secondaryBtn}>
+                    Demander des documents
+                  </Link>
                 </div>
                 {renderStoreButtons()}
                 <a href="#benefits" className={styles.miniCta}>
@@ -1379,6 +1385,7 @@ export default function HomePage() {
             <div className={styles.footerSection}>
               <h4 className={styles.footerTitle}>Liens rapides</h4>
               <Link href="/">Accueil</Link>
+              <Link href="/enquiry">Demander des documents</Link>
               <Link href="#benefits">Avantages</Link>
               <Link href="#how-it-works">Comment ca marche</Link>
               <Link href="/privacy">Politique de confidentialite</Link>

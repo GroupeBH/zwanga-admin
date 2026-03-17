@@ -80,6 +80,20 @@
   border-color: var(--color-primary);
 }
 
+.docsNavBtn {
+  border: 1px solid color-mix(in srgb, var(--color-primary) 34%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 10%, white);
+  color: #8b4700 !important;
+  font-weight: 700;
+  padding: 8px 12px !important;
+}
+
+.docsNavBtn:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 56%, transparent) !important;
+  background: color-mix(in srgb, var(--color-primary) 18%, white);
+}
+
 .mobileMenuBtn {
   display: none;
   background: transparent;

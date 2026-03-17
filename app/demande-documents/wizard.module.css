@@ -1,0 +1,327 @@
+.page {
+  min-height: 100vh;
+  padding: 1rem;
+  color: #0b1b2b;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 85% 0%, rgba(255, 122, 0, 0.2), transparent 32%),
+    linear-gradient(160deg, #f7fbff, #e9f4ff 72%);
+}
+
+.shell {
+  width: min(100%, 920px);
+  margin: 0 auto;
+  padding: 1rem 0 2rem;
+}
+
+.header {
+  margin-bottom: 1rem;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--color-primary-strong);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.header h1 {
+  margin: 0.2rem 0 0.4rem;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+}
+
+.subtitle {
+  margin: 0;
+  color: rgba(11, 27, 43, 0.68);
+}
+
+.formCard {
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.98), rgba(247, 252, 255, 0.98));
+  border: 1px solid rgba(14, 49, 84, 0.12);
+  border-radius: 1rem;
+  padding: 1rem;
+  box-shadow: 0 24px 48px rgba(9, 16, 42, 0.12);
+}
+
+.progressRow {
+  margin-bottom: 1rem;
+}
+
+.stepText {
+  margin: 0 0 0.45rem;
+  color: rgba(11, 27, 43, 0.68);
+}
+
+.progressBar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(14, 49, 84, 0.09);
+  overflow: hidden;
+}
+
+.progressBar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(120deg, var(--color-primary), var(--color-secondary));
+  transition: width 0.25s ease;
+}
+
+.stepTitle {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+  outline: none;
+}
+
+.stepFrame {
+  animation: fadeSlide 0.22s ease;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+.field,
+.fieldWide {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field label,
+.fieldWide label {
+  font-size: 0.95rem;
+}
+
+.field input,
+.fieldWide input {
+  width: 100%;
+  border: 1px solid rgba(14, 49, 84, 0.24);
+  border-radius: 0.75rem;
+  background: #ffffff;
+  color: #0b1b2b;
+  padding: 0.7rem 0.8rem;
+}
+
+.field input[type="date"],
+.fieldWide input[type="date"] {
+  color-scheme: light;
+  cursor: pointer;
+}
+
+.field input[type="date"]::-webkit-calendar-picker-indicator,
+.fieldWide input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  filter: invert(12%) sepia(31%) saturate(1218%) hue-rotate(176deg) brightness(92%) contrast(96%);
+  cursor: pointer;
+}
+
+.field input:focus,
+.fieldWide input:focus {
+  outline: 2px solid rgba(0, 212, 255, 0.55);
+  outline-offset: 2px;
+}
+
+.error {
+  margin: 0;
+  color: #ffd2d5;
+  font-size: 0.87rem;
+}
+
+.servicesFieldset {
+  border: 1px solid rgba(14, 49, 84, 0.15);
+  border-radius: 0.85rem;
+  padding: 0.9rem;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.servicesFieldset legend {
+  padding: 0 0.4rem;
+}
+
+.servicesList {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.serviceOption {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(14, 49, 84, 0.14);
+  border-radius: 0.7rem;
+  padding: 0.65rem;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.serviceOption strong {
+  margin-left: auto;
+  color: var(--color-secondary);
+}
+
+.total {
+  margin: 0.8rem 0 0;
+  font-weight: 600;
+}
+
+.review {
+  border: 1px solid rgba(14, 49, 84, 0.15);
+  border-radius: 0.85rem;
+  padding: 0.9rem;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.review h3 {
+  margin-top: 0;
+}
+
+.review ul {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.review span {
+  color: var(--color-primary-strong);
+  font-weight: 600;
+}
+
+.submitError,
+.submitSuccess {
+  margin: 1rem 0 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.65rem;
+}
+
+.submitError {
+  background: rgba(255, 75, 85, 0.18);
+  border: 1px solid rgba(255, 75, 85, 0.35);
+}
+
+.submitSuccess {
+  background: rgba(61, 213, 152, 0.14);
+  border: 1px solid rgba(61, 213, 152, 0.28);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(2, 8, 18, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modalCard {
+  width: min(100%, 640px);
+  border: 1px solid rgba(14, 49, 84, 0.12);
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #ffffff, #f5fafe);
+  box-shadow: 0 24px 50px rgba(9, 16, 42, 0.2);
+  padding: 1rem;
+  outline: none;
+  color: #0b1b2b;
+}
+
+.modalCard h3 {
+  margin: 0 0 0.45rem;
+}
+
+.modalSub {
+  margin: 0 0 0.8rem;
+  color: rgba(11, 27, 43, 0.68);
+}
+
+.modalSummary {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.modalSummary span {
+  color: var(--color-primary-strong);
+  font-weight: 600;
+}
+
+.modalActions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.72rem 1rem;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.primaryBtn {
+  background: linear-gradient(135deg, var(--color-primary), #ff9d3b);
+  color: #1a1208;
+  font-weight: 700;
+}
+
+.secondaryBtn {
+  background: rgba(14, 49, 84, 0.09);
+  color: #0b1b2b;
+}
+
+.primaryBtn:hover,
+.secondaryBtn:hover {
+  transform: translateY(-1px);
+}
+
+.primaryBtn:disabled,
+.secondaryBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (min-width: 720px) {
+  .page {
+    padding: 2rem;
+  }
+
+  .formCard {
+    padding: 1.25rem;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fieldWide {
+    grid-column: span 2;
+  }
+}
+
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

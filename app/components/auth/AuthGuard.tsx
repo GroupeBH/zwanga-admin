@@ -17,6 +17,8 @@ const PUBLIC_ROUTES = [
   "/privacy",
   "/terms",
   "/sales-policy",
+  "/demande-documents",
+  "/enquiry",
 ];
 
 export const AuthGuard = ({ children }: AuthGuardProps) => {
