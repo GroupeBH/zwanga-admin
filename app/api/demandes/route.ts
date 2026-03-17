@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     const createdDemande = await Demande.create({
       identite: sanitizedPayload.identite,
       contact: sanitizedPayload.contact,
-      adresse: sanitizedPayload.adresse,
+      localisation: sanitizedPayload.localisation,
       vehicule: sanitizedPayload.vehicule,
       services: sanitizedPayload.services,
       total,
@@ -134,4 +134,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

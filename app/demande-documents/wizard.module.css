@@ -97,7 +97,9 @@
 }
 
 .field input,
-.fieldWide input {
+.field select,
+.fieldWide input,
+.fieldWide select {
   width: 100%;
   border: 1px solid rgba(14, 49, 84, 0.24);
   border-radius: 0.75rem;
@@ -107,8 +109,16 @@
 }
 
 .field input[type="date"],
-.fieldWide input[type="date"] {
+.fieldWide input[type="date"],
+.field input[type="number"],
+.fieldWide input[type="number"],
+.field select,
+.fieldWide select {
   color-scheme: light;
+}
+
+.field select,
+.fieldWide select {
   cursor: pointer;
 }
 
@@ -120,7 +130,9 @@
 }
 
 .field input:focus,
-.fieldWide input:focus {
+.field select:focus,
+.fieldWide input:focus,
+.fieldWide select:focus {
   outline: 2px solid rgba(0, 212, 255, 0.55);
   outline-offset: 2px;
 }
