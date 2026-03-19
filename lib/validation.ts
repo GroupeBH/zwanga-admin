@@ -69,10 +69,7 @@ export const vehiculeSchema = z
     genre: z.enum(["Moto", "Tricycle", "Voiture legere", "Jeep/4x4", "Camion", "Bus"]),
     marque: textField("marque"),
     modele: textField("modele/type"),
-    vin: z
-      .string()
-      .trim()
-      .regex(/^[A-HJ-NPR-Z0-9]{17}$/, "Le numero de chassis (VIN) doit contenir 17 caracteres valides."),
+    vin: textField("numero de chassis (VIN)", 3, 240),
     plaqueActuelle: optionalTextField("numero de plaque actuel", 24),
     couleur: textField("couleur dominante"),
     anneeFabrication: z.coerce

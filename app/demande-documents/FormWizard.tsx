@@ -457,7 +457,7 @@ export function FormWizard() {
               </div>
               <div className={styles.fieldWide}>
                 <label htmlFor="vin">Numero de Chassis (VIN)</label>
-                <input id="vin" maxLength={17} value={formData.vehicule.vin} onChange={(event) => updateField("vehicule", "vin", event.target.value.toUpperCase())} />
+                <input id="vin" value={formData.vehicule.vin} onChange={(event) => updateField("vehicule", "vin", event.target.value.toUpperCase())} />
                 {setFieldError("vehicule.vin") && <p className={styles.error}>{setFieldError("vehicule.vin")}</p>}
               </div>
               <div className={styles.field}>
