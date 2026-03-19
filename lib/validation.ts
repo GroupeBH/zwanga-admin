@@ -75,11 +75,6 @@ export const vehiculeSchema = z
       .regex(/^[A-HJ-NPR-Z0-9]{17}$/, "Le numero de chassis (VIN) doit contenir 17 caracteres valides."),
     plaqueActuelle: optionalTextField("numero de plaque actuel", 24),
     couleur: textField("couleur dominante"),
-    chevauxFiscaux: z.coerce
-      .number()
-      .int("Le nombre de chevaux doit etre un entier.")
-      .min(1, "Le nombre de chevaux doit etre superieur a 0.")
-      .max(120, "Le nombre de chevaux est trop eleve."),
     anneeFabrication: z.coerce
       .number()
       .int("L'annee de fabrication doit etre un entier.")
@@ -147,7 +142,6 @@ export const sanitizeDemandePayload = (payload: DemandePayload): DemandePayload 
     vin: cleanString(payload.vehicule.vin).toUpperCase(),
     plaqueActuelle: payload.vehicule.plaqueActuelle ? cleanString(payload.vehicule.plaqueActuelle).toUpperCase() : "",
     couleur: cleanString(payload.vehicule.couleur),
-    chevauxFiscaux: payload.vehicule.chevauxFiscaux,
     anneeFabrication: payload.vehicule.anneeFabrication,
     anneeMiseEnCirculation: payload.vehicule.anneeMiseEnCirculation,
     carburant: payload.vehicule.carburant,

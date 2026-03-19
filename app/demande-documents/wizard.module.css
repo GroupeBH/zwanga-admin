@@ -179,6 +179,12 @@
   font-weight: 600;
 }
 
+.totalNotice {
+  margin: 0.55rem 0 0;
+  font-size: 0.9rem;
+  color: rgba(11, 27, 43, 0.78);
+}
+
 .review {
   border: 1px solid rgba(14, 49, 84, 0.15);
   border-radius: 0.85rem;

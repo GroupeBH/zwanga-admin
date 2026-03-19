@@ -13,9 +13,9 @@ export default function EnquiryPage() {
     <main className={styles.page}>
       <section className={styles.shell}>
         <header className={styles.header}>
-          <p className={styles.kicker}>Enquiry</p>
-          <h1>Document Enquiry</h1>
-          <p className={styles.subtitle}>Version courte de la page de soumission.</p>
+          <p className={styles.kicker}>Souscription au pack pro pour conducteurs</p>
+          <h1>Souscrire au pack pro pour les documents de votre vehicule</h1>
+          <p className={styles.subtitle}> Remplissez ce formulaire multi-etapes pour soumettre votre demande administrative.</p>
         </header>
         <FormWizard />
       </section>

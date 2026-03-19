@@ -41,7 +41,6 @@ type FormData = {
     vin: string;
     plaqueActuelle: string;
     couleur: string;
-    chevauxFiscaux: string;
     anneeFabrication: string;
     anneeMiseEnCirculation: string;
     carburant: "Essence" | "Diesel" | "Hybride" | "Electrique" | "";
@@ -83,7 +82,6 @@ const initialFormData: FormData = {
     vin: "",
     plaqueActuelle: "",
     couleur: "",
-    chevauxFiscaux: "",
     anneeFabrication: "",
     anneeMiseEnCirculation: "",
     carburant: "",
@@ -477,17 +475,6 @@ export function FormWizard() {
                 {setFieldError("vehicule.couleur") && <p className={styles.error}>{setFieldError("vehicule.couleur")}</p>}
               </div>
               <div className={styles.field}>
-                <label htmlFor="chevauxFiscaux">Nombre de chevaux (puissance fiscale)</label>
-                <input
-                  id="chevauxFiscaux"
-                  type="number"
-                  min={1}
-                  value={formData.vehicule.chevauxFiscaux}
-                  onChange={(event) => updateField("vehicule", "chevauxFiscaux", event.target.value)}
-                />
-                {setFieldError("vehicule.chevauxFiscaux") && <p className={styles.error}>{setFieldError("vehicule.chevauxFiscaux")}</p>}
-              </div>
-              <div className={styles.field}>
                 <label htmlFor="anneeFabrication">Annee de fabrication</label>
                 <input
                   id="anneeFabrication"
@@ -541,6 +528,9 @@ export function FormWizard() {
                 </div>
                 {setFieldError("services") && <p className={styles.error}>{setFieldError("services")}</p>}
                 <p className={styles.total}>Total dynamique: {total} USD</p>
+                <p className={styles.totalNotice}>
+                  Le total affiche est provisoire, le montant final sera fixé après analyse et traitement de votre demande
+                </p>
               </fieldset>
               <section className={styles.review}>
                 <h3>Resume avant soumission</h3>
@@ -582,7 +572,7 @@ export function FormWizard() {
             </button>
           ) : (
             <button type="submit" disabled={isSubmitting} className={styles.primaryBtn}>
-              {isSubmitting ? "Soumission..." : "Soumettre l'enquiry"}
+              {isSubmitting ? "Soumission..." : "Soumettre la demande"}
             </button>
           )}
         </div>
@@ -599,7 +589,7 @@ export function FormWizard() {
             ref={successModalRef}
             onClick={(event) => event.stopPropagation()}
           >
-            <h3 id="success-modal-title">Enquiry envoyee avec succes</h3>
+            <h3 id="success-modal-title">Demande envoyée avec succes</h3>
             <p className={styles.modalSub}>
               Reference: {submittedDemande.id} | Date: {new Date(submittedDemande.date).toLocaleString("fr-FR")}
             </p>

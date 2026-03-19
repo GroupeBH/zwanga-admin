@@ -26,7 +26,6 @@ const DemandeSchema = new Schema(
       vin: { type: String, required: true, trim: true, uppercase: true },
       plaqueActuelle: { type: String, default: "", trim: true, uppercase: true },
       couleur: { type: String, required: true, trim: true },
-      chevauxFiscaux: { type: Number, required: true, min: 1 },
       anneeFabrication: { type: Number, required: true, min: 1950 },
       anneeMiseEnCirculation: { type: Number, required: true, min: 1950 },
       carburant: { type: String, required: true, trim: true },
