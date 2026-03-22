@@ -4,46 +4,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ZodIssue } from "zod";
 
 import { FORM_STEPS, SERVICES } from "@/config/form.config";
-import {
-  contactSchema,
-  demandePayloadSchema,
-  identiteSchema,
-  localisationSchema,
-  servicesSchema,
-  vehiculeSchema,
-  computeServicesTotal,
-} from "@/lib/validation";
+import { computeServicesTotal, contactSchema, demandePayloadSchema, identiteSchema, servicesSchema, vehiculeSchema } from "@/lib/validation";
 
 import styles from "./wizard.module.css";
 
 type FormData = {
   identite: {
-    nom: string;
-    postnom: string;
-    prenom: string;
+    nomComplet: string;
   };
   contact: {
     telephone: string;
-    email: string;
-  };
-  localisation: {
-    province: string;
-    ville: string;
-    commune: string;
-    quartier: string;
-    avenueNumero: string;
-    codePostal: string;
   };
   vehicule: {
-    genre: "Moto" | "Tricycle" | "Voiture legere" | "Jeep/4x4" | "Camion" | "Bus" | "";
-    marque: string;
-    modele: string;
-    vin: string;
-    plaqueActuelle: string;
-    couleur: string;
-    anneeFabrication: string;
-    anneeMiseEnCirculation: string;
-    carburant: "Essence" | "Diesel" | "Hybride" | "Electrique" | "";
+    marqueComplete: string;
+    plaqueImmatriculation: string;
   };
   services: string[];
 };
@@ -55,36 +29,18 @@ type SubmittedDemande = {
   data: FormData;
 };
 
-const STORAGE_KEY = "demande-documents-wizard-v2";
+const STORAGE_KEY = "demande-documents-wizard-v3";
 
 const initialFormData: FormData = {
   identite: {
-    nom: "",
-    postnom: "",
-    prenom: "",
+    nomComplet: "",
   },
   contact: {
     telephone: "",
-    email: "",
-  },
-  localisation: {
-    province: "",
-    ville: "",
-    commune: "",
-    quartier: "",
-    avenueNumero: "",
-    codePostal: "",
   },
   vehicule: {
-    genre: "",
-    marque: "",
-    modele: "",
-    vin: "",
-    plaqueActuelle: "",
-    couleur: "",
-    anneeFabrication: "",
-    anneeMiseEnCirculation: "",
-    carburant: "",
+    marqueComplete: "",
+    plaqueImmatriculation: "",
   },
   services: [],
 };
@@ -93,30 +49,15 @@ const mapIssues = (issues: ZodIssue[], prefix = "") => {
   const mappedErrors: Record<string, string> = {};
   issues.forEach((issue) => {
     const key = `${prefix}${issue.path.join(".")}`.replace(/\.$/, "");
-    if (!mappedErrors[key]) {
-      mappedErrors[key] = issue.message;
-    }
+    if (!mappedErrors[key]) mappedErrors[key] = issue.message;
   });
   return mappedErrors;
 };
 
 const getStepFromErrorKey = (key: string) => {
-  if (key.startsWith("identite.")) return 0;
-  if (key.startsWith("contact.")) return 1;
-  if (key.startsWith("localisation.")) return 2;
-  if (key.startsWith("vehicule.")) return 3;
-  if (key.startsWith("services")) return 4;
+  if (key.startsWith("services")) return 1;
   return 0;
 };
-
-const genreOptions: Array<FormData["vehicule"]["genre"]> = [
-  "Moto",
-  "Tricycle",
-  "Voiture legere",
-  "Jeep/4x4",
-  "Camion",
-  "Bus",
-];
 
 export function FormWizard() {
   const [step, setStep] = useState(0);
@@ -161,7 +102,6 @@ export function FormWizard() {
         ...parsed,
         identite: { ...previous.identite, ...parsed.identite },
         contact: { ...previous.contact, ...parsed.contact },
-        localisation: { ...previous.localisation, ...parsed.localisation },
         vehicule: { ...previous.vehicule, ...parsed.vehicule },
         services: Array.isArray(parsed.services) ? parsed.services.filter((service) => typeof service === "string") : [],
       }));
@@ -213,38 +153,20 @@ export function FormWizard() {
 
   const validateCurrentStep = () => {
     if (step === 0) {
-      const result = identiteSchema.safeParse(formData.identite);
+      const step0Schema = identiteSchema.and(contactSchema).and(vehiculeSchema);
+      const result = step0Schema.safeParse({
+        ...formData.identite,
+        ...formData.contact,
+        ...formData.vehicule,
+      });
       if (!result.success) {
-        setErrors((previous) => ({ ...previous, ...mapIssues(result.error.issues, "identite.") }));
+        setErrors((previous) => ({ ...previous, ...mapIssues(result.error.issues) }));
         return false;
       }
       return true;
     }
+
     if (step === 1) {
-      const result = contactSchema.safeParse(formData.contact);
-      if (!result.success) {
-        setErrors((previous) => ({ ...previous, ...mapIssues(result.error.issues, "contact.") }));
-        return false;
-      }
-      return true;
-    }
-    if (step === 2) {
-      const result = localisationSchema.safeParse(formData.localisation);
-      if (!result.success) {
-        setErrors((previous) => ({ ...previous, ...mapIssues(result.error.issues, "localisation.") }));
-        return false;
-      }
-      return true;
-    }
-    if (step === 3) {
-      const result = vehiculeSchema.safeParse(formData.vehicule);
-      if (!result.success) {
-        setErrors((previous) => ({ ...previous, ...mapIssues(result.error.issues, "vehicule.") }));
-        return false;
-      }
-      return true;
-    }
-    if (step === 4) {
       const result = servicesSchema.safeParse(formData.services);
       if (!result.success) {
         setErrors((previous) => ({ ...previous, ...mapIssues(result.error.issues, "services") }));
@@ -252,6 +174,7 @@ export function FormWizard() {
       }
       return true;
     }
+
     return true;
   };
 
@@ -355,165 +278,41 @@ export function FormWizard() {
         <div className={styles.stepFrame} key={FORM_STEPS[step]}>
           {step === 0 && (
             <div className={styles.grid}>
-              <div className={styles.field}>
-                <label htmlFor="nom">Nom</label>
-                <input id="nom" value={formData.identite.nom} onChange={(event) => updateField("identite", "nom", event.target.value)} />
-                {setFieldError("identite.nom") && <p className={styles.error}>{setFieldError("identite.nom")}</p>}
+              <div className={styles.fieldWide}>
+                <label htmlFor="nomComplet">Nom complet</label>
+                <input id="nomComplet" value={formData.identite.nomComplet} onChange={(event) => updateField("identite", "nomComplet", event.target.value)} />
+                {setFieldError("nomComplet") && <p className={styles.error}>{setFieldError("nomComplet")}</p>}
               </div>
               <div className={styles.field}>
-                <label htmlFor="postnom">Postnom</label>
-                <input id="postnom" value={formData.identite.postnom} onChange={(event) => updateField("identite", "postnom", event.target.value)} />
-                {setFieldError("identite.postnom") && <p className={styles.error}>{setFieldError("identite.postnom")}</p>}
+                <label htmlFor="telephone">Telephone</label>
+                <input id="telephone" type="tel" value={formData.contact.telephone} onChange={(event) => updateField("contact", "telephone", event.target.value)} />
+                {setFieldError("telephone") && <p className={styles.error}>{setFieldError("telephone")}</p>}
               </div>
               <div className={styles.field}>
-                <label htmlFor="prenom">Prenom</label>
-                <input id="prenom" value={formData.identite.prenom} onChange={(event) => updateField("identite", "prenom", event.target.value)} />
-                {setFieldError("identite.prenom") && <p className={styles.error}>{setFieldError("identite.prenom")}</p>}
+                <label htmlFor="marqueComplete">Marque complete du vehicule</label>
+                <input
+                  id="marqueComplete"
+                  value={formData.vehicule.marqueComplete}
+                  onChange={(event) => updateField("vehicule", "marqueComplete", event.target.value)}
+                />
+                {setFieldError("marqueComplete") && <p className={styles.error}>{setFieldError("marqueComplete")}</p>}
+              </div>
+              <div className={styles.fieldWide}>
+                <label htmlFor="plaqueImmatriculation">Numero de plaque d'immatriculation</label>
+                <input
+                  id="plaqueImmatriculation"
+                  value={formData.vehicule.plaqueImmatriculation}
+                  onChange={(event) => updateField("vehicule", "plaqueImmatriculation", event.target.value.toUpperCase())}
+                />
+                {setFieldError("plaqueImmatriculation") && <p className={styles.error}>{setFieldError("plaqueImmatriculation")}</p>}
               </div>
             </div>
           )}
 
           {step === 1 && (
             <div className={styles.grid}>
-              <div className={styles.field}>
-                <label htmlFor="telephone">Numero de Telephone</label>
-                <input id="telephone" type="tel" value={formData.contact.telephone} onChange={(event) => updateField("contact", "telephone", event.target.value)} />
-                {setFieldError("contact.telephone") && <p className={styles.error}>{setFieldError("contact.telephone")}</p>}
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="email">Adresse E-mail (Facultatif)</label>
-                <input id="email" type="email" value={formData.contact.email} onChange={(event) => updateField("contact", "email", event.target.value)} />
-                {setFieldError("contact.email") && <p className={styles.error}>{setFieldError("contact.email")}</p>}
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className={styles.grid}>
-              <div className={styles.field}>
-                <label htmlFor="province">Province</label>
-                <input id="province" value={formData.localisation.province} onChange={(event) => updateField("localisation", "province", event.target.value)} />
-                {setFieldError("localisation.province") && <p className={styles.error}>{setFieldError("localisation.province")}</p>}
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="ville">Ville / Ville-Province</label>
-                <input id="ville" value={formData.localisation.ville} onChange={(event) => updateField("localisation", "ville", event.target.value)} />
-                {setFieldError("localisation.ville") && <p className={styles.error}>{setFieldError("localisation.ville")}</p>}
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="commune">Commune</label>
-                <input id="commune" value={formData.localisation.commune} onChange={(event) => updateField("localisation", "commune", event.target.value)} />
-                {setFieldError("localisation.commune") && <p className={styles.error}>{setFieldError("localisation.commune")}</p>}
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="quartier">Quartier</label>
-                <input id="quartier" value={formData.localisation.quartier} onChange={(event) => updateField("localisation", "quartier", event.target.value)} />
-                {setFieldError("localisation.quartier") && <p className={styles.error}>{setFieldError("localisation.quartier")}</p>}
-              </div>
-              <div className={styles.fieldWide}>
-                <label htmlFor="avenueNumero">Avenue et Numero</label>
-                <input
-                  id="avenueNumero"
-                  value={formData.localisation.avenueNumero}
-                  onChange={(event) => updateField("localisation", "avenueNumero", event.target.value)}
-                />
-                {setFieldError("localisation.avenueNumero") && <p className={styles.error}>{setFieldError("localisation.avenueNumero")}</p>}
-              </div>
-              <div className={styles.fieldWide}>
-                <label htmlFor="codePostal">Code Postal (Facultatif)</label>
-                <input
-                  id="codePostal"
-                  value={formData.localisation.codePostal}
-                  onChange={(event) => updateField("localisation", "codePostal", event.target.value)}
-                />
-                {setFieldError("localisation.codePostal") && <p className={styles.error}>{setFieldError("localisation.codePostal")}</p>}
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className={styles.grid}>
-              <div className={styles.field}>
-                <label htmlFor="genre">Genre de vehicule</label>
-                <select id="genre" value={formData.vehicule.genre} onChange={(event) => updateField("vehicule", "genre", event.target.value)}>
-                  <option value="">Selectionner</option>
-                  {genreOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-                {setFieldError("vehicule.genre") && <p className={styles.error}>{setFieldError("vehicule.genre")}</p>}
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="marque">Marque</label>
-                <input id="marque" value={formData.vehicule.marque} onChange={(event) => updateField("vehicule", "marque", event.target.value)} />
-                {setFieldError("vehicule.marque") && <p className={styles.error}>{setFieldError("vehicule.marque")}</p>}
-              </div>
-              <div className={styles.fieldWide}>
-                <label htmlFor="modele">Modele / Type</label>
-                <input id="modele" value={formData.vehicule.modele} onChange={(event) => updateField("vehicule", "modele", event.target.value)} />
-                {setFieldError("vehicule.modele") && <p className={styles.error}>{setFieldError("vehicule.modele")}</p>}
-              </div>
-              <div className={styles.fieldWide}>
-                <label htmlFor="vin">Numero de Chassis (VIN)</label>
-                <input id="vin" value={formData.vehicule.vin} onChange={(event) => updateField("vehicule", "vin", event.target.value.toUpperCase())} />
-                {setFieldError("vehicule.vin") && <p className={styles.error}>{setFieldError("vehicule.vin")}</p>}
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="plaqueActuelle">Numero de Plaque actuel (si deja immatricule)</label>
-                <input
-                  id="plaqueActuelle"
-                  value={formData.vehicule.plaqueActuelle}
-                  onChange={(event) => updateField("vehicule", "plaqueActuelle", event.target.value.toUpperCase())}
-                />
-                {setFieldError("vehicule.plaqueActuelle") && <p className={styles.error}>{setFieldError("vehicule.plaqueActuelle")}</p>}
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="couleur">Couleur dominante</label>
-                <input id="couleur" value={formData.vehicule.couleur} onChange={(event) => updateField("vehicule", "couleur", event.target.value)} />
-                {setFieldError("vehicule.couleur") && <p className={styles.error}>{setFieldError("vehicule.couleur")}</p>}
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="anneeFabrication">Annee de fabrication</label>
-                <input
-                  id="anneeFabrication"
-                  type="number"
-                  min={1950}
-                  value={formData.vehicule.anneeFabrication}
-                  onChange={(event) => updateField("vehicule", "anneeFabrication", event.target.value)}
-                />
-                {setFieldError("vehicule.anneeFabrication") && <p className={styles.error}>{setFieldError("vehicule.anneeFabrication")}</p>}
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="anneeMiseEnCirculation">Annee de premiere mise en circulation</label>
-                <input
-                  id="anneeMiseEnCirculation"
-                  type="number"
-                  min={1950}
-                  value={formData.vehicule.anneeMiseEnCirculation}
-                  onChange={(event) => updateField("vehicule", "anneeMiseEnCirculation", event.target.value)}
-                />
-                {setFieldError("vehicule.anneeMiseEnCirculation") && <p className={styles.error}>{setFieldError("vehicule.anneeMiseEnCirculation")}</p>}
-              </div>
-              <div className={styles.fieldWide}>
-                <label htmlFor="carburant">Type de Carburant</label>
-                <select id="carburant" value={formData.vehicule.carburant} onChange={(event) => updateField("vehicule", "carburant", event.target.value)}>
-                  <option value="">Selectionner</option>
-                  <option value="Essence">Essence</option>
-                  <option value="Diesel">Diesel</option>
-                  <option value="Hybride">Hybride</option>
-                  <option value="Electrique">Electrique</option>
-                </select>
-                {setFieldError("vehicule.carburant") && <p className={styles.error}>{setFieldError("vehicule.carburant")}</p>}
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className={styles.grid}>
               <fieldset className={styles.servicesFieldset}>
-                <legend>Checklist des documents souhaites</legend>
+                <legend>Liste des documents souhaites</legend>
                 <div className={styles.servicesList}>
                   {SERVICES.map((service) => {
                     const checked = formData.services.includes(service.id);
@@ -529,29 +328,9 @@ export function FormWizard() {
                 {setFieldError("services") && <p className={styles.error}>{setFieldError("services")}</p>}
                 <p className={styles.total}>Total dynamique: {total} USD</p>
                 <p className={styles.totalNotice}>
-                  Le total affiche est provisoire, le montant final sera fixé après analyse et traitement de votre demande
+                  Le total affiche est provisoire, le montant final sera fixe apres analyse et traitement de votre demande
                 </p>
               </fieldset>
-              <section className={styles.review}>
-                <h3>Resume avant soumission</h3>
-                <ul>
-                  <li>
-                    <span>Demandeur:</span> {formData.identite.nom} {formData.identite.postnom} {formData.identite.prenom}
-                  </li>
-                  <li>
-                    <span>Contact:</span> {formData.contact.telephone}
-                  </li>
-                  <li>
-                    <span>Localisation:</span> {formData.localisation.commune}, {formData.localisation.ville}, {formData.localisation.province}
-                  </li>
-                  <li>
-                    <span>Vehicule:</span> {formData.vehicule.genre} - {formData.vehicule.marque} {formData.vehicule.modele}
-                  </li>
-                  <li>
-                    <span>Total:</span> {total} USD
-                  </li>
-                </ul>
-              </section>
             </div>
           )}
         </div>
@@ -589,26 +368,19 @@ export function FormWizard() {
             ref={successModalRef}
             onClick={(event) => event.stopPropagation()}
           >
-            <h3 id="success-modal-title">Demande envoyée avec succes</h3>
+            <h3 id="success-modal-title">Demande envoyee avec succes</h3>
             <p className={styles.modalSub}>
               Reference: {submittedDemande.id} | Date: {new Date(submittedDemande.date).toLocaleString("fr-FR")}
             </p>
             <ul className={styles.modalSummary}>
               <li>
-                <span>Identite:</span> {submittedDemande.data.identite.nom} {submittedDemande.data.identite.postnom}{" "}
-                {submittedDemande.data.identite.prenom}
+                <span>Nom complet:</span> {submittedDemande.data.identite.nomComplet}
               </li>
               <li>
-                <span>Contact:</span> {submittedDemande.data.contact.telephone} /{" "}
-                {submittedDemande.data.contact.email || "Non renseigne"}
+                <span>Telephone:</span> {submittedDemande.data.contact.telephone}
               </li>
               <li>
-                <span>Localisation:</span> {submittedDemande.data.localisation.avenueNumero}, {submittedDemande.data.localisation.quartier},{" "}
-                {submittedDemande.data.localisation.commune}, {submittedDemande.data.localisation.ville}
-              </li>
-              <li>
-                <span>Vehicule:</span> {submittedDemande.data.vehicule.genre}, {submittedDemande.data.vehicule.marque}{" "}
-                {submittedDemande.data.vehicule.modele}, VIN {submittedDemande.data.vehicule.vin}
+                <span>Vehicule:</span> {submittedDemande.data.vehicule.marqueComplete} - {submittedDemande.data.vehicule.plaqueImmatriculation}
               </li>
               <li>
                 <span>Services:</span>{" "}
@@ -625,7 +397,7 @@ export function FormWizard() {
                 Fermer
               </button>
               <button type="button" className={styles.primaryBtn} onClick={() => setIsSuccessModalOpen(false)}>
-                Nouvelle enquiry
+                Nouvelle demande
               </button>
             </div>
           </div>
@@ -634,3 +406,4 @@ export function FormWizard() {
     </>
   );
 }
+

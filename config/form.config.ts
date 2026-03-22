@@ -12,9 +12,6 @@ export const SERVICES = [
 ] as const;
 
 export const FORM_STEPS = [
-  "Identite",
-  "Contact",
-  "Localisation",
-  "Vehicule",
-  "Services",
+  "Informations",
+  "Documents",
 ] as const;
