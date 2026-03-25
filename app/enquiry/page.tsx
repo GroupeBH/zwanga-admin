@@ -4,8 +4,8 @@ import { FormWizard } from "@/app/demande-documents/FormWizard";
 import styles from "@/app/demande-documents/wizard.module.css";
 
 export const metadata: Metadata = {
-  title: "Enquiry",
-  description: "Soumettez votre enquiry de documents.",
+  title: "Souscription au pack pro pour conducteurs",
+  description: "Soumettez votre demande de documents administratifs en quelques etapes.",
 };
 
 export default function EnquiryPage() {
@@ -15,11 +15,12 @@ export default function EnquiryPage() {
         <header className={styles.header}>
           <p className={styles.kicker}>Souscription au pack pro pour conducteurs</p>
           <h1>Souscrire au pack pro pour les documents de votre vehicule</h1>
-          <p className={styles.subtitle}> Remplissez ce formulaire multi-etapes pour soumettre votre demande administrative.</p>
+          <p className={styles.subtitle}>
+            Remplissez ce formulaire simplifie pour soumettre votre demande administrative.
+          </p>
         </header>
         <FormWizard />
       </section>
     </main>
   );
 }
-

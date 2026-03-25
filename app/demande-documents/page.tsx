@@ -16,7 +16,7 @@ export default function DemandeDocumentsPage() {
           <p className={styles.kicker}>Souscription au pack pro pour conducteurs</p>
           <h1>Souscrire au pack pro pour les documents de votre vehicule</h1>
           <p className={styles.subtitle}>
-            Remplissez ce formulaire multi-etapes pour soumettre votre demande administrative.
+            Remplissez ce formulaire simplifie pour soumettre votre demande administrative.
           </p>
         </header>
         <FormWizard />

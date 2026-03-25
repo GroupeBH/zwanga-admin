@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ZodIssue } from "zod";
+import { useRouter } from "next/navigation";
 
 import { FORM_STEPS, SERVICES } from "@/config/form.config";
 import { computeServicesTotal, contactSchema, demandePayloadSchema, identiteSchema, servicesSchema, vehiculeSchema } from "@/lib/validation";
@@ -59,7 +60,34 @@ const getStepFromErrorKey = (key: string) => {
   return 0;
 };
 
+const SIMPLE_SERVICE_LABELS: Record<string, string> = {
+  "nouveau-permis": "Nouveau permis",
+  "renouvellement-permis": "Renouvellement permis",
+  "plaque-immatriculation": "Nouvelle plaque",
+  "carte-rose": "Carte rose",
+  mutation: "Mutation",
+  "attestation-perte": "Attestation perte",
+  "vignette-annuelle": "Vignette annuelle",
+  "controle-technique": "Controle technique",
+  "autorisation-transport": "Autorisation transport",
+  "assurance-auto": "Assurance auto",
+};
+
+const SIMPLE_SERVICE_SUBHEADS: Record<string, string> = {
+  "nouveau-permis": "Conduite",
+  "renouvellement-permis": "Conduite",
+  "plaque-immatriculation": "Immatriculation",
+  "carte-rose": "Propriete",
+  mutation: "Propriete",
+  "attestation-perte": "Regularisation",
+  "vignette-annuelle": "Taxe annuelle",
+  "controle-technique": "Controle",
+  "autorisation-transport": "Transport",
+  "assurance-auto": "Assurance",
+};
+
 export function FormWizard() {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -311,16 +339,25 @@ export function FormWizard() {
 
           {step === 1 && (
             <div className={styles.grid}>
-              <fieldset className={styles.servicesFieldset}>
-                <legend>Liste des documents souhaites</legend>
+              <fieldset className={`${styles.servicesFieldset} ${styles.servicesFullWidth}`}>
+                <legend>Documents souhaites</legend>
+                <p className={styles.servicesHelp}>Choisis les documents dont tu as besoin. Clique simplement sur une carte.</p>
                 <div className={styles.servicesList}>
                   {SERVICES.map((service) => {
                     const checked = formData.services.includes(service.id);
                     return (
-                      <label key={service.id} className={styles.serviceOption}>
+                      <label
+                        key={service.id}
+                        className={`${styles.serviceOption} ${checked ? styles.serviceOptionActive : ""}`}
+                      >
                         <input type="checkbox" checked={checked} onChange={() => toggleService(service.id)} />
-                        <span>{service.label}</span>
-                        <strong>{service.prix} USD</strong>
+                        <span className={styles.serviceBadge}>{checked ? "Choisi" : "Choisir"}</span>
+                        <div className={styles.serviceContent}>
+                          <span className={styles.serviceTitle}>{SIMPLE_SERVICE_LABELS[service.id] ?? service.label}</span>
+                          <span className={styles.serviceSubhead}>{SIMPLE_SERVICE_SUBHEADS[service.id] ?? "Document"}</span>
+                          <span className={styles.serviceHint}>Clique pour ajouter ce document a ta demande.</span>
+                        </div>
+                        <strong className={styles.servicePrice}>{service.prix} $</strong>
                       </label>
                     );
                   })}
@@ -396,8 +433,15 @@ export function FormWizard() {
               <button type="button" className={styles.secondaryBtn} onClick={() => setIsSuccessModalOpen(false)}>
                 Fermer
               </button>
-              <button type="button" className={styles.primaryBtn} onClick={() => setIsSuccessModalOpen(false)}>
-                Nouvelle demande
+              <button
+                type="button"
+                className={styles.primaryBtn}
+                onClick={() => {
+                  setIsSuccessModalOpen(false);
+                  router.push("/");
+                }}
+              >
+                Retour a l'accueil
               </button>
             </div>
           </div>
@@ -406,4 +450,3 @@ export function FormWizard() {
     </>
   );
 }
-
