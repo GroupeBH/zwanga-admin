@@ -125,7 +125,7 @@ export const kycDocumentsPayload: KycDocument[] = [
   },
 ];
 
-export const dashboardPayload: DashboardResponse = {
+export const dashboardPayload: any = {
   greeting: "Bonjour Eugène, prêt pour la journée ?",
   dateRange: "Semaine du 10 → 16 nov.",
   metrics: [

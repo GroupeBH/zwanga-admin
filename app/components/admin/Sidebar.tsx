@@ -19,6 +19,7 @@ import {
 
 import { useGetPendingKycsQuery } from "@/lib/features/kyc/kycApi";
 import { useGetReportsQuery } from "@/lib/features/reports/reportsApi";
+import { useGetDocumentFundingRequestsQuery } from "@/lib/features/subscriptions/subscriptionsApi";
 import { useGetAllTripsQuery } from "@/lib/features/trips/tripsApi";
 import { useAppSelector } from "@/lib/hooks";
 
@@ -53,9 +54,10 @@ const navItems = [
     badgeKey: "bookings",
   },
   {
-    label: "Abonnements",
+    label: "Paiements & abonnements",
     href: "/subscriptions",
     icon: CreditCard,
+    badgeKey: "subscriptions",
   },
   {
     label: "Signalements",
@@ -85,6 +87,7 @@ export const Sidebar = () => {
   const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
   const { data: reports } = useGetReportsQuery();
   const { data: kyc } = useGetPendingKycsQuery();
+  const { data: fundingRequests } = useGetDocumentFundingRequestsQuery();
   const { data: tripsData } = useGetAllTripsQuery({ page: 1, limit: 100 });
 
   const pendingBookingsCount = useMemo(() => {
@@ -104,6 +107,9 @@ export const Sidebar = () => {
     }
     if (key === "bookings") {
       return pendingBookingsCount;
+    }
+    if (key === "subscriptions") {
+      return fundingRequests?.filter((item) => item.status === "pending").length ?? 0;
     }
     return undefined;
   };

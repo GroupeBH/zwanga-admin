@@ -390,7 +390,7 @@ const previewImages: PreviewImage[] = [
   },
 ];
 
-const rawPublicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://zwanga.cd";
+const rawPublicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://zwanga-app.com";
 const publicSiteUrl =
   rawPublicSiteUrl.startsWith("http://") || rawPublicSiteUrl.startsWith("https://")
     ? rawPublicSiteUrl

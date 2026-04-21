@@ -1,28 +1,33 @@
 "use client";
 
 import { useMemo, useState } from "react";
+
 import {
-  useGetAllBookingsQuery,
   useAcceptBookingMutation,
-  useRejectBookingMutation,
   useCancelBookingMutation,
+  useGetAllBookingsQuery,
+  useRejectBookingMutation,
 } from "@/lib/features/bookings/bookingsApi";
-import type { Booking, BookingStatus } from "@/lib/features/admin/types";
+import type { BookingStatus } from "@/lib/features/admin/types";
+
 import shared from "../styles/page.module.css";
 
 const statusLabel: Record<BookingStatus, string> = {
   pending: "En attente",
-  accepted: "Acceptée",
-  rejected: "Rejetée",
-  cancelled: "Annulée",
-  completed: "Terminée",
+  accepted: "Acceptee",
+  rejected: "Rejetee",
+  cancelled: "Annulee",
+  completed: "Terminee",
+  expired: "Expiree",
 };
 
 const statusClass = (status: BookingStatus) => {
-  if (status === "accepted" || status === "completed")
+  if (status === "accepted" || status === "completed") {
     return `${shared.badge} ${shared.badgeSuccess}`;
-  if (status === "rejected" || status === "cancelled")
+  }
+  if (status === "rejected" || status === "cancelled" || status === "expired") {
     return `${shared.badge} ${shared.badgeDanger}`;
+  }
   return `${shared.badge} ${shared.badgeWarning}`;
 };
 
@@ -46,23 +51,27 @@ export default function BookingsPage() {
   const [cancelBooking, { isLoading: isCancelling }] = useCancelBookingMutation();
 
   const filtered = useMemo(() => {
+    const searchTerm = search.trim().toLowerCase();
     return allBookings.filter((booking) => {
-      const searchTerm = search.toLowerCase();
-      const matchesSearch =
+      if (searchTerm.length === 0) {
+        return true;
+      }
+
+      return (
         booking.passenger?.firstName.toLowerCase().includes(searchTerm) ||
         booking.passenger?.lastName.toLowerCase().includes(searchTerm) ||
-        booking.passenger?.phone.includes(searchTerm);
-      return matchesSearch;
+        booking.passenger?.phone.includes(searchTerm)
+      );
     });
   }, [allBookings, search]);
 
   const handleAccept = async (bookingId: string) => {
     try {
       await acceptBooking(bookingId).unwrap();
-      alert("Réservation acceptée avec succès");
+      alert("Reservation acceptee avec succes");
     } catch (error) {
       console.error("Failed to accept booking:", error);
-      alert("Échec de l'acceptation de la réservation");
+      alert("Echec de l'acceptation de la reservation");
     }
   };
 
@@ -71,72 +80,74 @@ export default function BookingsPage() {
       alert("Veuillez entrer un motif de rejet");
       return;
     }
+
     try {
       await rejectBooking({ bookingId, reason: rejectReason }).unwrap();
       setRejectReason("");
       setSelectedBookingId(null);
-      alert("Réservation rejetée avec succès");
+      alert("Reservation rejetee avec succes");
     } catch (error) {
       console.error("Failed to reject booking:", error);
-      alert("Échec du rejet de la réservation");
+      alert("Echec du rejet de la reservation");
     }
   };
 
   const handleCancel = async (bookingId: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir annuler cette réservation ?")) {
+    if (!confirm("Etes-vous sur de vouloir annuler cette reservation ?")) {
       return;
     }
+
     try {
       await cancelBooking(bookingId).unwrap();
-      alert("Réservation annulée avec succès");
+      alert("Reservation annulee avec succes");
     } catch (error) {
       console.error("Failed to cancel booking:", error);
-      alert("Échec de l'annulation de la réservation");
+      alert("Echec de l'annulation de la reservation");
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Intl.DateTimeFormat("fr-CD", {
+  const formatDate = (dateString: string) =>
+    new Intl.DateTimeFormat("fr-CD", {
       day: "2-digit",
       month: "short",
       hour: "2-digit",
       minute: "2-digit",
     }).format(new Date(dateString));
-  };
 
   return (
     <div className={shared.page}>
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h2>Gestion des réservations</h2>
+            <h2>Gestion des reservations</h2>
             <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
-              {allBookings.length} réservations au total •{" "}
-              {allBookings.filter((b) => b.status === "pending").length} en attente
+              {allBookings.length} reservation(s) au total •{" "}
+              {allBookings.filter((booking) => booking.status === "pending").length} en attente
             </p>
           </div>
           <div className={shared.toolbar}>
             <input
-              placeholder="Rechercher (passager, téléphone)"
+              placeholder="Rechercher (passager, telephone)"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
             />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(event) => setStatusFilter(event.target.value)}
             >
               <option value="all">Tous les statuts</option>
               <option value="pending">En attente</option>
-              <option value="accepted">Acceptées</option>
-              <option value="rejected">Rejetées</option>
-              <option value="cancelled">Annulées</option>
-              <option value="completed">Terminées</option>
+              <option value="accepted">Acceptees</option>
+              <option value="rejected">Rejetees</option>
+              <option value="cancelled">Annulees</option>
+              <option value="completed">Terminees</option>
+              <option value="expired">Expirees</option>
             </select>
           </div>
         </div>
 
         {isFetching ? (
-          <p>Chargement des réservations...</p>
+          <p>Chargement des reservations...</p>
         ) : (
           <>
             <div className={shared.tableWrapper}>
@@ -146,7 +157,7 @@ export default function BookingsPage() {
                     <th>Passager</th>
                     <th>Trajet</th>
                     <th>Places</th>
-                    <th>Date réservation</th>
+                    <th>Date reservation</th>
                     <th>Statut</th>
                     <th>Actions</th>
                   </tr>
@@ -155,7 +166,7 @@ export default function BookingsPage() {
                   {filtered.length === 0 ? (
                     <tr>
                       <td colSpan={6} style={{ textAlign: "center" }}>
-                        Aucune réservation trouvée
+                        Aucune reservation trouvee
                       </td>
                     </tr>
                   ) : (
@@ -165,8 +176,7 @@ export default function BookingsPage() {
                         <tr key={booking.id}>
                           <td>
                             <strong>
-                              {booking.passenger?.firstName}{" "}
-                              {booking.passenger?.lastName}
+                              {booking.passenger?.firstName} {booking.passenger?.lastName}
                             </strong>
                             <br />
                             <small style={{ color: "var(--color-text-muted)" }}>
@@ -183,7 +193,7 @@ export default function BookingsPage() {
                                 </small>
                               </>
                             ) : (
-                              "Trajet non trouvé"
+                              "Trajet non trouve"
                             )}
                           </td>
                           <td>{booking.numberOfSeats}</td>
@@ -192,17 +202,17 @@ export default function BookingsPage() {
                             <span className={statusClass(booking.status)}>
                               {statusLabel[booking.status]}
                             </span>
-                            {booking.rejectionReason && (
+                            {booking.rejectionReason ? (
                               <>
                                 <br />
                                 <small style={{ color: "var(--color-danger)" }}>
                                   {booking.rejectionReason}
                                 </small>
                               </>
-                            )}
+                            ) : null}
                           </td>
                           <td>
-                            {booking.status === "pending" && (
+                            {booking.status === "pending" ? (
                               <div style={{ display: "flex", gap: 8 }}>
                                 <button
                                   type="button"
@@ -228,8 +238,8 @@ export default function BookingsPage() {
                                   Rejeter
                                 </button>
                               </div>
-                            )}
-                            {booking.status === "accepted" && (
+                            ) : null}
+                            {booking.status === "accepted" ? (
                               <button
                                 type="button"
                                 className={shared.primaryButton}
@@ -244,7 +254,7 @@ export default function BookingsPage() {
                               >
                                 Annuler
                               </button>
-                            )}
+                            ) : null}
                           </td>
                         </tr>
                       );
@@ -261,10 +271,10 @@ export default function BookingsPage() {
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={isFetching || page === 1}
               >
-                Page précédente
+                Page precedente
               </button>
               <span>
-                Page {page} • {bookingsData?.total ?? 0} réservations
+                Page {page} • {bookingsData?.total ?? 0} reservation(s)
               </span>
               <button
                 type="button"
@@ -278,8 +288,7 @@ export default function BookingsPage() {
           </>
         )}
 
-        {/* Reject reason modal */}
-        {selectedBookingId && (
+        {selectedBookingId ? (
           <div
             style={{
               position: "fixed",
@@ -298,13 +307,13 @@ export default function BookingsPage() {
             <div
               className={shared.card}
               style={{ maxWidth: 500, width: "90%" }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
             >
               <h3>Motif du rejet</h3>
               <textarea
                 placeholder="Entrez le motif du rejet (obligatoire)"
                 value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
+                onChange={(event) => setRejectReason(event.target.value)}
                 rows={4}
                 style={{
                   width: "100%",
@@ -324,9 +333,7 @@ export default function BookingsPage() {
                     setSelectedBookingId(null);
                     setRejectReason("");
                   }}
-                  style={{
-                    background: "rgba(255, 255, 255, 0.1)",
-                  }}
+                  style={{ background: "rgba(255, 255, 255, 0.1)" }}
                 >
                   Annuler
                 </button>
@@ -345,9 +352,8 @@ export default function BookingsPage() {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
       </section>
     </div>
   );
 }
-

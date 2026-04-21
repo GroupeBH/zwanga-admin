@@ -1,146 +1,263 @@
 import { baseApi } from "../api/baseApi";
-import type { DashboardResponse, MetricCard, TrendPoint, KycDocument, Trip, User } from "../admin/types";
+import {
+  buildPaymentOverview,
+  buildRouteInsights,
+  buildTripLifecycleBuckets,
+  buildTripTimeline,
+  getTripLifecycleStatus,
+} from "../admin/insights";
+import type {
+  DashboardResponse,
+  DocumentFundingRequest,
+  DriverHighlight,
+  KycDocument,
+  MetricCard,
+  SubscriptionOffering,
+  Trip,
+  TripLifecycleStatus,
+  User,
+} from "../admin/types";
 
-// Helper to calculate dashboard metrics from real data
-const calculateDashboardMetrics = (
-  users: User[],
+const integerFormatter = new Intl.NumberFormat("fr-CD");
+
+const formatInteger = (value: number) => integerFormatter.format(value);
+
+const formatAmount = (amount: number, currency: string) => {
+  const rounded = Number.isFinite(amount) ? Math.round(amount) : 0;
+  return `${integerFormatter.format(rounded)} ${currency}`;
+};
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) {
+    return "Bonjour";
+  }
+  if (hour < 18) {
+    return "Bon apres-midi";
+  }
+  return "Bonsoir";
+};
+
+const summarizeLifecycle = (trips: Trip[]) => {
+  const counters: Record<TripLifecycleStatus, number> = {
+    upcoming: 0,
+    ongoing: 0,
+    completed: 0,
+    cancelled: 0,
+    expired: 0,
+  };
+
+  for (const trip of trips) {
+    counters[getTripLifecycleStatus(trip)] += 1;
+  }
+
+  return counters;
+};
+
+const buildMetricCards = (
   trips: Trip[],
-  kycDocuments: KycDocument[]
-): DashboardResponse => {
-  // Calculate metrics
-  const activeTrips = trips.filter(t => t.status === "upcoming" || t.status === "ongoing").length;
-  const completedTrips = trips.filter(t => t.status === "completed").length;
-  const pendingKyc = kycDocuments.filter(k => k.status === "pending").length;
-  const activeUsers = users.filter(u => u.status === "active").length;
+  kycDocuments: KycDocument[],
+  fundingRequests: DocumentFundingRequest[],
+  planCurrencies: string[]
+): MetricCard[] => {
+  const lifecycle = summarizeLifecycle(trips);
+  const pendingKyc = kycDocuments.filter((item) => item.status === "pending").length;
+  const paymentOverview = buildPaymentOverview([], fundingRequests);
+  const pendingFundingCurrency = planCurrencies[0] ?? "CDF";
 
-  // Calculate trends (simplified - in production, compare with previous period)
-  const metrics: MetricCard[] = [
+  return [
     {
-      id: "rides",
-      label: "Trajets actifs",
-      value: activeTrips.toString(),
-      delta: 12,
-      trend: "up",
-      helper: "en cours + à venir",
+      id: "published",
+      label: "Trajets publies",
+      value: formatInteger(trips.length),
+      helper: `${formatInteger(lifecycle.ongoing + lifecycle.upcoming)} encore ouverts`,
+      tone: "neutral",
+    },
+    {
+      id: "ongoing",
+      label: "En cours",
+      value: formatInteger(lifecycle.ongoing),
+      helper: "trajets actuellement actifs",
+      tone: lifecycle.ongoing > 0 ? "success" : "neutral",
+    },
+    {
+      id: "upcoming",
+      label: "A venir",
+      value: formatInteger(lifecycle.upcoming),
+      helper: "publications programmees",
+      tone: lifecycle.upcoming > 0 ? "neutral" : "success",
+    },
+    {
+      id: "expired",
+      label: "Expires",
+      value: formatInteger(lifecycle.expired),
+      helper: "depart depasse de plus de 2h",
+      tone: lifecycle.expired > 0 ? "warning" : "success",
     },
     {
       id: "kyc",
-      label: "Dossiers KYC",
-      value: `${pendingKyc} en attente`,
-      delta: pendingKyc > 5 ? -6 : 3,
-      trend: pendingKyc > 5 ? "down" : "up",
-      helper: "à valider",
+      label: "KYC en attente",
+      value: formatInteger(pendingKyc),
+      helper: pendingKyc > 0 ? "validation admin requise" : "aucun dossier bloque",
+      tone: pendingKyc > 0 ? "warning" : "success",
     },
     {
-      id: "users",
-      label: "Utilisateurs actifs",
-      value: activeUsers.toString(),
-      delta: 8,
-      trend: "up",
-      helper: "inscrits",
-    },
-    {
-      id: "completed",
-      label: "Trajets terminés",
-      value: completedTrips.toString(),
-      delta: 15,
-      trend: "up",
-      helper: "ce mois",
+      id: "funding",
+      label: "Financement en attente",
+      value: formatInteger(paymentOverview.pendingFundingRequests),
+      helper:
+        paymentOverview.pendingFundingRequests > 0
+          ? `${formatAmount(paymentOverview.pendingAmount, pendingFundingCurrency)} a valider`
+          : "aucune demande ouverte",
+      tone: paymentOverview.pendingFundingRequests > 0 ? "warning" : "success",
     },
   ];
+};
 
-  // Generate ride trends (last 7 months - simplified)
-  const months = ["Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov"];
-  const rideTrends: TrendPoint[] = months.map((month, index) => ({
-    month,
-    completed: Math.floor(800 + index * 80 + Math.random() * 100),
-    cancelled: Math.floor(50 + Math.random() * 20),
-  }));
+const buildAlerts = (
+  trips: Trip[],
+  kycDocuments: KycDocument[],
+  fundingRequests: DocumentFundingRequest[]
+) => {
+  const lifecycle = summarizeLifecycle(trips);
+  const pendingKyc = kycDocuments.filter((item) => item.status === "pending").length;
+  const pendingFunding = fundingRequests.filter((item) => item.status === "pending");
+  const rejectedFunding = fundingRequests.filter((item) => item.status === "rejected");
 
-  // Subscription health (mock for now - requires subscription data)
-  const subscriptionHealth = [
-    { plan: "Gratuit", users: users.filter(u => !u.isDriver).length, arpu: 0, trend: 5 },
-    { plan: "Conducteur", users: users.filter(u => u.isDriver).length, arpu: 25, trend: 12 },
-    { plan: "Premium", users: Math.floor(users.length * 0.1), arpu: 50, trend: 8 },
-  ];
-
-  // Alerts based on real data
   const alerts = [];
-  if (pendingKyc > 5) {
+
+  if (pendingKyc > 0) {
     alerts.push({
       id: "alert-kyc",
       type: "kyc" as const,
-      message: `${pendingKyc} dossiers KYC en attente de validation`,
-      severity: "high" as const,
-      timestamp: new Date().toISOString(),
+      message: `${pendingKyc} dossier(s) KYC attendent une verification`,
+      severity: pendingKyc >= 5 ? ("high" as const) : ("medium" as const),
+      timestamp:
+        kycDocuments
+          .filter((item) => item.status === "pending")
+          .sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          )[0]?.createdAt ?? new Date().toISOString(),
     });
   }
-  if (activeTrips > 100) {
+
+  if (lifecycle.expired > 0) {
     alerts.push({
-      id: "alert-capacity",
+      id: "alert-expired-trips",
       type: "safety" as const,
-      message: "Forte demande de trajets - capacité optimale",
-      severity: "medium" as const,
+      message: `${lifecycle.expired} trajet(s) publies sont maintenant expires`,
+      severity: lifecycle.expired >= 3 ? ("high" as const) : ("medium" as const),
       timestamp: new Date().toISOString(),
     });
   }
 
-  // Active zones (mock - requires geolocation analysis)
-  const activeZones = [
-    { id: "zone-1", name: "Kinshasa Centre", rides: Math.floor(activeTrips * 0.4), occupancy: 85, status: "stable" as const },
-    { id: "zone-2", name: "Gombe", rides: Math.floor(activeTrips * 0.3), occupancy: 92, status: "watch" as const },
-    { id: "zone-3", name: "Lemba", rides: Math.floor(activeTrips * 0.2), occupancy: 78, status: "stable" as const },
-    { id: "zone-4", name: "Matongé", rides: Math.floor(activeTrips * 0.1), occupancy: 65, status: "stable" as const },
-  ];
+  if (pendingFunding.length > 0) {
+    alerts.push({
+      id: "alert-funding",
+      type: "payment" as const,
+      message: `${pendingFunding.length} demande(s) de financement a traiter`,
+      severity: pendingFunding.length >= 3 ? ("medium" as const) : ("low" as const),
+      timestamp: pendingFunding[0]?.createdAt ?? new Date().toISOString(),
+    });
+  }
 
-  // Top drivers (based on completed trips)
-  const driversWithTrips = trips
-    .filter(t => t.driver && t.status === "completed")
-    .reduce((acc, trip) => {
-      if (!trip.driver) return acc;
-      const driverId = trip.driver.id;
-      if (!acc[driverId]) {
-        acc[driverId] = {
-          id: driverId,
-          name: `${trip.driver.firstName} ${trip.driver.lastName}`,
-          score: 0,
-          completed: 0,
-          rating: 4.5 + Math.random() * 0.5,
-        };
+  if (rejectedFunding.length > 0) {
+    alerts.push({
+      id: "alert-funding-rejected",
+      type: "subscription" as const,
+      message: `${rejectedFunding.length} demande(s) de financement ont ete rejetees`,
+      severity: "low" as const,
+      timestamp: rejectedFunding[0]?.updatedAt ?? new Date().toISOString(),
+    });
+  }
+
+  if (alerts.length === 0) {
+    alerts.push({
+      id: "alert-stable",
+      type: "support" as const,
+      message: "Aucune alerte critique en cours",
+      severity: "low" as const,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  return alerts.slice(0, 4);
+};
+
+const buildTopDrivers = (trips: Trip[]): DriverHighlight[] => {
+  const drivers = new Map<string, DriverHighlight>();
+
+  for (const trip of trips) {
+    if (!trip.driver || getTripLifecycleStatus(trip) !== "completed") {
+      continue;
+    }
+
+    const driverId = trip.driver.id;
+    const existing = drivers.get(driverId) ?? {
+      id: driverId,
+      name: `${trip.driver.firstName} ${trip.driver.lastName}`,
+      score: 0,
+      completed: 0,
+      rating: 4.6,
+    };
+
+    existing.completed += 1;
+    existing.score = existing.completed * 10 + Math.max(0, trip.availableSeats);
+    drivers.set(driverId, existing);
+  }
+
+  return Array.from(drivers.values())
+    .sort((a, b) => {
+      if (b.completed !== a.completed) {
+        return b.completed - a.completed;
       }
-      acc[driverId].completed += 1;
-      acc[driverId].score = acc[driverId].completed * 10;
-      return acc;
-    }, {} as Record<string, any>);
-
-  const topDrivers = Object.values(driversWithTrips)
-    .sort((a: any, b: any) => b.completed - a.completed)
+      return b.score - a.score;
+    })
     .slice(0, 5);
+};
 
-  // KYC queue shortlist
-  const kycQueueShortlist = kycDocuments
-    .filter(k => k.status === "pending")
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-    .slice(0, 5);
+const calculateDashboardMetrics = (
+  users: User[],
+  trips: Trip[],
+  kycDocuments: KycDocument[],
+  subscriptionPlans: SubscriptionOffering[],
+  fundingRequests: DocumentFundingRequest[]
+): DashboardResponse => {
+  const lifecycleBuckets = buildTripLifecycleBuckets(trips);
+  const planCurrencies = subscriptionPlans.map((item) => item.documentFundingCurrency);
+  const paymentOverview = buildPaymentOverview(subscriptionPlans, fundingRequests);
 
-  // Greeting based on time
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
-  const dateRange = new Intl.DateTimeFormat("fr-CD", {
+  const dateLabel = new Intl.DateTimeFormat("fr-CD", {
     day: "2-digit",
     month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(new Date());
 
   return {
-    greeting: `${greeting}, bienvenue sur le dashboard`,
-    dateRange: `Mis à jour le ${dateRange}`,
-    metrics,
-    rideTrends,
-    subscriptionHealth,
-    alerts,
-    activeZones,
-    topDrivers,
-    kycQueueShortlist,
+    greeting: `${getGreeting()}, pilotage admin Zwanga`,
+    dateRange: `Mis a jour le ${dateLabel}`,
+    metrics: buildMetricCards(trips, kycDocuments, fundingRequests, planCurrencies),
+    tripTrends: buildTripTimeline(trips),
+    tripLifecycle: lifecycleBuckets,
+    subscriptionPlans,
+    paymentOverview,
+    alerts: buildAlerts(trips, kycDocuments, fundingRequests),
+    popularRoutes: buildRouteInsights(trips),
+    topDrivers: buildTopDrivers(trips),
+    recentFundingRequests: [...fundingRequests]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+      .slice(0, 5),
+    kycQueueShortlist: [...kycDocuments]
+      .filter((item) => item.status === "pending")
+      .sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      )
+      .slice(0, 5),
   };
 };
 
@@ -149,25 +266,43 @@ export const dashboardApi = baseApi.injectEndpoints({
     getDashboard: builder.query<DashboardResponse, void>({
       async queryFn(_arg, _queryApi, _extraOptions, fetchWithBQ) {
         try {
-          // Fetch all required data in parallel
-          const [usersResult, tripsResult, kycResult] = await Promise.all([
+          const [
+            usersResult,
+            tripsResult,
+            kycResult,
+            plansResult,
+            fundingResult,
+          ] = await Promise.all([
             fetchWithBQ({ url: "/admin/users", params: { page: 1, limit: 1000 } }),
             fetchWithBQ({ url: "/admin/trips", params: { page: 1, limit: 1000 } }),
             fetchWithBQ("/admin/kyc/pending"),
+            fetchWithBQ("/subscriptions/plans"),
+            fetchWithBQ("/subscriptions/document-funding-requests"),
           ]);
 
-          // Check for errors
-          if (usersResult.error) return { error: usersResult.error as any };
-          if (tripsResult.error) return { error: tripsResult.error as any };
-          if (kycResult.error) return { error: kycResult.error as any };
+          if (usersResult.error) {
+            return { error: usersResult.error as any };
+          }
+          if (tripsResult.error) {
+            return { error: tripsResult.error as any };
+          }
+          if (kycResult.error) {
+            return { error: kycResult.error as any };
+          }
 
-          // Extract data
           const users = (usersResult.data as any)?.users || [];
           const trips = (tripsResult.data as any)?.trips || [];
           const kycDocuments = (kycResult.data as KycDocument[]) || [];
+          const subscriptionPlans = (plansResult.data as SubscriptionOffering[]) || [];
+          const fundingRequests = (fundingResult.data as DocumentFundingRequest[]) || [];
 
-          // Calculate dashboard metrics
-          const dashboard = calculateDashboardMetrics(users, trips, kycDocuments);
+          const dashboard = calculateDashboardMetrics(
+            users,
+            trips,
+            kycDocuments,
+            subscriptionPlans,
+            fundingRequests
+          );
 
           return { data: dashboard };
         } catch (error: any) {

@@ -1,28 +1,46 @@
 "use client";
 
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  FileText,
-} from "lucide-react";
+import { CreditCard, FileText, Route, ShieldCheck, Wallet } from "lucide-react";
 
+import {
+  formatDocumentType,
+  formatFundingStatus,
+  formatPaymentMethod,
+  formatSubscriptionFeatureList,
+  formatSubscriptionPlanLabel,
+} from "@/lib/features/admin/insights";
+import type {
+  DocumentFundingRequest,
+  KycDocument,
+  MetricCard,
+} from "@/lib/features/admin/types";
 import { useGetDashboardQuery } from "@/lib/features/dashboard/dashboardApi";
-import type { KycDocument, MetricCard } from "@/lib/features/admin/types";
 
 import styles from "./dashboard.module.css";
 
-const TrendIcon = ({ trend }: { trend: MetricCard["trend"] }) => {
-  if (trend === "down") return <ArrowDownRight size={14} aria-hidden="true" />;
-  return <ArrowUpRight size={14} aria-hidden="true" />;
-};
-
-const formatKycDate = (value: string) =>
+const formatDateTime = (value: string) =>
   new Intl.DateTimeFormat("fr-CD", {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+
+const formatCurrency = (value: number, currency: string) =>
+  `${new Intl.NumberFormat("fr-CD", { maximumFractionDigits: 0 }).format(value)} ${currency}`;
+
+const metricToneClass = (tone: MetricCard["tone"]) => {
+  if (tone === "success") return styles.statusStable;
+  if (tone === "warning") return styles.statusWatch;
+  if (tone === "danger") return styles.statusCritical;
+  return styles.statusNeutral;
+};
+
+const fundingStatusClass = (status: DocumentFundingRequest["status"]) => {
+  if (status === "funded" || status === "approved") return styles.statusStable;
+  if (status === "rejected" || status === "cancelled") return styles.statusCritical;
+  return styles.statusWatch;
+};
 
 const kycStatusClass = (status: KycDocument["status"]) => {
   if (status === "approved") return styles.statusStable;
@@ -37,25 +55,19 @@ export default function DashboardPage() {
     return <p>Chargement du tableau de bord...</p>;
   }
 
-  const maxRideValue = Math.max(
-    ...data.rideTrends.map((point) =>
-      Math.max(point.completed, point.cancelled)
-    )
+  const maxTripTrendValue = Math.max(
+    1,
+    ...data.tripTrends.map((point) => Math.max(point.published, point.completed))
   );
 
-  const toPoints = (key: "completed" | "cancelled") => {
-    return data.rideTrends
+  const toPoints = (key: "published" | "completed") =>
+    data.tripTrends
       .map((point, index, array) => {
-        const x = (index / (array.length - 1)) * 100;
-        const y = 100 - (point[key] / maxRideValue) * 100;
+        const x = array.length === 1 ? 50 : (index / (array.length - 1)) * 100;
+        const y = 100 - (point[key] / maxTripTrendValue) * 100;
         return `${x},${y}`;
       })
       .join(" ");
-  };
-
-  const maxSubscribers = Math.max(
-    ...data.subscriptionHealth.map((plan) => plan.users)
-  );
 
   return (
     <div className={styles.page}>
@@ -75,12 +87,8 @@ export default function DashboardPage() {
           <article key={metric.id} className={styles.metric}>
             <span>{metric.label}</span>
             <div className={styles.metricValue}>{metric.value}</div>
-            <div className={`${styles.delta} ${styles[metric.trend]}`}>
-              <TrendIcon trend={metric.trend} />
-              <strong>
-                {metric.delta > 0 ? `+${metric.delta}%` : `${metric.delta}%`}
-              </strong>
-              <span>{metric.helper}</span>
+            <div className={`${styles.metricMeta} ${metricToneClass(metric.tone)}`}>
+              <strong>{metric.helper}</strong>
             </div>
           </article>
         ))}
@@ -90,13 +98,19 @@ export default function DashboardPage() {
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <strong>Flux trajets</strong>
-              <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
-                Complétés vs annulés (7 derniers mois)
-              </p>
+              <strong>Flux de publication</strong>
+              <p className={styles.panelHint}>Publies vs termines sur les 7 derniers jours</p>
             </div>
           </div>
           <svg viewBox="0 0 100 100" className={styles.chart} role="img">
+            <polyline
+              fill="none"
+              stroke="#ffb347"
+              strokeWidth="2"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              points={toPoints("published")}
+            />
             <polyline
               fill="none"
               stroke="#3dd598"
@@ -105,42 +119,37 @@ export default function DashboardPage() {
               strokeLinecap="round"
               points={toPoints("completed")}
             />
-            <polyline
-              fill="none"
-              stroke="#ff4b55"
-              strokeWidth="2"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              points={toPoints("cancelled")}
-            />
           </svg>
-          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-            {data.rideTrends.map((point) => (
-              <span key={point.month} className={styles.pill}>
-                {point.month}
-              </span>
+          <div className={styles.legend}>
+            <span className={styles.pill}>Publies</span>
+            <span className={`${styles.pill} ${styles.statusStable}`}>Termines</span>
+          </div>
+          <div className={styles.timeline}>
+            {data.tripTrends.map((point) => (
+              <div key={point.label} className={styles.timelineItem}>
+                <strong>{point.label}</strong>
+                <span>
+                  {point.published} publies • {point.completed} termines
+                </span>
+              </div>
             ))}
           </div>
         </section>
 
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
-            <strong>Plans & abonnements</strong>
-            <span style={{ color: "var(--color-text-muted)" }}>ARPU</span>
+            <div>
+              <strong>Trajets publies</strong>
+              <p className={styles.panelHint}>Lecture admin par cycle de vie</p>
+            </div>
+            <Route size={16} aria-hidden="true" />
           </div>
-          <div className={styles.subscriptions}>
-            {data.subscriptionHealth.map((plan) => (
-              <div key={plan.plan} className={styles.subscriptionRow}>
-                <span>{plan.plan}</span>
-                <div className={styles.subscriptionBar}>
-                  <div
-                    className={styles.subscriptionFill}
-                    style={{
-                      width: `${(plan.users / maxSubscribers) * 100}%`,
-                    }}
-                  />
-                </div>
-                <strong>{plan.arpu} $</strong>
+          <div className={styles.lifecycleGrid}>
+            {data.tripLifecycle.map((bucket) => (
+              <div key={bucket.key} className={styles.lifecycleCard}>
+                <span className={styles.pill}>{bucket.label}</span>
+                <strong>{bucket.count}</strong>
+                <small>{bucket.helper}</small>
               </div>
             ))}
           </div>
@@ -150,33 +159,138 @@ export default function DashboardPage() {
       <div className={styles.panels}>
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
-            <strong>Zones actives Kinshasa</strong>
-            <span style={{ color: "var(--color-text-muted)" }}>
-              Occupation
-            </span>
+            <div>
+              <strong>Abonnements premium</strong>
+              <p className={styles.panelHint}>Plans exposes par le backend</p>
+            </div>
+            <CreditCard size={16} aria-hidden="true" />
           </div>
-          <div className={styles.zones}>
-            {data.activeZones.map((zone) => (
-              <div key={zone.id} className={styles.zone}>
+
+          <div className={styles.planList}>
+            {data.subscriptionPlans.length === 0 ? (
+              <p className={styles.emptyState}>Aucun plan premium n'a ete retourne.</p>
+            ) : (
+              data.subscriptionPlans.map((plan) => (
+                <article key={`${plan.plan}-${plan.currency}`} className={styles.planCard}>
+                  <div className={styles.planHeader}>
+                    <div>
+                      <span className={styles.pill}>
+                        {formatSubscriptionPlanLabel(plan.plan)}
+                      </span>
+                      <strong>{formatCurrency(plan.amount, plan.currency)}</strong>
+                    </div>
+                    <span className={styles.pill}>
+                      {plan.paymentMethods.length} moyen(x) de paiement
+                    </span>
+                  </div>
+
+                  <div className={styles.featureList}>
+                    {formatSubscriptionFeatureList(plan).map((feature) => (
+                      <span key={feature} className={styles.pill}>
+                        {feature}
+                      </span>
+                    ))}
+                    {plan.documentFundingEnabled ? (
+                      <span className={`${styles.pill} ${styles.statusWatch}`}>
+                        plafond {formatCurrency(plan.documentFundingLimit ?? 0, plan.documentFundingCurrency)}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <small className={styles.panelHint}>
+                    Paiements: {plan.paymentMethods.map(formatPaymentMethod).join(", ")}
+                  </small>
+                </article>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <div>
+              <strong>Paiements et financement</strong>
+              <p className={styles.panelHint}>Synthese des flux premium exposes a l'admin</p>
+            </div>
+            <Wallet size={16} aria-hidden="true" />
+          </div>
+
+          <div className={styles.paymentStats}>
+            <div className={styles.statCard}>
+              <span>En attente</span>
+              <strong>{data.paymentOverview.pendingFundingRequests}</strong>
+            </div>
+            <div className={styles.statCard}>
+              <span>Approuvees</span>
+              <strong>{data.paymentOverview.approvedFundingRequests}</strong>
+            </div>
+            <div className={styles.statCard}>
+              <span>Financees</span>
+              <strong>{data.paymentOverview.fundedRequests}</strong>
+            </div>
+            <div className={styles.statCard}>
+              <span>Rejetees</span>
+              <strong>{data.paymentOverview.rejectedRequests}</strong>
+            </div>
+          </div>
+
+          <div className={styles.paymentBreakdown}>
+            <div>
+              <strong>Montant demande</strong>
+              <p>
+                {formatCurrency(
+                  data.paymentOverview.totalRequestedAmount,
+                  data.paymentOverview.supportedCurrencies[0] ?? "CDF"
+                )}
+              </p>
+            </div>
+            <div>
+              <strong>A traiter</strong>
+              <p>
+                {formatCurrency(
+                  data.paymentOverview.pendingAmount,
+                  data.paymentOverview.supportedCurrencies[0] ?? "CDF"
+                )}
+              </p>
+            </div>
+            <div>
+              <strong>Moyens actifs</strong>
+              <div className={styles.featureList}>
+                {data.paymentOverview.supportedMethods.map((method) => (
+                  <span key={method} className={styles.pill}>
+                    {formatPaymentMethod(method)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className={styles.panels}>
+        <section className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <div>
+              <strong>Routes les plus publiees</strong>
+              <p className={styles.panelHint}>Volume total et etat de diffusion</p>
+            </div>
+          </div>
+          <div className={styles.routeList}>
+            {data.popularRoutes.map((route) => (
+              <div key={route.id} className={styles.routeItem}>
                 <div>
-                  <strong>{zone.name}</strong>
-                  <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
-                    {zone.rides} trajets aujourd&apos;hui
+                  <strong>{route.route}</strong>
+                  <p className={styles.panelHint}>
+                    {route.total} publication(s) • {route.live} en cours • {route.completed} terminees
                   </p>
                 </div>
-                <div>
-                  <span
-                    className={`${styles.pill} ${
-                      zone.status === "critical"
-                        ? styles.statusCritical
-                        : zone.status === "watch"
-                          ? styles.statusWatch
-                          : styles.statusStable
-                    }`}
-                  >
-                    {zone.occupancy}% • {zone.status}
+                {route.expired > 0 ? (
+                  <span className={`${styles.pill} ${styles.statusWatch}`}>
+                    {route.expired} expire(s)
                   </span>
-                </div>
+                ) : (
+                  <span className={`${styles.pill} ${styles.statusStable}`}>stable</span>
+                )}
               </div>
             ))}
           </div>
@@ -184,22 +298,53 @@ export default function DashboardPage() {
 
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
-            <strong>Alertes en cours</strong>
-            <span style={{ color: "var(--color-text-muted)" }}>
-              Sévérité
-            </span>
+            <div>
+              <strong>Demandes recentes</strong>
+              <p className={styles.panelHint}>Financement de documents conducteurs</p>
+            </div>
+          </div>
+          <div className={styles.requestList}>
+            {data.recentFundingRequests.length === 0 ? (
+              <p className={styles.emptyState}>Aucune demande recente.</p>
+            ) : (
+              data.recentFundingRequests.map((request) => (
+                <div key={request.id} className={styles.requestItem}>
+                  <strong>
+                    {request.driver
+                      ? `${request.driver.firstName} ${request.driver.lastName}`
+                      : "Conducteur inconnu"}
+                  </strong>
+                  <span>{formatDocumentType(request.documentType)}</span>
+                  <div className={styles.inlineMeta}>
+                    <span className={`${styles.pill} ${fundingStatusClass(request.status)}`}>
+                      {formatFundingStatus(request.status)}
+                    </span>
+                    <span className={styles.pill}>
+                      {formatCurrency(Number(request.amountRequested ?? 0), request.currency)}
+                    </span>
+                    <span className={styles.pill}>{formatDateTime(request.createdAt)}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className={styles.panels}>
+        <section className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <div>
+              <strong>Alertes en cours</strong>
+              <p className={styles.panelHint}>Priorites a traiter par l'equipe admin</p>
+            </div>
           </div>
           <div className={styles.alertsList}>
             {data.alerts.map((alert) => (
               <div key={alert.id} className={styles.alert}>
                 <div>
                   <strong>{alert.message}</strong>
-                  <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
-                    {new Intl.DateTimeFormat("fr-CD", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }).format(new Date(alert.timestamp))}
-                  </p>
+                  <p className={styles.panelHint}>{formatDateTime(alert.timestamp)}</p>
                 </div>
                 <span
                   className={`${styles.pill} ${
@@ -216,64 +361,68 @@ export default function DashboardPage() {
             ))}
           </div>
         </section>
+
+        <section className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <div>
+              <strong>Top chauffeurs</strong>
+              <p className={styles.panelHint}>Classement base sur les trajets completes</p>
+            </div>
+          </div>
+          <div className={styles.drivers}>
+            {data.topDrivers.length === 0 ? (
+              <p className={styles.emptyState}>Pas encore assez de trajets completes.</p>
+            ) : (
+              data.topDrivers.map((driver) => (
+                <div key={driver.id} className={styles.driver}>
+                  <div>
+                    <strong>{driver.name}</strong>
+                    <p className={styles.panelHint}>
+                      {driver.completed} trajets • note estimee {driver.rating.toFixed(2)}
+                    </p>
+                  </div>
+                  <span className={styles.pill}>{driver.score} pts</span>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
       </div>
 
       <div className={styles.panels}>
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
-            <strong>Top chauffeurs</strong>
-            <span style={{ color: "var(--color-text-muted)" }}>
-              Score & avis
-            </span>
-          </div>
-          <div className={styles.drivers}>
-            {data.topDrivers.map((driver) => (
-              <div key={driver.id} className={styles.driver}>
-                <div>
-                  <strong>{driver.name}</strong>
-                  <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
-                    {driver.completed} trajets • {driver.rating.toFixed(2)} ★
-                  </p>
-                </div>
-                <span className={styles.pill}>{driver.score} pts</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <strong>Queue KYC prioritaire</strong>
-            <span style={{ color: "var(--color-text-muted)" }}>
-              {data.kycQueueShortlist.length} dossiers
-            </span>
+            <div>
+              <strong>Queue KYC prioritaire</strong>
+              <p className={styles.panelHint}>Documents en attente de revue admin</p>
+            </div>
+            <ShieldCheck size={16} aria-hidden="true" />
           </div>
           <div className={styles.kycList}>
-            {data.kycQueueShortlist.map((request) => (
-              <div key={request.id} className={styles.kycItem}>
-                <strong>
-                  {request.user.firstName} {request.user.lastName}
-                </strong>
-                <span>{request.user.email ?? request.user.phone}</span>
-                <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <span className={`${styles.pill} ${kycStatusClass(request.status)}`}>
-                    {request.status}
-                  </span>
-                  <span className={styles.pill}>
-                    Créé {formatKycDate(request.createdAt)}
-                  </span>
-                  {request.reviewedBy ? (
-                    <span className={styles.pill}>
-                      Revu par {request.reviewedBy}
+            {data.kycQueueShortlist.length === 0 ? (
+              <p className={styles.emptyState}>Aucun dossier KYC prioritaire.</p>
+            ) : (
+              data.kycQueueShortlist.map((request) => (
+                <div key={request.id} className={styles.kycItem}>
+                  <strong>
+                    {request.user.firstName} {request.user.lastName}
+                  </strong>
+                  <span>{request.user.email ?? request.user.phone}</span>
+                  <div className={styles.inlineMeta}>
+                    <span className={`${styles.pill} ${kycStatusClass(request.status)}`}>
+                      {request.status}
                     </span>
-                  ) : null}
+                    <span className={styles.pill}>Cree {formatDateTime(request.createdAt)}</span>
+                    {request.reviewedBy ? (
+                      <span className={styles.pill}>Revu par {request.reviewedBy}</span>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
       </div>
     </div>
   );
 }
-

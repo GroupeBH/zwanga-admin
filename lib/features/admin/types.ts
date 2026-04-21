@@ -1,41 +1,34 @@
-export type TrendDirection = "up" | "down" | "flat";
+export type MetricTone = "neutral" | "success" | "warning" | "danger";
 
 export interface MetricCard {
   id: string;
   label: string;
   value: string;
-  delta: number;
-  trend: TrendDirection;
   helper: string;
+  tone: MetricTone;
 }
 
 export interface TrendPoint {
-  month: string;
+  label: string;
+  published: number;
   completed: number;
-  cancelled: number;
-}
-
-export interface SubscriptionHealth {
-  plan: string;
-  users: number;
-  arpu: number;
-  trend: number;
 }
 
 export interface AlertItem {
   id: string;
-  type: "kyc" | "support" | "safety" | "payment";
+  type: "kyc" | "support" | "safety" | "payment" | "subscription";
   message: string;
   severity: "low" | "medium" | "high";
   timestamp: string;
 }
 
-export interface ZoneStat {
+export interface RouteInsight {
   id: string;
-  name: string;
-  rides: number;
-  occupancy: number;
-  status: "stable" | "watch" | "critical";
+  route: string;
+  total: number;
+  live: number;
+  completed: number;
+  expired: number;
 }
 
 export interface DriverHighlight {
@@ -44,6 +37,118 @@ export interface DriverHighlight {
   score: number;
   completed: number;
   rating: number;
+}
+
+export type TripLifecycleStatus =
+  | "upcoming"
+  | "ongoing"
+  | "completed"
+  | "cancelled"
+  | "expired";
+
+export interface TripLifecycleBucket {
+  key: TripLifecycleStatus;
+  label: string;
+  count: number;
+  helper: string;
+}
+
+export type PaymentMethod = "mobile_money" | "card";
+export type PaymentStatus =
+  | "pending"
+  | "initiated"
+  | "succeeded"
+  | "failed"
+  | "cancelled";
+
+export type SubscriptionStatus =
+  | "pending"
+  | "active"
+  | "expired"
+  | "cancelled"
+  | "payment_failed";
+
+export type SubscriptionPlanCode = "pro" | "monthly" | "yearly";
+
+export type AdministrativeDocumentType =
+  | "driver_license"
+  | "vehicle_registration"
+  | "vehicle_insurance"
+  | "technical_inspection"
+  | "road_tax"
+  | "operating_permit"
+  | "other";
+
+export type DocumentFundingRequestStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "funded"
+  | "cancelled";
+
+export interface PaymentOverview {
+  supportedMethods: PaymentMethod[];
+  supportedCurrencies: string[];
+  pendingFundingRequests: number;
+  approvedFundingRequests: number;
+  fundedRequests: number;
+  rejectedRequests: number;
+  totalRequestedAmount: number;
+  pendingAmount: number;
+}
+
+export interface SubscriptionOffering {
+  plan: SubscriptionPlanCode;
+  amount: number;
+  currency: string;
+  premiumBadgeEnabled: boolean;
+  featuredTripsEnabled: boolean;
+  documentFundingEnabled: boolean;
+  documentFundingLimit: number | null;
+  documentFundingCurrency: string;
+  paymentMethods: PaymentMethod[];
+  eligibleDocumentTypes: AdministrativeDocumentType[];
+}
+
+export interface SubscriptionRecord {
+  id: string;
+  userId: string;
+  user?: User | null;
+  plan: SubscriptionPlanCode;
+  status: SubscriptionStatus;
+  startDate: string;
+  endDate: string;
+  amount: number;
+  currency: string;
+  premiumBadgeEnabled: boolean;
+  featuredTripsEnabled: boolean;
+  documentFundingEnabled: boolean;
+  documentFundingLimit: number | null;
+  documentFundingCurrency: string;
+  paymentReference?: string | null;
+  paymentTransactionId?: string | null;
+  isTrial: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentFundingRequest {
+  id: string;
+  driverId: string;
+  driver: User | SanitizedUser | null;
+  subscriptionId: string | null;
+  subscription: SubscriptionRecord | null;
+  documentType: AdministrativeDocumentType;
+  documentName?: string | null;
+  amountRequested?: number | null;
+  currency: string;
+  description?: string | null;
+  status: DocumentFundingRequestStatus;
+  adminNote?: string | null;
+  reviewedAt?: string | null;
+  reviewedByAdminId?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Nest backend enums
@@ -91,11 +196,14 @@ export interface DashboardResponse {
   greeting: string;
   dateRange: string;
   metrics: MetricCard[];
-  rideTrends: TrendPoint[];
-  subscriptionHealth: SubscriptionHealth[];
+  tripTrends: TrendPoint[];
+  tripLifecycle: TripLifecycleBucket[];
+  subscriptionPlans: SubscriptionOffering[];
+  paymentOverview: PaymentOverview;
   alerts: AlertItem[];
-  activeZones: ZoneStat[];
+  popularRoutes: RouteInsight[];
   topDrivers: DriverHighlight[];
+  recentFundingRequests: DocumentFundingRequest[];
   kycQueueShortlist: KycDocument[];
 }
 
@@ -130,25 +238,36 @@ export interface Trip {
   id: string;
   driverId: string;
   driver: SanitizedUser | null;
+  vehicleId?: string | null;
   departureLocation: string;
   departureCoordinates: Coordinates;
   arrivalLocation: string;
   arrivalCoordinates: Coordinates;
   departureDate: string;
+  totalSeats?: number | null;
   availableSeats: number;
   pricePerSeat: number;
+  isFree?: boolean;
   description?: string;
   status: TripStatus;
-  completedAt?: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
   currentLocation?: Coordinates;
-  lastLocationUpdateAt?: string;
+  lastLocationUpdateAt?: string | null;
+  isPrivate?: boolean;
   createdAt: string;
   updatedAt: string;
-  bookings: Booking[];
+  bookings?: Booking[];
 }
 
 // Booking types from Nest backend
-export type BookingStatus = "pending" | "accepted" | "rejected" | "cancelled" | "completed";
+export type BookingStatus =
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "cancelled"
+  | "completed"
+  | "expired";
 
 export interface Booking {
   id: string;
@@ -179,6 +298,22 @@ export interface Vehicle {
   updatedAt: string;
 }
 
+// Legacy dashboard/reporting types kept for compatibility with mock-backed pages.
+export interface SubscriptionHealth {
+  plan: string;
+  users: number;
+  arpu: number;
+  trend: number;
+}
+
+export interface ZoneStat {
+  id: string;
+  name: string;
+  rides: number;
+  occupancy: number;
+  status: "stable" | "watch" | "critical";
+}
+
 export interface SubscriptionPlan {
   id: string;
   name: string;
@@ -192,20 +327,20 @@ export interface SubscriptionPlan {
 
 export interface IncidentReport {
   id: string;
-  type: "sécurité" | "paiement" | "comportement" | "qualité";
+  type: string;
   reporter: string;
   description: string;
-  status: "ouvert" | "en cours" | "résolu";
-  priority: "haute" | "moyenne" | "basse";
+  status: string;
+  priority: string;
   createdAt: string;
 }
 
 export interface SupportTicket {
   id: string;
-  channel: "Email" | "WhatsApp" | "Chat" | "Téléphone";
+  channel: string;
   requester: string;
   topic: string;
-  status: "nouveau" | "en cours" | "clos";
+  status: string;
   sla: string;
   lastUpdate: string;
 }
@@ -229,4 +364,3 @@ export interface PaginatedTripsResponse {
   trips: Trip[];
   total: number;
 }
-

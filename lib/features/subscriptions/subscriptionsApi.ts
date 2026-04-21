@@ -1,16 +1,42 @@
 import { baseApi } from "../api/baseApi";
-import { hydrate, subscriptionsPayload } from "../admin/mockData";
-import type { SubscriptionPlan } from "../admin/types";
+import type {
+  DocumentFundingRequest,
+  DocumentFundingRequestStatus,
+  SubscriptionOffering,
+} from "../admin/types";
+
+export interface DocumentFundingRequestsQueryParams {
+  status?: DocumentFundingRequestStatus | "all";
+}
 
 export const subscriptionsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getSubscriptions: builder.query<SubscriptionPlan[], void>({
-      queryFn: () => hydrate(subscriptionsPayload),
+    getSubscriptionPlans: builder.query<SubscriptionOffering[], void>({
+      query: () => "/subscriptions/plans",
       providesTags: ["Subscriptions"],
+    }),
+
+    getDocumentFundingRequests: builder.query<
+      DocumentFundingRequest[],
+      DocumentFundingRequestsQueryParams | void
+    >({
+      query: ({ status } = {}) => ({
+        url: "/subscriptions/document-funding-requests",
+        params: status && status !== "all" ? { status } : undefined,
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: "Subscriptions" as const, id })),
+              { type: "Subscriptions" as const, id: "DOCUMENT_FUNDING_LIST" },
+            ]
+          : [{ type: "Subscriptions" as const, id: "DOCUMENT_FUNDING_LIST" }],
     }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetSubscriptionsQuery } = subscriptionsApi;
-
+export const {
+  useGetSubscriptionPlansQuery,
+  useGetDocumentFundingRequestsQuery,
+} = subscriptionsApi;

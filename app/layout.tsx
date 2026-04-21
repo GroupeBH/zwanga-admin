@@ -18,7 +18,7 @@ const inter = Inter({
   display: "swap",
 });
 
-const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://zwanga.cd";
+const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://zwanga-app.com";
 const siteUrl =
   rawSiteUrl.startsWith("http://") || rawSiteUrl.startsWith("https://")
     ? rawSiteUrl
