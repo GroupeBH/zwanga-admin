@@ -9,6 +9,7 @@ import {
 } from "@/lib/features/admin/insights";
 import type { Trip, TripLifecycleStatus, TripStatus } from "@/lib/features/admin/types";
 import { useGetAllTripsQuery } from "@/lib/features/trips/tripsApi";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/utils/apiErrors";
 
 import shared from "../styles/page.module.css";
 
@@ -20,9 +21,18 @@ const backendStatusLabelMap: Record<TripStatus, string> = {
 };
 
 export default function RidesPage() {
-  const { data: trips = [], isFetching } = useGetAllTripsQuery({ page: 1, limit: 100 });
+  const { data: trips = [], isFetching, error } = useGetAllTripsQuery({ page: 1, limit: 100 });
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const errorStatus = getApiErrorStatus(error);
+  const errorMessage = error
+    ? getApiErrorMessage(
+        error,
+        errorStatus === 401 || errorStatus === 403
+          ? "Le compte connecte n'a pas les droits admin necessaires pour lire les trajets."
+          : "Impossible de charger les trajets depuis le backend."
+      )
+    : null;
 
   const lifecycleBuckets = useMemo(() => buildTripLifecycleBuckets(trips), [trips]);
 
@@ -69,7 +79,7 @@ export default function RidesPage() {
           <div>
             <h2>Gestion des trajets publies</h2>
             <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
-              {filtered.length} trajet(s) visibles • lecture admin par cycle de vie
+              {filtered.length} trajet(s) visibles - lecture admin par cycle de vie
             </p>
           </div>
           <div className={shared.toolbar}>
@@ -92,18 +102,32 @@ export default function RidesPage() {
           </div>
         </div>
 
-        <div className={shared.grid}>
-          {lifecycleBuckets.map((bucket) => (
-            <article key={bucket.key} className={shared.card}>
-              <span style={{ color: "var(--color-text-muted)" }}>{bucket.label}</span>
-              <strong style={{ fontSize: "1.6rem" }}>{bucket.count}</strong>
-              <small style={{ color: "var(--color-text-muted)" }}>{bucket.helper}</small>
-            </article>
-          ))}
-        </div>
+        {!error ? (
+          <div className={shared.grid}>
+            {lifecycleBuckets.map((bucket) => (
+              <article key={bucket.key} className={shared.card}>
+                <span style={{ color: "var(--color-text-muted)" }}>{bucket.label}</span>
+                <strong style={{ fontSize: "1.6rem" }}>{bucket.count}</strong>
+                <small style={{ color: "var(--color-text-muted)" }}>{bucket.helper}</small>
+              </article>
+            ))}
+          </div>
+        ) : null}
 
         {isFetching ? (
           <p>Chargement des trajets...</p>
+        ) : errorMessage ? (
+          <p
+            style={{
+              padding: "1rem 1.2rem",
+              borderRadius: "0.9rem",
+              border: "1px solid rgba(255, 163, 26, 0.35)",
+              background: "rgba(255, 163, 26, 0.08)",
+              color: "var(--color-text)",
+            }}
+          >
+            {errorMessage}
+          </p>
         ) : (
           <div className={shared.tableWrapper}>
             <table className={shared.table}>
@@ -127,7 +151,7 @@ export default function RidesPage() {
                         <strong>
                           {trip.driver
                             ? `${trip.driver.firstName} ${trip.driver.lastName}`
-                            : "—"}
+                            : "-"}
                         </strong>
                         <br />
                         <small style={{ color: "var(--color-text-muted)" }}>
@@ -138,7 +162,7 @@ export default function RidesPage() {
                         <strong>{trip.departureLocation}</strong>
                         <br />
                         <small style={{ color: "var(--color-text-muted)" }}>
-                          → {trip.arrivalLocation}
+                          -&gt; {trip.arrivalLocation}
                         </small>
                       </td>
                       <td>{formatDate(trip.createdAt)}</td>
@@ -171,7 +195,7 @@ export default function RidesPage() {
           </div>
         )}
 
-        {filtered.length === 0 && !isFetching && (
+        {filtered.length === 0 && !isFetching && !error && (
           <p style={{ textAlign: "center", color: "var(--color-text-muted)" }}>
             Aucun trajet ne correspond aux filtres
           </p>

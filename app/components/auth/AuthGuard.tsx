@@ -1,11 +1,13 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setAuthenticated, setLoading } from "@/lib/features/auth/authSlice";
-import { isAuthenticated as checkAuthCookies } from "@/lib/utils/cookies";
+import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { getApiErrorStatus } from "@/lib/utils/apiErrors";
+import { clearAuthTokens, isAuthenticated as checkAuthCookies } from "@/lib/utils/cookies";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -26,44 +28,67 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
+  const isLoginPage = pathname === "/login";
+  const isPublicRoute = PUBLIC_ROUTES.includes(pathname) && !isLoginPage;
+  const hasAuthCookies = checkAuthCookies();
+  const shouldCheckProfile = hasAuthCookies && !isPublicRoute;
+  const { data: profile, error: profileError, isFetching: isProfileLoading } =
+    useGetCurrentUserProfileQuery(undefined, {
+      skip: !shouldCheckProfile,
+    });
 
   useEffect(() => {
-    const checkAuth = () => {
-      // Si on est sur une route publique (sauf login), on n'a pas besoin de vérifier l'auth
-      if (PUBLIC_ROUTES.includes(pathname) && pathname !== "/login") {
-        dispatch(setLoading(false));
-        return;
+    if (isPublicRoute) {
+      dispatch(setLoading(false));
+      return;
+    }
+
+    dispatch(setLoading(true));
+
+    if (!hasAuthCookies) {
+      dispatch(setAuthenticated(false));
+      if (!isLoginPage) {
+        router.push("/login");
       }
+      return;
+    }
 
-      dispatch(setLoading(true));
+    if (isProfileLoading) {
+      return;
+    }
 
-      // Vérifier la présence des cookies d'authentification
-      const hasAuthCookies = checkAuthCookies();
+    const profileStatus = getApiErrorStatus(profileError);
+    const hasAccessDenied = profileStatus === 401 || profileStatus === 403;
+    const isAdmin = profile?.user.role === "admin";
 
-      if (hasAuthCookies) {
-        dispatch(setAuthenticated(true));
-        // Si on est sur /login et authentifié, rediriger vers dashboard
-        if (pathname === "/login") {
-          router.push("/dashboard");
-        }
-      } else {
-        dispatch(setAuthenticated(false));
-        // Si on n'est pas sur une route publique, rediriger vers login
-        if (!PUBLIC_ROUTES.includes(pathname)) {
-          router.push("/login");
-        }
+    if (hasAccessDenied || (profile && !isAdmin)) {
+      clearAuthTokens();
+      dispatch(setAuthenticated(false));
+      if (!isLoginPage) {
+        router.push("/login");
       }
-    };
+      return;
+    }
 
-    checkAuth();
-  }, [pathname, dispatch, router]);
+    dispatch(setAuthenticated(true));
+    if (isLoginPage) {
+      router.push("/dashboard");
+    }
+  }, [
+    dispatch,
+    hasAuthCookies,
+    isLoginPage,
+    isProfileLoading,
+    isPublicRoute,
+    profile,
+    profileError,
+    router,
+  ]);
 
-  // Si on est sur une route publique (pages légales), afficher le contenu immédiatement
-  if (PUBLIC_ROUTES.includes(pathname) && pathname !== "/login") {
+  if (isPublicRoute) {
     return <>{children}</>;
   }
 
-  // Afficher un loader pendant la vérification (seulement pour les routes protégées ou /login)
   if (isLoading) {
     return (
       <div
@@ -76,22 +101,18 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
           color: "var(--color-text)",
         }}
       >
-        <div>Vérification de l'authentification...</div>
+        <div>Verification de l'authentification admin...</div>
       </div>
     );
   }
 
-  // Si on est sur /login, afficher la page de login (même si pas authentifié)
-  if (pathname === "/login") {
+  if (isLoginPage) {
     return <>{children}</>;
   }
 
-  // Si on est authentifié, afficher le contenu
   if (isAuthenticated) {
     return <>{children}</>;
   }
 
-  // Sinon, ne rien afficher (la redirection est en cours)
   return null;
 };
-

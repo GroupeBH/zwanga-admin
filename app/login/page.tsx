@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 import { useLoginWithPhoneMutation } from "@/lib/features/auth/authApi";
-import { setAuthTokens } from "@/lib/utils/cookies";
-import { useAppDispatch } from "@/lib/hooks";
 import { setAuthenticated } from "@/lib/features/auth/authSlice";
+import { useAppDispatch } from "@/lib/hooks";
+import { getApiErrorMessage } from "@/lib/utils/apiErrors";
+import { clearAuthTokens, setAuthTokens } from "@/lib/utils/cookies";
 
 import styles from "./login.module.css";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_PUBLIC_URL || "http://localhost:5200/api/v1";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,16 +35,35 @@ export default function LoginPage() {
         : { phone: phone.trim(), pin: pin.trim() };
 
       const response = await login(payload).unwrap();
+      const profileResponse = await fetch(`${API_BASE_URL}/users/me`, {
+        headers: {
+          Authorization: `Bearer ${response.accessToken}`,
+        },
+      });
+      const profilePayload = await profileResponse.json().catch(() => null);
+
+      if (!profileResponse.ok) {
+        throw {
+          status: profileResponse.status,
+          data: profilePayload,
+          error: profileResponse.statusText,
+        };
+      }
+
+      if (profilePayload?.user?.role !== "admin") {
+        clearAuthTokens();
+        dispatch(setAuthenticated(false));
+        setError("Ce compte n'a pas acces a l'interface admin.");
+        return;
+      }
+
       setAuthTokens(response.accessToken, response.refreshToken);
       dispatch(setAuthenticated(true));
       router.push("/dashboard");
     } catch (err) {
-      const backendMessage = (err as { data?: { message?: string | string[] } })?.data?.message;
-      const message =
-        Array.isArray(backendMessage)
-          ? backendMessage.join(", ")
-          : backendMessage ?? "Authentification impossible. Verifiez vos identifiants.";
-      setError(message);
+      clearAuthTokens();
+      dispatch(setAuthenticated(false));
+      setError(getApiErrorMessage(err, "Authentification impossible. Verifiez vos identifiants."));
     }
   };
 

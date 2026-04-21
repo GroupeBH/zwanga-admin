@@ -15,6 +15,7 @@ import type {
   MetricCard,
 } from "@/lib/features/admin/types";
 import { useGetDashboardQuery } from "@/lib/features/dashboard/dashboardApi";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/utils/apiErrors";
 
 import styles from "./dashboard.module.css";
 
@@ -49,7 +50,19 @@ const kycStatusClass = (status: KycDocument["status"]) => {
 };
 
 export default function DashboardPage() {
-  const { data, isLoading } = useGetDashboardQuery();
+  const { data, isLoading, error } = useGetDashboardQuery();
+
+  if (error) {
+    const errorStatus = getApiErrorStatus(error);
+    const errorMessage = getApiErrorMessage(
+      error,
+      errorStatus === 401 || errorStatus === 403
+        ? "Le compte connecte n'a pas les droits admin necessaires pour afficher le tableau de bord."
+        : "Impossible de charger le tableau de bord depuis le backend."
+    );
+
+    return <p>{errorMessage}</p>;
+  }
 
   if (isLoading || !data) {
     return <p>Chargement du tableau de bord...</p>;
@@ -129,7 +142,7 @@ export default function DashboardPage() {
               <div key={point.label} className={styles.timelineItem}>
                 <strong>{point.label}</strong>
                 <span>
-                  {point.published} publies • {point.completed} termines
+                  {point.published} publies - {point.completed} termines
                 </span>
               </div>
             ))}
@@ -192,7 +205,11 @@ export default function DashboardPage() {
                     ))}
                     {plan.documentFundingEnabled ? (
                       <span className={`${styles.pill} ${styles.statusWatch}`}>
-                        plafond {formatCurrency(plan.documentFundingLimit ?? 0, plan.documentFundingCurrency)}
+                        plafond{" "}
+                        {formatCurrency(
+                          plan.documentFundingLimit ?? 0,
+                          plan.documentFundingCurrency
+                        )}
                       </span>
                     ) : null}
                   </div>
@@ -281,7 +298,8 @@ export default function DashboardPage() {
                 <div>
                   <strong>{route.route}</strong>
                   <p className={styles.panelHint}>
-                    {route.total} publication(s) • {route.live} en cours • {route.completed} terminees
+                    {route.total} publication(s) - {route.live} en cours - {route.completed}{" "}
+                    terminees
                   </p>
                 </div>
                 {route.expired > 0 ? (
@@ -378,7 +396,7 @@ export default function DashboardPage() {
                   <div>
                     <strong>{driver.name}</strong>
                     <p className={styles.panelHint}>
-                      {driver.completed} trajets • note estimee {driver.rating.toFixed(2)}
+                      {driver.completed} trajets - note estimee {driver.rating.toFixed(2)}
                     </p>
                   </div>
                   <span className={styles.pill}>{driver.score} pts</span>
