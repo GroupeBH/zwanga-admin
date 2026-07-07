@@ -27,13 +27,14 @@ const PAYMENT_STATUS_COPY: Record<
 };
 
 interface Props {
-  readonly params: {
+  readonly params: Promise<{
     readonly status: string;
-  };
+  }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const normalizedStatus = normalizeStatus(params.status);
+  const { status } = await params;
+  const normalizedStatus = normalizeStatus(status);
   const copy = PAYMENT_STATUS_COPY[normalizedStatus];
 
   return {
@@ -45,8 +46,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function SubscriptionPaymentReturnPage({ params }: Props) {
-  const normalizedStatus = normalizeStatus(params.status);
+export default async function SubscriptionPaymentReturnPage({ params }: Props) {
+  const { status } = await params;
+  const normalizedStatus = normalizeStatus(status);
   const copy = PAYMENT_STATUS_COPY[normalizedStatus];
 
   return (

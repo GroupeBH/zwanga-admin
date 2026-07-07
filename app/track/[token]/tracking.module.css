@@ -1,0 +1,418 @@
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f7f9fc 0%, #eef3f8 100%);
+  color: #111827;
+  letter-spacing: 0;
+  padding: clamp(16px, 3vw, 28px);
+}
+
+.topbar {
+  width: min(1120px, 100%);
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brandMark {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #ff7a00;
+  color: #081526;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+}
+
+.brandEyebrow,
+.sectionKicker {
+  margin: 0;
+  color: #667085;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.hero,
+.mapSection,
+.contentGrid,
+.footer {
+  width: min(1120px, 100%);
+  margin-inline: auto;
+}
+
+.hero {
+  min-height: 180px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: clamp(24px, 5vw, 42px) 0 20px;
+}
+
+.heroCopy {
+  max-width: 760px;
+}
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.liveBadge,
+.refreshLabel {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.liveBadgeOn {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.liveBadgeMuted,
+.refreshLabel {
+  background: rgba(17, 24, 39, 0.06);
+  color: #475467;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.16);
+}
+
+.hero h1 {
+  margin: 0;
+  max-width: 16ch;
+  font-size: clamp(32px, 6vw, 64px);
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+.hero p {
+  margin: 14px 0 0;
+  color: #475467;
+  font-size: clamp(15px, 2.1vw, 18px);
+}
+
+.refreshButton,
+.mapLink {
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.refreshButton:disabled {
+  cursor: default;
+  opacity: 0.62;
+}
+
+.spinIcon,
+.loadingIcon {
+  animation: spin 1s linear infinite;
+}
+
+.mapSection {
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  background: #ffffff;
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.1);
+}
+
+.mapHeader {
+  min-height: 84px;
+  padding: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.mapHeader h2 {
+  margin: 4px 0 0;
+  font-size: clamp(18px, 2.4vw, 24px);
+  letter-spacing: 0;
+}
+
+.mapFrame {
+  position: relative;
+  height: clamp(360px, 54vw, 560px);
+  background: #dfe7ee;
+}
+
+.mapFrame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.mapFallback {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  color: #667085;
+}
+
+.coordinatePill {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  border-radius: 8px;
+  background: rgba(17, 24, 39, 0.88);
+  color: #ffffff;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.contentGrid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.panel {
+  min-height: 230px;
+  border-radius: 8px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  background: #ffffff;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ff7a00;
+  margin-bottom: 16px;
+}
+
+.panelHeader h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.routeList {
+  display: grid;
+  gap: 16px;
+}
+
+.routePoint {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+}
+
+.routeMarker {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  margin-top: 5px;
+}
+
+.routeMarkerStart {
+  background: #10b981;
+}
+
+.routeMarkerEnd {
+  background: #2563eb;
+}
+
+.routePoint small,
+.metaList dt {
+  display: block;
+  color: #667085;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.routePoint strong {
+  display: block;
+  margin-top: 2px;
+  color: #111827;
+  font-size: 0.96rem;
+  line-height: 1.35;
+}
+
+.routePoint p {
+  margin: 4px 0 0;
+  color: #667085;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.driverLine {
+  display: grid;
+  gap: 5px;
+}
+
+.driverLine span {
+  font-size: 1.15rem;
+  font-weight: 850;
+}
+
+.driverLine small {
+  color: #667085;
+  font-size: 0.92rem;
+}
+
+.metaList {
+  margin: 18px 0 0;
+  display: grid;
+  gap: 12px;
+}
+
+.metaList div {
+  display: grid;
+  gap: 3px;
+}
+
+.metaList dd {
+  margin: 0;
+  color: #111827;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.timeline li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #98a2b3;
+  font-weight: 750;
+}
+
+.timeline li svg {
+  flex-shrink: 0;
+}
+
+.timelineDone {
+  color: #047857 !important;
+}
+
+.footer {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #667085;
+  font-weight: 700;
+}
+
+.loadingShell,
+.errorShell {
+  width: min(520px, 100%);
+  min-height: calc(100vh - 48px);
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.loadingShell h1,
+.errorShell h1 {
+  margin: 0;
+  font-size: clamp(26px, 5vw, 38px);
+  letter-spacing: 0;
+}
+
+.loadingShell p,
+.errorShell p {
+  margin: 0;
+  color: #667085;
+}
+
+.errorShell svg {
+  color: #b42318;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1020px) {
+  .contentGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 14px;
+  }
+
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+    padding-top: 18px;
+  }
+
+  .hero h1 {
+    max-width: 100%;
+  }
+
+  .refreshButton,
+  .mapLink {
+    width: 100%;
+  }
+
+  .mapHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    min-height: auto;
+  }
+}

@@ -23,13 +23,15 @@ const PUBLIC_ROUTES = [
   "/enquiry",
 ];
 
+const PUBLIC_ROUTE_PREFIXES = ["/track/"];
+
 export const AuthGuard = ({ children }: AuthGuardProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
   const isLoginPage = pathname === "/login";
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname) && !isLoginPage;
+  const isPublicRoute = (PUBLIC_ROUTES.includes(pathname) || PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) && !isLoginPage;
   const hasAuthCookies = checkAuthCookies();
   const shouldCheckProfile = hasAuthCookies && !isPublicRoute;
   const { data: profile, error: profileError, isFetching: isProfileLoading } =
