@@ -80,8 +80,9 @@ type PublicTrackingResponse = {
 
 type LoadState = "loading" | "ready" | "error";
 
-const API_BASE_URL =
+const RAW_API_BASE_URL =
   process.env.NEXT_PUBLIC_API_PUBLIC_URL || "http://localhost:5200/api/v1";
+const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE_URL);
 const POLL_INTERVAL_MS = 8000;
 
 const tripStatusLabels: Record<string, string> = {
@@ -118,7 +119,7 @@ export function TripTrackingClient({ token }: Props) {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL.replace(/\/+$/, "")}/tracking/public/${encodeURIComponent(token)}`,
+        `${API_BASE_URL}/tracking/public/${encodeURIComponent(token)}`,
         { cache: "no-store" },
       );
 
@@ -396,6 +397,14 @@ function TimelineItem({ done, label }: { readonly done: boolean; readonly label:
       <span>{label}</span>
     </li>
   );
+}
+
+function normalizeApiBaseUrl(value: string): string {
+  const trimmed = value.trim().replace(/\/+$/, "");
+  if (/\/api\/v\d+$/i.test(trimmed)) {
+    return trimmed;
+  }
+  return `${trimmed}/api/v1`;
 }
 
 function formatDateTime(value: string | Date): string {
