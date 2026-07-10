@@ -63,7 +63,7 @@ export const bookingsApi = baseApi.injectEndpoints({
     // Accept booking (driver only)
     acceptBooking: builder.mutation<Booking, string>({
       query: (bookingId) => ({
-        url: `/bookings/${bookingId}/accept`,
+        url: `/admin/bookings/${bookingId}/accept`,
         method: "PUT",
       }),
       invalidatesTags: (_result, _error, id) => [
@@ -77,7 +77,7 @@ export const bookingsApi = baseApi.injectEndpoints({
     // Reject booking (driver only)
     rejectBooking: builder.mutation<Booking, { bookingId: string; reason: string }>({
       query: ({ bookingId, reason }) => ({
-        url: `/bookings/${bookingId}/reject`,
+        url: `/admin/bookings/${bookingId}/reject`,
         method: "PUT",
         body: { reason },
       }),
@@ -90,9 +90,9 @@ export const bookingsApi = baseApi.injectEndpoints({
     }),
 
     // Cancel booking (passenger)
-    cancelBooking: builder.mutation<{ message: string }, string>({
+    cancelBooking: builder.mutation<Booking, string>({
       query: (bookingId) => ({
-        url: `/bookings/${bookingId}/cancel`,
+        url: `/admin/bookings/${bookingId}/cancel`,
         method: "PUT",
       }),
       invalidatesTags: (_result, _error, id) => [

@@ -1,9 +1,21 @@
 import { baseApi } from "../api/baseApi";
-import type { Trip, PaginatedTripsResponse } from "../admin/types";
+import type { Trip, PaginatedTripsResponse, TripStatus } from "../admin/types";
 
 export interface TripsQueryParams {
   page?: number;
   limit?: number;
+}
+
+export interface UpdateTripPayload {
+  departureLocation?: string;
+  arrivalLocation?: string;
+  departureDate?: string;
+  totalSeats?: number;
+  pricePerSeat?: number;
+  isFree?: boolean;
+  description?: string;
+  status?: TripStatus;
+  vehicleId?: string | null;
 }
 
 export const tripsApi = baseApi.injectEndpoints({
@@ -35,6 +47,46 @@ export const tripsApi = baseApi.injectEndpoints({
       query: () => "/trips",
       providesTags: [{ type: "Rides", id: "LIST" }],
     }),
+
+    updateAdminTrip: builder.mutation<Trip, { tripId: string; payload: UpdateTripPayload }>({
+      query: ({ tripId, payload }) => ({
+        url: `/admin/trips/${tripId}`,
+        method: "PUT",
+        body: payload,
+      }),
+      invalidatesTags: (_result, _error, { tripId }) => [
+        { type: "Rides", id: tripId },
+        { type: "Rides", id: "LIST" },
+        { type: "Bookings", id: "LIST" },
+        "Dashboard",
+      ],
+    }),
+
+    deactivateAdminTrip: builder.mutation<Trip, string>({
+      query: (tripId) => ({
+        url: `/admin/trips/${tripId}/deactivate`,
+        method: "PUT",
+      }),
+      invalidatesTags: (_result, _error, tripId) => [
+        { type: "Rides", id: tripId },
+        { type: "Rides", id: "LIST" },
+        { type: "Bookings", id: "LIST" },
+        "Dashboard",
+      ],
+    }),
+
+    deleteAdminTrip: builder.mutation<{ message: string }, string>({
+      query: (tripId) => ({
+        url: `/admin/trips/${tripId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, tripId) => [
+        { type: "Rides", id: tripId },
+        { type: "Rides", id: "LIST" },
+        { type: "Bookings", id: "LIST" },
+        "Dashboard",
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -43,5 +95,8 @@ export const {
   useGetAllTripsQuery,
   useGetTripByIdQuery,
   useGetAvailableTripsQuery,
+  useUpdateAdminTripMutation,
+  useDeactivateAdminTripMutation,
+  useDeleteAdminTripMutation,
 } = tripsApi;
 

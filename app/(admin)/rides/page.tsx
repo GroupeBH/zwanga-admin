@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 
 import {
   buildTripLifecycleBuckets,
@@ -8,7 +8,13 @@ import {
   getTripLifecycleStatus,
 } from "@/lib/features/admin/insights";
 import type { Trip, TripLifecycleStatus, TripStatus } from "@/lib/features/admin/types";
-import { useGetAllTripsQuery } from "@/lib/features/trips/tripsApi";
+import {
+  useDeactivateAdminTripMutation,
+  useDeleteAdminTripMutation,
+  useGetAllTripsQuery,
+  useUpdateAdminTripMutation,
+  type UpdateTripPayload,
+} from "@/lib/features/trips/tripsApi";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/utils/apiErrors";
 
 import shared from "../styles/page.module.css";
@@ -24,6 +30,11 @@ export default function RidesPage() {
   const { data: trips = [], isFetching, error } = useGetAllTripsQuery({ page: 1, limit: 100 });
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [tripForm, setTripForm] = useState<UpdateTripPayload>({});
+  const [updateTrip, { isLoading: isUpdating }] = useUpdateAdminTripMutation();
+  const [deactivateTrip, { isLoading: isDeactivating }] = useDeactivateAdminTripMutation();
+  const [deleteTrip, { isLoading: isDeleting }] = useDeleteAdminTripMutation();
   const errorStatus = getApiErrorStatus(error);
   const errorMessage = error
     ? getApiErrorMessage(
@@ -71,6 +82,75 @@ export default function RidesPage() {
       hour: "2-digit",
       minute: "2-digit",
     }).format(new Date(dateString));
+
+  const toDateInput = (dateString: string) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toISOString().slice(0, 16);
+  };
+
+  const openEditModal = (trip: Trip) => {
+    setSelectedTrip(trip);
+    setTripForm({
+      departureLocation: trip.departureLocation,
+      arrivalLocation: trip.arrivalLocation,
+      departureDate: toDateInput(trip.departureDate),
+      totalSeats: trip.totalSeats ?? trip.availableSeats,
+      pricePerSeat: Number(trip.pricePerSeat ?? 0),
+      isFree: Boolean(trip.isFree),
+      description: trip.description ?? "",
+      status: trip.status,
+    });
+  };
+
+  const closeEditModal = () => {
+    setSelectedTrip(null);
+    setTripForm({});
+  };
+
+  const handleSubmitTrip = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedTrip) return;
+
+    try {
+      await updateTrip({
+        tripId: selectedTrip.id,
+        payload: {
+          ...tripForm,
+          departureDate: tripForm.departureDate
+            ? new Date(tripForm.departureDate).toISOString()
+            : undefined,
+          totalSeats:
+            tripForm.totalSeats === undefined ? undefined : Number(tripForm.totalSeats),
+          pricePerSeat: tripForm.isFree ? 0 : Number(tripForm.pricePerSeat ?? 0),
+        },
+      }).unwrap();
+      closeEditModal();
+    } catch (submitError) {
+      console.error("Failed to update trip:", submitError);
+      alert("Impossible de modifier ce trajet.");
+    }
+  };
+
+  const handleDeactivateTrip = async (trip: Trip) => {
+    if (!confirm("Desactiver ce trajet ? Il passera au statut annule.")) return;
+    try {
+      await deactivateTrip(trip.id).unwrap();
+    } catch (deactivateError) {
+      console.error("Failed to deactivate trip:", deactivateError);
+      alert("Impossible de desactiver ce trajet.");
+    }
+  };
+
+  const handleDeleteTrip = async (trip: Trip) => {
+    if (!confirm("Supprimer definitivement ce trajet ?")) return;
+    try {
+      await deleteTrip(trip.id).unwrap();
+    } catch (deleteError) {
+      console.error("Failed to delete trip:", deleteError);
+      alert("Impossible de supprimer ce trajet.");
+    }
+  };
 
   return (
     <div className={shared.page}>
@@ -140,6 +220,7 @@ export default function RidesPage() {
                   <th>Places</th>
                   <th>Prix/place</th>
                   <th>Lecture admin</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -187,6 +268,48 @@ export default function RidesPage() {
                           </>
                         ) : null}
                       </td>
+                      <td>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            className={shared.primaryButton}
+                            onClick={() => openEditModal(trip)}
+                            style={{ fontSize: "0.85rem", padding: "6px 12px" }}
+                          >
+                            Modifier
+                          </button>
+                          {trip.status !== "cancelled" ? (
+                            <button
+                              type="button"
+                              className={shared.primaryButton}
+                              onClick={() => handleDeactivateTrip(trip)}
+                              disabled={isDeactivating}
+                              style={{
+                                fontSize: "0.85rem",
+                                padding: "6px 12px",
+                                background: "rgba(255, 208, 71, 0.14)",
+                                color: "var(--color-warning)",
+                              }}
+                            >
+                              Desactiver
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            className={shared.primaryButton}
+                            onClick={() => handleDeleteTrip(trip)}
+                            disabled={isDeleting}
+                            style={{
+                              fontSize: "0.85rem",
+                              padding: "6px 12px",
+                              background: "rgba(255, 75, 85, 0.15)",
+                              color: "var(--color-danger)",
+                            }}
+                          >
+                            Supprimer
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -201,6 +324,156 @@ export default function RidesPage() {
           </p>
         )}
       </section>
+
+      {selectedTrip ? (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.72)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: 16,
+          }}
+          onClick={closeEditModal}
+        >
+          <form
+            className={shared.card}
+            onSubmit={handleSubmitTrip}
+            onClick={(event) => event.stopPropagation()}
+            style={{ width: "min(720px, 100%)", maxHeight: "90vh", overflowY: "auto" }}
+          >
+            <h3 style={{ margin: 0 }}>Modifier le trajet</h3>
+            <div className={shared.grid}>
+              <label>
+                Depart
+                <input
+                  value={tripForm.departureLocation ?? ""}
+                  onChange={(event) =>
+                    setTripForm((prev) => ({
+                      ...prev,
+                      departureLocation: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                Arrivee
+                <input
+                  value={tripForm.arrivalLocation ?? ""}
+                  onChange={(event) =>
+                    setTripForm((prev) => ({
+                      ...prev,
+                      arrivalLocation: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                Date depart
+                <input
+                  type="datetime-local"
+                  value={tripForm.departureDate ?? ""}
+                  onChange={(event) =>
+                    setTripForm((prev) => ({
+                      ...prev,
+                      departureDate: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                Places totales
+                <input
+                  type="number"
+                  min={1}
+                  value={tripForm.totalSeats ?? ""}
+                  onChange={(event) =>
+                    setTripForm((prev) => ({
+                      ...prev,
+                      totalSeats: Number(event.target.value),
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                Prix/place
+                <input
+                  type="number"
+                  min={0}
+                  value={tripForm.pricePerSeat ?? 0}
+                  disabled={Boolean(tripForm.isFree)}
+                  onChange={(event) =>
+                    setTripForm((prev) => ({
+                      ...prev,
+                      pricePerSeat: Number(event.target.value),
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                Statut
+                <select
+                  value={tripForm.status ?? "upcoming"}
+                  onChange={(event) =>
+                    setTripForm((prev) => ({
+                      ...prev,
+                      status: event.target.value as TripStatus,
+                    }))
+                  }
+                >
+                  <option value="upcoming">upcoming</option>
+                  <option value="ongoing">ongoing</option>
+                  <option value="completed">completed</option>
+                  <option value="cancelled">cancelled</option>
+                </select>
+              </label>
+            </div>
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={Boolean(tripForm.isFree)}
+                onChange={(event) =>
+                  setTripForm((prev) => ({
+                    ...prev,
+                    isFree: event.target.checked,
+                    pricePerSeat: event.target.checked ? 0 : prev.pricePerSeat,
+                  }))
+                }
+              />
+              Trajet gratuit
+            </label>
+            <label>
+              Description
+              <textarea
+                rows={3}
+                value={tripForm.description ?? ""}
+                onChange={(event) =>
+                  setTripForm((prev) => ({
+                    ...prev,
+                    description: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <div className={shared.toolbar} style={{ justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className={shared.primaryButton}
+                onClick={closeEditModal}
+                style={{ background: "rgba(255, 255, 255, 0.1)", color: "var(--color-text)" }}
+              >
+                Annuler
+              </button>
+              <button type="submit" className={shared.primaryButton} disabled={isUpdating}>
+                {isUpdating ? "Enregistrement..." : "Enregistrer"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }

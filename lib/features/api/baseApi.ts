@@ -33,6 +33,8 @@ export const baseApi = createApi({
     "KYC",
     "Rides",
     "Bookings",
+    "TripRequests",
+    "Payments",
     "Vehicles",
     "Subscriptions",
     "Reports",

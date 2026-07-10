@@ -31,6 +31,15 @@ const statusClass = (status: BookingStatus) => {
   return `${shared.badge} ${shared.badgeWarning}`;
 };
 
+const formatAmount = (amount?: number | null, currency = "CDF") =>
+  amount === null || amount === undefined
+    ? "-"
+    : new Intl.NumberFormat("fr-CD", {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 0,
+      }).format(Number(amount));
+
 export default function BookingsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -157,6 +166,7 @@ export default function BookingsPage() {
                     <th>Passager</th>
                     <th>Trajet</th>
                     <th>Places</th>
+                    <th>Paiement</th>
                     <th>Date reservation</th>
                     <th>Statut</th>
                     <th>Actions</th>
@@ -165,7 +175,7 @@ export default function BookingsPage() {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: "center" }}>
+                      <td colSpan={7} style={{ textAlign: "center" }}>
                         Aucune reservation trouvee
                       </td>
                     </tr>
@@ -197,6 +207,16 @@ export default function BookingsPage() {
                             )}
                           </td>
                           <td>{booking.numberOfSeats}</td>
+                          <td>
+                            {booking.paymentStatus ?? "not_required"}
+                            <br />
+                            <small style={{ color: "var(--color-text-muted)" }}>
+                              {formatAmount(
+                                booking.paymentAmount,
+                                booking.paymentCurrency
+                              )}
+                            </small>
+                          </td>
                           <td>{formatDate(booking.createdAt)}</td>
                           <td>
                             <span className={statusClass(booking.status)}>

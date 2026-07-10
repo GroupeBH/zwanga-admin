@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import {
@@ -113,7 +114,19 @@ export default function UsersPage() {
                       : "—"}
                   </td>
                   <td>
-                    {user.status === "suspended" ? (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <Link
+                        href={`/users/${user.id}`}
+                        className={shared.primaryButton}
+                        style={{
+                          background: "rgba(255, 255, 255, 0.1)",
+                          color: "var(--color-text)",
+                          textDecoration: "none",
+                        }}
+                      >
+                        Details
+                      </Link>
+                      {user.status === "suspended" ? (
                       <button
                         type="button"
                         className={shared.primaryButton}
@@ -135,7 +148,8 @@ export default function UsersPage() {
                       >
                         Suspendre
                       </button>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

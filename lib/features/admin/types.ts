@@ -61,6 +61,33 @@ export type PaymentStatus =
   | "failed"
   | "cancelled";
 
+export type TripPaymentMode = "electronic" | "cash" | "points";
+
+export interface PaymentTransaction {
+  id: string;
+  userId: string | null;
+  purpose: string;
+  relatedEntityType: string | null;
+  relatedEntityId: string | null;
+  provider: "flexpay";
+  method: PaymentMethod;
+  status: PaymentStatus;
+  reference: string;
+  orderNumber: string | null;
+  providerReference: string | null;
+  providerStatusCode: string | null;
+  providerMessage: string | null;
+  amount: number;
+  currency: string;
+  description: string | null;
+  phone: string | null;
+  paymentUrl: string | null;
+  callbackUrl: string | null;
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type SubscriptionStatus =
   | "pending"
   | "active"
@@ -269,6 +296,14 @@ export type BookingStatus =
   | "completed"
   | "expired";
 
+export type BookingPaymentStatus =
+  | "not_required"
+  | "pending"
+  | "initiated"
+  | "succeeded"
+  | "failed"
+  | "cancelled";
+
 export interface Booking {
   id: string;
   tripId: string;
@@ -277,11 +312,87 @@ export interface Booking {
   passenger: User | null;
   numberOfSeats: number;
   status: BookingStatus;
+  paymentStatus?: BookingPaymentStatus;
+  paymentAmount?: number | null;
+  paymentCurrency?: string;
+  paymentMode?: TripPaymentMode;
+  paymentReference?: string | null;
+  paymentTransactionId?: string | null;
+  paymentTransaction?: PaymentTransaction | null;
+  paidAt?: string | null;
   rejectionReason?: string | null;
   acceptedAt?: string | null;
   cancelledAt?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type TripRequestStatus =
+  | "pending"
+  | "offers_received"
+  | "driver_selected"
+  | "cancelled"
+  | "expired";
+
+export type DriverOfferStatus = "pending" | "accepted" | "rejected" | "cancelled";
+
+export interface DriverOffer {
+  id: string;
+  driver: SanitizedUser;
+  vehicle: Vehicle | null;
+  proposedDepartureDate: string;
+  pricePerSeat: number;
+  availableSeats: number;
+  message: string | null;
+  departureReference: string | null;
+  departureCoordinates: Coordinates;
+  arrivalReference: string | null;
+  arrivalCoordinates: Coordinates;
+  status: DriverOfferStatus;
+  createdAt: string;
+}
+
+export interface TripRequest {
+  id: string;
+  passenger: SanitizedUser;
+  departureLocation: string;
+  departureReference: string | null;
+  arrivalLocation: string;
+  arrivalReference: string | null;
+  departureCoordinates: Coordinates;
+  arrivalCoordinates: Coordinates;
+  departureDateMin: string;
+  departureDateMax: string;
+  numberOfSeats: number;
+  maxPricePerSeat: number | null;
+  paymentMode: TripPaymentMode;
+  description: string | null;
+  status: TripRequestStatus;
+  selectedDriver: SanitizedUser | null;
+  selectedVehicle: Vehicle | null;
+  selectedPricePerSeat: number | null;
+  selectedAt: string | null;
+  tripId: string | null;
+  driverOffers: DriverOffer[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminUserDetailsResponse {
+  user: User;
+  trips: Trip[];
+  bookingsAsPassenger: Booking[];
+  bookingsAsDriver: Booking[];
+  payments: PaymentTransaction[];
+  tripRequests: TripRequest[];
+  stats: {
+    trips: number;
+    bookingsAsPassenger: number;
+    bookingsAsDriver: number;
+    payments: number;
+    tripRequests: number;
+    succeededPaymentsAmount: number;
+  };
 }
 
 // Vehicle types from Nest backend
@@ -363,4 +474,11 @@ export interface PaginatedUsersResponse {
 export interface PaginatedTripsResponse {
   trips: Trip[];
   total: number;
+}
+
+export interface PaginatedTripRequestsResponse {
+  tripRequests: TripRequest[];
+  total: number;
+  page: number;
+  limit: number;
 }

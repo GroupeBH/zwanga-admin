@@ -1,5 +1,5 @@
 import { baseApi } from "../api/baseApi";
-import type { User, PaginatedUsersResponse } from "../admin/types";
+import type { AdminUserDetailsResponse, User, PaginatedUsersResponse } from "../admin/types";
 
 export interface UsersQueryParams {
   page?: number;
@@ -21,6 +21,16 @@ export const usersApi = baseApi.injectEndpoints({
               { type: "Users" as const, id: "LIST" },
             ]
           : [{ type: "Users" as const, id: "LIST" }],
+    }),
+    getUserDetails: builder.query<AdminUserDetailsResponse, string>({
+      query: (userId) => `/admin/users/${userId}/details`,
+      providesTags: (_result, _error, userId) => [
+        { type: "Users", id: userId },
+        { type: "Rides", id: "LIST" },
+        { type: "Bookings", id: "LIST" },
+        { type: "TripRequests", id: "LIST" },
+        { type: "Payments", id: "LIST" },
+      ],
     }),
     suspendUser: builder.mutation<User, string>({
       query: (userId) => ({
@@ -44,12 +54,25 @@ export const usersApi = baseApi.injectEndpoints({
         "Dashboard",
       ],
     }),
+    deactivateUser: builder.mutation<User, string>({
+      query: (userId) => ({
+        url: `/admin/users/${userId}/deactivate`,
+        method: "PUT",
+      }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: "Users", id },
+        { type: "Users", id: "LIST" },
+        "Dashboard",
+      ],
+    }),
   }),
   overrideExisting: false,
 });
 
 export const {
   useGetUsersQuery,
+  useGetUserDetailsQuery,
   useSuspendUserMutation,
   useActivateUserMutation,
+  useDeactivateUserMutation,
 } = usersApi;

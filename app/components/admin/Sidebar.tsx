@@ -7,6 +7,7 @@ import clsx from "clsx";
 import {
   AlertTriangle,
   Calendar,
+  ClipboardList,
   CreditCard,
   LayoutDashboard,
   LifeBuoy,
@@ -21,6 +22,7 @@ import { useGetPendingKycsQuery } from "@/lib/features/kyc/kycApi";
 import { useGetReportsQuery } from "@/lib/features/reports/reportsApi";
 import { useGetDocumentFundingRequestsQuery } from "@/lib/features/subscriptions/subscriptionsApi";
 import { useGetAllTripsQuery } from "@/lib/features/trips/tripsApi";
+import { useGetAllTripRequestsQuery } from "@/lib/features/tripRequests/tripRequestsApi";
 import { useAppSelector } from "@/lib/hooks";
 
 import styles from "./Sidebar.module.css";
@@ -46,6 +48,12 @@ const navItems = [
     label: "Trajets",
     href: "/rides",
     icon: Route,
+  },
+  {
+    label: "Demandes de trajet",
+    href: "/trip-requests",
+    icon: ClipboardList,
+    badgeKey: "tripRequests",
   },
   {
     label: "Réservations",
@@ -89,6 +97,11 @@ export const Sidebar = () => {
   const { data: kyc } = useGetPendingKycsQuery();
   const { data: fundingRequests } = useGetDocumentFundingRequestsQuery();
   const { data: tripsData } = useGetAllTripsQuery({ page: 1, limit: 100 });
+  const { data: tripRequestsData } = useGetAllTripRequestsQuery({
+    page: 1,
+    limit: 100,
+    status: "all",
+  });
 
   const pendingBookingsCount = useMemo(() => {
     const trips = tripsData ?? [];
@@ -107,6 +120,13 @@ export const Sidebar = () => {
     }
     if (key === "bookings") {
       return pendingBookingsCount;
+    }
+    if (key === "tripRequests") {
+      return (
+        tripRequestsData?.tripRequests.filter(
+          (item) => item.status === "pending" || item.status === "offers_received"
+        ).length ?? 0
+      );
     }
     if (key === "subscriptions") {
       return fundingRequests?.filter((item) => item.status === "pending").length ?? 0;
