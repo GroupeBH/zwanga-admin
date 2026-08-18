@@ -9,14 +9,11 @@ import {
   Car,
   CheckCircle2,
   Clock3,
-  Headset,
   Menu,
-  MessageSquare,
   Minus,
   Navigation,
   PhoneCall,
   Plus,
-  Shield,
   UserCheck,
   Users,
   X,
@@ -46,14 +43,6 @@ type SupportTag = {
 };
 
 type PreviewFlow = "Demande" | "Publication" | "Reservation";
-
-type FlowSummary = {
-  id: string;
-  title: string;
-  audience: string;
-  description: string;
-  steps: string[];
-};
 
 type PreviewImage = {
   src: string;
@@ -240,153 +229,90 @@ const faqs: Faq[] = [
   },
 ];
 
-const flowSummaries: FlowSummary[] = [
-  {
-    id: "demande",
-    title: "Flux demande de trajet",
-    audience: "Passager",
-    description:
-      "Quand aucun trajet ne convient, le passager publie une demande precise et attend les propositions.",
-    steps: [
-      "Definir depart et arrivee.",
-      "Choisir date, plage horaire et options.",
-      "Publier la demande et suivre son statut.",
-      "Recevoir une offre conducteur puis confirmer.",
-    ],
-  },
-  {
-    id: "publication",
-    title: "Flux publication de trajet",
-    audience: "Conducteur",
-    description:
-      "Le conducteur cree son trajet et le rend reservable avec toutes les infos utiles en quelques etapes.",
-    steps: [
-      "Renseigner l'itineraire.",
-      "Choisir date et heure de depart.",
-      "Selectionner vehicule, places et prix.",
-      "Verifier puis publier le trajet.",
-    ],
-  },
-  {
-    id: "reservation",
-    title: "Flux reservation et suivi",
-    audience: "Passager + conducteur",
-    description:
-      "Une fois le trajet publie, le passager reserve sa place et les deux profils suivent la course en direct.",
-    steps: [
-      "Ouvrir le detail du trajet.",
-      "Reserver puis confirmer la prise en charge.",
-      "Suivre le statut depuis les reservations.",
-      "Continuer avec navigation et securite active.",
-    ],
-  },
-];
-
 const previewImages: PreviewImage[] = [
   {
-    src: "/Screenshot_20260309_181138.png",
-    alt: "Ecran accueil avec action Demander",
+    src: "/app-home-map.png",
+    alt: "Accueil Zwanga avec carte des trajets disponibles à Kinshasa",
     flow: "Demande",
-    step: "D1",
-    title: "Choisir Demander depuis l'accueil",
+    step: "01",
+    title: "Voir les trajets autour de soi",
   },
   {
-    src: "/Screenshot_20260309_181619.png",
-    alt: "Demander un trajet etape itineraire",
-    flow: "Demande",
-    step: "D2",
-    title: "Renseigner votre itineraire",
-  },
-  {
-    src: "/Screenshot_20260309_181632.png",
-    alt: "Demander un trajet etape date",
-    flow: "Demande",
-    step: "D3",
-    title: "Choisir date et plage horaire",
-  },
-  {
-    src: "/Screenshot_20260309_181720.png",
-    alt: "Demander un trajet etape options",
-    flow: "Demande",
-    step: "D4",
-    title: "Completer options et budget",
-  },
-  {
-    src: "/Screenshot_20260309_181728.png",
-    alt: "Resume avant publication de la demande",
-    flow: "Demande",
-    step: "D5",
-    title: "Verifier puis publier la demande",
-  },
-  {
-    src: "/Screenshot_20260309_182028.png",
-    alt: "Demande acceptee avec creation automatique du trajet",
-    flow: "Demande",
-    step: "D6",
-    title: "Demande acceptee et trajet cree",
-  },
-  {
-    src: "/Screenshot_20260309_150711.png",
-    alt: "Publier un trajet etape route",
-    flow: "Publication",
-    step: "P1",
-    title: "Definir depart et arrivee",
-  },
-  {
-    src: "/Screenshot_20260309_150727.png",
-    alt: "Publier un trajet etape date",
-    flow: "Publication",
-    step: "P2",
-    title: "Choisir la date de depart",
-  },
-  {
-    src: "/Screenshot_20260309_150820.png",
-    alt: "Publier un trajet etape vehicule",
-    flow: "Publication",
-    step: "P3",
-    title: "Selectionner le vehicule",
-  },
-  {
-    src: "/Screenshot_20260309_150853.png",
-    alt: "Publier un trajet etape confirmation",
-    flow: "Publication",
-    step: "P4",
-    title: "Verifier le recapitulatif",
-  },
-  {
-    src: "/Screenshot_20260309_150908.png",
-    alt: "Trajet publie avec succes",
-    flow: "Publication",
-    step: "P5",
-    title: "Trajet publie avec succes",
-  },
-  {
-    src: "/Screenshot_20260309_181229.png",
-    alt: "Details du trajet et action reserver",
+    src: "/app-home-trips.png",
+    alt: "Accueil Zwanga affichant les trajets publiés",
     flow: "Reservation",
-    step: "R1",
-    title: "Ouvrir les details et reserver",
+    step: "02",
+    title: "Parcourir les trajets publiés",
   },
   {
-    src: "/Screenshot_20260309_182732.png",
-    alt: "Confirmation de reservation",
+    src: "/app-search-results.png",
+    alt: "Résultats de recherche d'un trajet dans Zwanga",
     flow: "Reservation",
-    step: "R2",
-    title: "Reservation confirmee",
+    step: "03",
+    title: "Comparer les trajets disponibles",
   },
   {
-    src: "/Screenshot_20260309_182608.png",
-    alt: "Banniere de trajet en cours sur l'accueil",
+    src: "/app-trip-details.png",
+    alt: "Détails d'un trajet et bouton de réservation",
     flow: "Reservation",
-    step: "R3",
-    title: "Suivre le statut depuis l'accueil",
+    step: "04",
+    title: "Consulter puis réserver un trajet",
   },
   {
-    src: "/Screenshot_20260309_182815.png",
-    alt: "Ecran en route avec suivi et signalement",
+    src: "/app-request-trip.png",
+    alt: "Écran de demande d'un trajet Zwanga",
+    flow: "Demande",
+    step: "05",
+    title: "Créer une demande sur mesure",
+  },
+  {
+    src: "/app-request-status.png",
+    alt: "Suivi d'une demande de trajet en attente",
+    flow: "Demande",
+    step: "06",
+    title: "Suivre la recherche d'un conducteur",
+  },
+  {
+    src: "/app-publish-review.png",
+    alt: "Confirmation des informations avant publication d'un trajet",
+    flow: "Publication",
+    step: "07",
+    title: "Vérifier puis publier son trajet",
+  },
+  {
+    src: "/app-publish-success.png",
+    alt: "Confirmation de publication réussie d'un trajet",
+    flow: "Publication",
+    step: "08",
+    title: "Mettre ses places à disposition",
+  },
+  {
+    src: "/app-home-requests.png",
+    alt: "Accueil conducteur avec une nouvelle demande de trajet",
+    flow: "Publication",
+    step: "09",
+    title: "Recevoir les demandes de passagers",
+  },
+  {
+    src: "/app-my-trips.png",
+    alt: "Liste des trajets publiés et réservations Zwanga",
+    flow: "Publication",
+    step: "10",
+    title: "Gérer tous ses trajets",
+  },
+  {
+    src: "/app-profile.png",
+    alt: "Profil conducteur et tableau de bord Zwanga",
     flow: "Reservation",
-    step: "R4",
-    title: "Suivi en direct et securite active",
+    step: "11",
+    title: "Piloter son profil conducteur",
+  },
+  {
+    src: "/app-login.png",
+    alt: "Connexion et inscription à l'application Zwanga",
+    flow: "Reservation",
+    step: "12",
+    title: "Commencer en quelques instants",
   },
 ];
 
@@ -400,7 +326,6 @@ export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
-  const [isAppStoreModalOpen, setIsAppStoreModalOpen] = useState(false);
   const [supportSuccessTicketId, setSupportSuccessTicketId] = useState<string | null>(null);
   const [isSupportAuthenticated, setIsSupportAuthenticated] = useState(false);
   const [supportSubject, setSupportSubject] = useState("");
@@ -415,6 +340,9 @@ export default function HomePage() {
   const androidAppUrl =
     process.env.NEXT_PUBLIC_ANDROID_APP_URL ||
     "https://play.google.com/store/apps/details?id=com.zwanga";
+  const appStoreUrl =
+    process.env.NEXT_PUBLIC_IOS_APP_URL ||
+    "https://apps.apple.com/cd/app/zwanga/id6756211830?l=fr-FR";
   const [createTicket, { isLoading: isSubmittingSupportTicket }] = useCreateTicketMutation();
   const { data: faqResponse } = useListFaqQuery();
 
@@ -482,8 +410,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const hasOpenModal =
-      isSupportModalOpen || Boolean(supportSuccessTicketId) || isAppStoreModalOpen;
+    const hasOpenModal = isSupportModalOpen || Boolean(supportSuccessTicketId);
 
     if (!hasOpenModal) {
       return;
@@ -504,9 +431,6 @@ export default function HomePage() {
           return;
         }
 
-        if (isAppStoreModalOpen) {
-          setIsAppStoreModalOpen(false);
-        }
       }
     };
 
@@ -516,15 +440,10 @@ export default function HomePage() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isAppStoreModalOpen, isSupportModalOpen, supportSuccessTicketId]);
+  }, [isSupportModalOpen, supportSuccessTicketId]);
 
   const goToDownloadSection = () => {
     const section = document.getElementById("download-apps");
-    section?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  const goToHowItWorks = () => {
-    const section = document.getElementById("how-it-works");
     section?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -543,14 +462,6 @@ export default function HomePage() {
     setSupportSuccessTicketId(null);
   };
 
-  const openAppStoreModal = () => {
-    setIsAppStoreModalOpen(true);
-  };
-
-  const closeAppStoreModal = () => {
-    setIsAppStoreModalOpen(false);
-  };
-
   const handleStartDownload = () => {
     const userAgent = navigator.userAgent || navigator.vendor;
     const isAndroid = /android/i.test(userAgent);
@@ -564,7 +475,7 @@ export default function HomePage() {
     }
 
     if (isIOS) {
-      openAppStoreModal();
+      window.location.href = appStoreUrl;
       return;
     }
 
@@ -657,11 +568,12 @@ export default function HomePage() {
           <span className={styles.appBtnLabelName}>Google Play</span>
         </span>
       </a>
-      <button
-        type="button"
+      <a
+        href={appStoreUrl}
         className={styles.appBtn}
         aria-label="Telecharger sur App Store"
-        onClick={openAppStoreModal}
+        target="_blank"
+        rel="noreferrer"
       >
         <Image
           src="/apple.svg"
@@ -675,7 +587,7 @@ export default function HomePage() {
           <span className={styles.appBtnLabelHint}>Telecharger dans l&apos;</span>
           <span className={styles.appBtnLabelName}>App Store</span>
         </span>
-      </button>
+      </a>
     </div>
   );
 
@@ -702,23 +614,21 @@ export default function HomePage() {
             <span>ZWANGA</span>
           </Link>
           <nav className={`${styles.nav} ${mobileMenuOpen ? styles.navOpen : ""}`}>
-            <Link href="/enquiry" className={styles.docsNavBtn} onClick={() => setMobileMenuOpen(false)}>
-              Demander docs
-            </Link>
-            <Link href="#benefits" onClick={() => setMobileMenuOpen(false)}>
-              Avantages
-            </Link>
-            <Link href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>
-              Comment ca marche
+            <Link href="#app-preview" onClick={() => setMobileMenuOpen(false)}>
+              L&apos;application
             </Link>
             <Link href="#security" onClick={() => setMobileMenuOpen(false)}>
-              Securite
-            </Link>
-            <Link href="#support" onClick={() => setMobileMenuOpen(false)}>
-              Support
+              Sécurité
             </Link>
             <Link href="#faq" onClick={() => setMobileMenuOpen(false)}>
               FAQ
+            </Link>
+            <Link
+              href="#download-apps"
+              className={styles.navCta}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Télécharger
             </Link>
           </nav>
           <button
@@ -736,11 +646,11 @@ export default function HomePage() {
           <div className={styles.container}>
             <div className={styles.heroShell}>
               <div className={styles.heroText}>
-                <span className={styles.eyebrow}>Covoiturage Kinshasa</span>
-                <h1 className={styles.heroTitle}>Le covoiturage Kinshasa, simple, rapide et plus sur.</h1>
+                <span className={styles.eyebrow}>Le covoiturage pensé pour Kinshasa</span>
+                <h1 className={styles.heroTitle}>Vos trajets.<br />Votre rythme.</h1>
                 <p className={styles.heroSubtitle}>
-                  Zwanga est l&apos;application de transport qui met en relation chaque passager
-                  avec un conducteur verifie pour un trajet securise au quotidien.
+                  Trouvez une place ou proposez la vôtre, simplement, avec une communauté locale
+                  et des outils de sécurité intégrés.
                 </p>
                 <div className={styles.heroActions}>
                   <button
@@ -748,20 +658,14 @@ export default function HomePage() {
                     className={`${styles.primaryBtn} ${styles.primaryActionBtn}`}
                     onClick={handleStartDownload}
                   >
-                    Trouver un trajet
+                    Télécharger Zwanga
                     <ArrowRight className={styles.btnIcon} />
                   </button>
-                  <button type="button" className={styles.secondaryBtn} onClick={goToHowItWorks}>
-                    Voir comment ca marche
-                  </button>
-                  <Link href="/enquiry" className={styles.secondaryBtn}>
-                    Demander des documents
-                  </Link>
+                  <a href="#app-preview" className={styles.heroTextLink}>
+                    Découvrir l&apos;application
+                  </a>
                 </div>
-                {renderStoreButtons()}
-                <a href="#benefits" className={styles.miniCta}>
-                  Je suis passager ou conducteur
-                </a>
+                <p className={styles.heroAvailability}>Disponible sur iPhone et Android</p>
               </div>
 
               <div className={styles.heroVisual}>
@@ -769,8 +673,8 @@ export default function HomePage() {
                 <div className={styles.phoneMockup}>
                   <div className={styles.phoneScreen}>
                     <Image
-                      src="/Screenshot_20260309_182608.png"
-                      alt="Zwanga application de transport a Kinshasa"
+                      src="/app-home-trips.png"
+                      alt="Accueil de l'application Zwanga à Kinshasa"
                       fill
                       className={styles.screenshot}
                       priority
@@ -778,38 +682,7 @@ export default function HomePage() {
                     />
                   </div>
                 </div>
-
-                <div className={`${styles.floatingCard} ${styles.floatingTop}`}>
-                  <UserCheck size={18} />
-                  <div>
-                    <strong>Profil verifie</strong>
-                    <span>Conducteur et passager</span>
-                  </div>
-                </div>
-
-                <div className={`${styles.floatingCard} ${styles.floatingBottom}`}>
-                  <Navigation size={18} />
-                  <div>
-                    <strong>Suivi en direct</strong>
-                    <span>Votre trajet securise</span>
-                  </div>
-                </div>
               </div>
-            </div>
-
-            <div className={styles.trustStrip}>
-              <p className={styles.trustItem}>
-                <CheckCircle2 size={16} />
-                Covoiturage Kinshasa pense pour la ville
-              </p>
-              <p className={styles.trustItem}>
-                <Shield size={16} />
-                Outils de securite pour chaque trajet
-              </p>
-              <p className={styles.trustItem}>
-                <MessageSquare size={16} />
-                Messagerie passager / conducteur incluse
-              </p>
             </div>
           </div>
         </section>
@@ -909,37 +782,24 @@ export default function HomePage() {
 
         <section id="app-preview" className={styles.section}>
           <div className={styles.container}>
-            <h2 className={styles.sectionTitle}>Apercu de l'application Zwanga</h2>
+            <span className={styles.sectionKicker}>Dans l&apos;application</span>
+            <h2 className={styles.sectionTitle}>Tout votre trajet, au même endroit.</h2>
             <p className={styles.sectionSubtitle}>
-              Trois flux clairs: demande de trajet, publication conducteur et reservation passager.
+              Rechercher, demander, publier et suivre : découvrez l&apos;expérience Zwanga telle
+              qu&apos;elle est aujourd&apos;hui.
             </p>
-            <div className={styles.previewFlowGrid}>
-              {flowSummaries.map((flow) => (
-                <article key={flow.id} className={styles.previewFlowCard}>
-                  <div className={styles.previewFlowHead}>
-                    <h3>{flow.title}</h3>
-                    <span>{flow.audience}</span>
-                  </div>
-                  <p>{flow.description}</p>
-                  <ol className={styles.previewFlowSteps}>
-                    {flow.steps.map((step) => (
-                      <li key={`${flow.id}-${step}`}>{step}</li>
-                    ))}
-                  </ol>
-                </article>
-              ))}
-            </div>
-            <div className={styles.previewGrid}>
+            <div className={styles.previewGrid} aria-label="Captures de l'application Zwanga">
               {previewImages.map((shot) => (
-                <div key={shot.src} className={styles.previewCard}>
+                <figure key={shot.src} className={styles.previewCard}>
                   <Image
                     src={shot.src}
                     alt={shot.alt}
-                    width={300}
-                    height={600}
+                    width={1080}
+                    height={2340}
                     className={styles.previewImage}
+                    sizes="(max-width: 640px) 72vw, 280px"
                   />
-                  <div className={styles.previewMeta}>
+                  <figcaption className={styles.previewMeta}>
                     <div className={styles.previewMetaTop}>
                       <span
                         className={`${styles.previewFlowTag} ${
@@ -955,13 +815,10 @@ export default function HomePage() {
                       <span className={styles.previewStep}>{shot.step}</span>
                     </div>
                     <strong className={styles.previewTitle}>{shot.title}</strong>
-                  </div>
-                </div>
+                  </figcaption>
+                </figure>
               ))}
             </div>
-            <a href="#download-apps" className={styles.previewCta}>
-              Installer l'application et tester ces flux
-            </a>
           </div>
         </section>
 
@@ -1082,36 +939,19 @@ export default function HomePage() {
               <div className={styles.downloadText}>
                 <span className={styles.eyebrow}>Pret a commencer ?</span>
                 <h2 className={styles.downloadTitle}>
-                  Faites vos trajets avec plus de confiance a Kinshasa.
+                  Kinshasa avance.<br />Avancez avec Zwanga.
                 </h2>
                 <p className={styles.downloadSubtitle}>
-                  Installez Zwanga, choisissez votre profil passager ou conducteur, puis lancez
-                  votre premier trajet securise.
+                  Installez gratuitement l&apos;application et lancez votre prochain trajet.
                 </p>
-                <div className={styles.heroActions}>
-                  <button
-                    type="button"
-                    className={`${styles.primaryBtn} ${styles.primaryActionBtn}`}
-                    onClick={handleStartDownload}
-                  >
-                    Installer maintenant
-                    <ArrowRight className={styles.btnIcon} />
-                  </button>
-                  <a href="#benefits" className={styles.secondaryBtn}>
-                    Voir les avantages
-                  </a>
-                </div>
                 {renderStoreButtons()}
-                <a href="#hero" className={styles.miniCta}>
-                  Revenir en haut de page
-                </a>
               </div>
               <div className={styles.downloadVisual}>
                 <div className={styles.phoneMockup}>
                   <div className={styles.phoneScreen}>
                     <Image
-                      src="/Screenshot_20260309_182815.png"
-                      alt="Ecran trajet Zwanga"
+                      src="/app-trip-details.png"
+                      alt="Détails et réservation d'un trajet Zwanga"
                       fill
                       className={styles.screenshot}
                       sizes="(max-width: 768px) 220px, 300px"
@@ -1262,62 +1102,6 @@ export default function HomePage() {
           </div>
         ) : null}
 
-        {isAppStoreModalOpen ? (
-          <div
-            className={styles.modalBackdrop}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="app-store-coming-soon-title"
-            onClick={(event) => {
-              if (event.target === event.currentTarget) {
-                closeAppStoreModal();
-              }
-            }}
-          >
-            <div className={styles.storeNoticeModal}>
-              <button
-                type="button"
-                className={styles.modalClose}
-                aria-label="Fermer le message App Store"
-                onClick={closeAppStoreModal}
-              >
-                <X size={18} />
-              </button>
-              <div className={styles.storeNoticeIconWrap}>
-                <Clock3 size={26} />
-              </div>
-              <h3 id="app-store-coming-soon-title">Bientot disponible sur App Store</h3>
-              <p>
-                L&apos;application iPhone est en preparation.
-                <br />
-                En attendant, vous pouvez deja la telecharger sur Google Play.
-              </p>
-              <div className={styles.successActions}>
-                <button type="button" className={styles.supportSubmit} onClick={closeAppStoreModal}>
-                  Fermer
-                </button>
-                <a
-                  href={androidAppUrl}
-                  className={styles.secondaryBtn}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Voir sur Google Play
-                </a>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        <button
-          type="button"
-          className={styles.helpFab}
-          aria-label="Ouvrir l'aide"
-          onClick={openSupportCenter}
-        >
-          <Headset size={18} />
-          Besoin d'aide ?
-        </button>
       </main>
 
       <footer className={styles.footer}>
