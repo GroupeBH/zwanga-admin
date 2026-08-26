@@ -2,10 +2,10 @@ import type {
   AdministrativeDocumentType,
   DocumentFundingRequest,
   DocumentFundingRequestStatus,
-  PaymentMethod,
   PaymentOverview,
   RouteInsight,
   SubscriptionOffering,
+  SubscriptionPaymentMethod,
   Trip,
   TripLifecycleBucket,
   TripLifecycleStatus,
@@ -31,9 +31,10 @@ const lifecycleHelpers: Record<TripLifecycleStatus, string> = {
   expired: "depart depasse de plus de 2h",
 };
 
-const paymentMethodLabels: Record<PaymentMethod, string> = {
+const paymentMethodLabels: Record<SubscriptionPaymentMethod, string> = {
   mobile_money: "Mobile Money",
   card: "Carte",
+  points: "Jetons Zwanga",
 };
 
 const documentTypeLabels: Record<AdministrativeDocumentType, string> = {
@@ -206,7 +207,7 @@ export const buildPaymentOverview = (
   plans: SubscriptionOffering[],
   requests: DocumentFundingRequest[]
 ): PaymentOverview => {
-  const methodSet = new Set<PaymentMethod>();
+  const methodSet = new Set<SubscriptionPaymentMethod>();
   const currencySet = new Set<string>();
 
   for (const plan of plans) {
@@ -265,7 +266,7 @@ export const buildPaymentOverview = (
   };
 };
 
-export const formatPaymentMethod = (method: PaymentMethod) =>
+export const formatPaymentMethod = (method: SubscriptionPaymentMethod) =>
   paymentMethodLabels[method] ?? method;
 
 export const formatDocumentType = (type: AdministrativeDocumentType) =>
@@ -298,6 +299,9 @@ export const formatSubscriptionFeatureList = (plan: SubscriptionOffering) => {
   }
   if (plan.documentFundingEnabled) {
     features.push("financement documentaire");
+  }
+  if (Number(plan.subscriptionRewardTokens ?? 0) > 0) {
+    features.push(`bonus ${plan.subscriptionRewardTokens} jetons`);
   }
 
   return features;

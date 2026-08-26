@@ -76,7 +76,7 @@ export default function SubscriptionsPage() {
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h2>Paiements, abonnements et financement</h2>
+            <h2>Abonnements et financement</h2>
             <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
               {plans.length} plan(s) exposes • {fundingRequests.length} demande(s) de financement
             </p>
@@ -164,6 +164,17 @@ export default function SubscriptionsPage() {
               <small style={{ color: "var(--color-text-muted)" }}>
                 Paiements: {plan.paymentMethods.map(formatPaymentMethod).join(", ")}
               </small>
+              {Number(plan.tokensAmount ?? plan.pointsAmount ?? 0) > 0 ? (
+                <small style={{ color: "var(--color-text-muted)" }}>
+                  Prix en jetons: {formatAmount(
+                    Number(plan.tokensAmount ?? plan.pointsAmount ?? 0),
+                    plan.tokensCurrency ?? plan.pointsCurrency ?? "PTS"
+                  )}
+                  {Number(plan.subscriptionRewardTokens ?? 0) > 0
+                    ? ` · bonus ${plan.subscriptionRewardTokens} jetons à l'activation`
+                    : ""}
+                </small>
+              ) : null}
             </article>
           ))}
         </div>

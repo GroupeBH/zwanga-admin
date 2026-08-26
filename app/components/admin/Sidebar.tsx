@@ -6,13 +6,16 @@ import { useMemo } from "react";
 import clsx from "clsx";
 import {
   AlertTriangle,
+  BadgeDollarSign,
   Calendar,
   ClipboardList,
-  CreditCard,
+  Coins,
+  Crown,
   LayoutDashboard,
   LifeBuoy,
   Route,
   Settings,
+  Share2,
   ShieldCheck,
   UserRound,
   Users,
@@ -27,66 +30,40 @@ import { useAppSelector } from "@/lib/hooks";
 
 import styles from "./Sidebar.module.css";
 
-const navItems = [
+const navGroups = [
   {
-    label: "Tableau de bord",
-    href: "/dashboard",
-    icon: LayoutDashboard,
+    label: "Opérations",
+    items: [
+      { label: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Utilisateurs", href: "/users", icon: Users },
+      { label: "Validation KYC", href: "/kyc", icon: ShieldCheck, badgeKey: "kyc" },
+      { label: "Trajets", href: "/rides", icon: Route },
+      { label: "Demandes de trajet", href: "/trip-requests", icon: ClipboardList, badgeKey: "tripRequests" },
+      { label: "Réservations", href: "/bookings", icon: Calendar, badgeKey: "bookings" },
+    ],
   },
   {
-    label: "Utilisateurs",
-    href: "/users",
-    icon: Users,
+    label: "Finance",
+    items: [
+      { label: "Paiements", href: "/payments", icon: BadgeDollarSign },
+      { label: "Jetons", href: "/tokens", icon: Coins },
+      { label: "Parrainage", href: "/referrals", icon: Share2 },
+      { label: "Abonnements", href: "/subscriptions", icon: Crown, badgeKey: "subscriptions" },
+    ],
   },
   {
-    label: "Validation KYC",
-    href: "/kyc",
-    icon: ShieldCheck,
-    badgeKey: "kyc",
+    label: "Assistance",
+    items: [
+      { label: "Signalements", href: "/reports", icon: AlertTriangle, badgeKey: "reports" },
+      { label: "Support", href: "/support", icon: LifeBuoy },
+    ],
   },
   {
-    label: "Trajets",
-    href: "/rides",
-    icon: Route,
-  },
-  {
-    label: "Demandes de trajet",
-    href: "/trip-requests",
-    icon: ClipboardList,
-    badgeKey: "tripRequests",
-  },
-  {
-    label: "Réservations",
-    href: "/bookings",
-    icon: Calendar,
-    badgeKey: "bookings",
-  },
-  {
-    label: "Paiements & abonnements",
-    href: "/subscriptions",
-    icon: CreditCard,
-    badgeKey: "subscriptions",
-  },
-  {
-    label: "Signalements",
-    href: "/reports",
-    icon: AlertTriangle,
-    badgeKey: "reports",
-  },
-  {
-    label: "Support",
-    href: "/support",
-    icon: LifeBuoy,
-  },
-  {
-    label: "Paramètres",
-    href: "/settings",
-    icon: Settings,
-  },
-  {
-    label: "Profil admin",
-    href: "/profile",
-    icon: UserRound,
+    label: "Compte",
+    items: [
+      { label: "Paramètres", href: "/settings", icon: Settings },
+      { label: "Profil admin", href: "/profile", icon: UserRound },
+    ],
   },
 ];
 
@@ -145,37 +122,39 @@ export const Sidebar = () => {
           <span>zwanga</span>
           <span>Backoffice</span>
         </div>
-        <span className={styles.badge}>v1.4</span>
+        <span className={styles.badge}>v1.5</span>
       </div>
 
-      <div>
-        <p className={styles.groupLabel}>Navigation</p>
-        <nav className={styles.nav}>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname?.startsWith(item.href));
-            const badgeValue = getBadge(item.badgeKey);
+      <nav className={styles.navigation} aria-label="Navigation principale">
+        {navGroups.map((group) => (
+          <div key={group.label} className={styles.navGroup}>
+            <p className={styles.groupLabel}>{group.label}</p>
+            <div className={styles.nav}>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const active =
+                  pathname === item.href ||
+                  (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+                const badgeValue = getBadge(item.badgeKey);
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={clsx(styles.link, {
-                  [styles.active]: active,
-                })}
-              >
-                <Icon aria-hidden="true" />
-                <span>{item.label}</span>
-                {typeof badgeValue === "number" && badgeValue > 0 ? (
-                  <span className={styles.pill}>{badgeValue}</span>
-                ) : null}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={clsx(styles.link, { [styles.active]: active })}
+                  >
+                    <Icon aria-hidden="true" />
+                    <span>{item.label}</span>
+                    {typeof badgeValue === "number" && badgeValue > 0 ? (
+                      <span className={styles.pill}>{badgeValue}</span>
+                    ) : null}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
 
       <div className={styles.upgrade}>
         <span>Performance live</span>

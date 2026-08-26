@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Car,
@@ -84,6 +84,7 @@ const RAW_API_BASE_URL =
   process.env.NEXT_PUBLIC_API_PUBLIC_URL || "http://localhost:5200/api/v1";
 const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE_URL);
 const POLL_INTERVAL_MS = 8000;
+const TERMINAL_TRIP_STATUSES = new Set(["completed", "cancelled"]);
 
 const tripStatusLabels: Record<string, string> = {
   upcoming: "A venir",
@@ -112,59 +113,93 @@ export function TripTrackingClient({ token }: Props) {
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadTracking = async (showSpinner = false) => {
-    if (showSpinner) {
-      setIsRefreshing(true);
-    }
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/tracking/public/${encodeURIComponent(token)}`,
-        { cache: "no-store" },
-      );
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          message?: string | string[];
-        } | null;
-        const backendMessage = payload?.message;
-        const message = Array.isArray(backendMessage)
-          ? backendMessage.join(" ")
-          : backendMessage || "Lien de suivi indisponible.";
-        throw new Error(message);
+  const loadTracking = useCallback(
+    async (
+      showSpinner = false,
+      signal?: AbortSignal,
+    ): Promise<PublicTrackingResponse | null> => {
+      if (showSpinner) {
+        setIsRefreshing(true);
       }
 
-      const data = (await response.json()) as PublicTrackingResponse;
-      setTracking(data);
-      setLastRefreshAt(new Date());
-      setErrorMessage(null);
-      setState("ready");
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Lien de suivi indisponible.");
-      setState((current) => (tracking ? current : "error"));
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/tracking/public/${encodeURIComponent(token)}`,
+          { cache: "no-store", signal },
+        );
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as {
+            message?: string | string[];
+          } | null;
+          const backendMessage = payload?.message;
+          const message = Array.isArray(backendMessage)
+            ? backendMessage.join(" ")
+            : backendMessage || "Lien de suivi indisponible.";
+          throw new Error(message);
+        }
+
+        const data = (await response.json()) as PublicTrackingResponse;
+        if (signal?.aborted) {
+          return null;
+        }
+        setTracking(data);
+        setLastRefreshAt(new Date());
+        setErrorMessage(null);
+        setState("ready");
+        return data;
+      } catch (error) {
+        if (
+          signal?.aborted ||
+          (error instanceof DOMException && error.name === "AbortError")
+        ) {
+          return null;
+        }
+        setErrorMessage(error instanceof Error ? error.message : "Lien de suivi indisponible.");
+        setState((current) => (current === "ready" ? current : "error"));
+        return null;
+      } finally {
+        if (!signal?.aborted) {
+          setIsRefreshing(false);
+        }
+      }
+    },
+    [token],
+  );
 
   useEffect(() => {
-    let mounted = true;
+    const abortController = new AbortController();
+    let timeoutId: number | null = null;
+    let terminalStatusReached = false;
 
-    const run = async (showSpinner = false) => {
-      if (!mounted) return;
-      await loadTracking(showSpinner);
+    const scheduleNextPoll = () => {
+      if (abortController.signal.aborted || terminalStatusReached) {
+        return;
+      }
+      timeoutId = window.setTimeout(() => {
+        void run();
+      }, POLL_INTERVAL_MS);
     };
 
-    void run(false);
-    const intervalId = window.setInterval(() => {
-      void run(false);
-    }, POLL_INTERVAL_MS);
+    const run = async () => {
+      if (abortController.signal.aborted || terminalStatusReached) {
+        return;
+      }
+
+      const data = await loadTracking(false, abortController.signal);
+      terminalStatusReached = Boolean(data && isTerminalTripStatus(data.trip.status));
+      scheduleNextPoll();
+    };
+
+    void run();
 
     return () => {
-      mounted = false;
-      window.clearInterval(intervalId);
+      abortController.abort();
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
     };
-  }, [token]);
+  }, [loadTracking]);
 
   const currentCoordinate = useMemo(() => {
     return (
@@ -212,8 +247,9 @@ export function TripTrackingClient({ token }: Props) {
   const arrival = booking?.destination || trip.route.arrival;
   const statusLabel = tripStatusLabels[trip.status] || trip.status;
   const isLive = tracking.freshness.isLive;
+  const isTrackingFinished = isTerminalTripStatus(trip.status);
   const updateLabel = trip.lastLocationUpdateAt
-    ? formatDateTime(trip.lastLocationUpdateAt)
+    ? `${isTrackingFinished ? "Derniere position : " : ""}${formatDateTime(trip.lastLocationUpdateAt)}`
     : "Position non encore recue";
 
   return (
@@ -242,17 +278,23 @@ export function TripTrackingClient({ token }: Props) {
           type="button"
           className={styles.refreshButton}
           onClick={() => void loadTracking(true)}
-          disabled={isRefreshing}
+          disabled={isRefreshing || isTrackingFinished}
         >
-          <RefreshCw size={17} className={isRefreshing ? styles.spinIcon : undefined} />
-          Actualiser
+          {isTrackingFinished ? (
+            <CheckCircle2 size={17} />
+          ) : (
+            <RefreshCw size={17} className={isRefreshing ? styles.spinIcon : undefined} />
+          )}
+          {isTrackingFinished ? "Suivi termine" : "Actualiser"}
         </button>
       </section>
 
       <section className={styles.mapSection}>
         <div className={styles.mapHeader}>
           <div>
-            <p className={styles.sectionKicker}>Position actuelle</p>
+            <p className={styles.sectionKicker}>
+              {isTrackingFinished ? "Derniere position connue" : "Position actuelle"}
+            </p>
             <h2>{updateLabel}</h2>
           </div>
           {mapLink ? (
@@ -405,6 +447,10 @@ function normalizeApiBaseUrl(value: string): string {
     return trimmed;
   }
   return `${trimmed}/api/v1`;
+}
+
+function isTerminalTripStatus(status: string): boolean {
+  return TERMINAL_TRIP_STATUSES.has(status.toLowerCase());
 }
 
 function formatDateTime(value: string | Date): string {

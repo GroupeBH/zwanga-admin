@@ -54,6 +54,7 @@ export interface TripLifecycleBucket {
 }
 
 export type PaymentMethod = "mobile_money" | "card";
+export type SubscriptionPaymentMethod = PaymentMethod | "points";
 export type PaymentStatus =
   | "pending"
   | "initiated"
@@ -114,7 +115,7 @@ export type DocumentFundingRequestStatus =
   | "cancelled";
 
 export interface PaymentOverview {
-  supportedMethods: PaymentMethod[];
+  supportedMethods: SubscriptionPaymentMethod[];
   supportedCurrencies: string[];
   pendingFundingRequests: number;
   approvedFundingRequests: number;
@@ -133,7 +134,12 @@ export interface SubscriptionOffering {
   documentFundingEnabled: boolean;
   documentFundingLimit: number | null;
   documentFundingCurrency: string;
-  paymentMethods: PaymentMethod[];
+  paymentMethods: SubscriptionPaymentMethod[];
+  pointsAmount?: number;
+  pointsCurrency?: string;
+  tokensAmount?: number;
+  tokensCurrency?: string;
+  subscriptionRewardTokens?: number;
   eligibleDocumentTypes: AdministrativeDocumentType[];
 }
 
