@@ -245,10 +245,10 @@ export const financeApi = baseApi.injectEndpoints({
     }),
 
     adjustAdminWallet: builder.mutation<WalletAccount, AdjustWalletPayload>({
-      query: ({ userId, amount, reason }) => ({
+      query: ({ userId, amount, reason, requestId }) => ({
         url: `/admin/wallets/${userId}/adjustments`,
         method: "POST",
-        body: { amount, reason },
+        body: { amount, reason, requestId },
       }),
       invalidatesTags: ["Wallets"],
     }),

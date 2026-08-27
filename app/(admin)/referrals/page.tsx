@@ -42,7 +42,7 @@ const badgeClass = (status: string) => {
 const getApiError = (error: unknown) => {
   const value = error as { status?: number; data?: { message?: string } };
   if (value?.status === 404) {
-    return "Les routes admin du parrainage ne sont pas encore déployées. Les données utilisateur existent, mais restent privées sous /referrals/me.";
+    return "La version actuellement déployée du backend ne contient pas les routes admin du parrainage. Déployez le lot FIN-REF-006.";
   }
   return value?.data?.message ?? "Impossible de charger les données de parrainage.";
 };

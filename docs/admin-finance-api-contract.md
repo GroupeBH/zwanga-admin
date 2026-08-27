@@ -12,9 +12,9 @@ Le backend `zwanga-backend` contient déjà les modèles et flux métier suivant
 - programme de parrainage ChottuLink avec comptes séparés `pending`, `available`, `reserved` et `withdrawn` ;
 - commission de 5 %, retenue de sept jours, fenêtre de rémunération de douze mois et retrait FlexPay à partir de 50 jetons.
 
-Les contrôleurs actuels limitent cependant `/payments`, `/wallet` et `/referrals` aux données du compte authentifié. `AdminController` ne publie pour l'instant aucune liste globale de paiements, de portefeuilles ou de parrainages. Seuls les paiements d'un utilisateur sont indirectement visibles via `GET /admin/users/:userId/details`.
+Les contrôleurs utilisateur limitent `/payments`, `/wallet` et `/referrals` aux données du compte authentifié. Les lots `FIN-WALLET-ADMIN-001` et `FIN-REF-006` ajoutent maintenant les vues globales des portefeuilles et du parrainage dans `AdminController`. Le contrat global des paiements décrit plus bas reste à déployer séparément.
 
-L'interface admin utilise donc les contrats ci-dessous. La page Paiements possède temporairement un repli limité aux 20 premières fiches utilisateurs afin de rester sous la limite admin de 30 requêtes par minute ; les pages Jetons et Parrainage signalent explicitement un `404` tant que leurs routes ne sont pas déployées.
+L'interface admin utilise donc les contrats ci-dessous. La page Paiements possède temporairement un repli limité aux 20 premières fiches utilisateurs afin de rester sous la limite admin de 30 requêtes par minute. Les pages Jetons et Parrainage sont raccordées à leurs routes backend dédiées.
 
 ## Règles transversales
 
@@ -86,12 +86,13 @@ Filtres supplémentaires : `type`. Retour : `entries`, `total`, `page`, `limit`.
 
 ```json
 {
+  "requestId": "123e4567-e89b-12d3-a456-426614174000",
   "amount": 25,
   "reason": "Régularisation validée sous le ticket SUP-1042"
 }
 ```
 
-`amount` est signé : positif pour un crédit, négatif pour un débit. Le backend verrouille le compte, interdit un montant nul et écrit une ligne `admin_adjustment` avec le motif et l'admin. Une migration doit ajouter ce type au registre si nécessaire.
+`amount` est signé : positif pour un crédit, négatif pour un débit. Le backend verrouille le compte, interdit un montant nul et écrit une ligne `admin_adjustment` avec le motif et l'admin. `requestId` est stable pendant toute tentative et garantit l'idempotence grâce à un index unique. La migration `1780000023000` ajoute ce type au registre.
 
 ## Parrainage
 
@@ -137,4 +138,4 @@ Retrouve la transaction liée, vérifie son statut chez FlexPay, puis appelle la
 3. Tester les agrégats avec plusieurs devises sans conversion implicite.
 4. Tester l'idempotence des rapprochements et des ajustements.
 5. Rapprocher `wallet_accounts` avec le registre et les quatre compartiments de parrainage avant déploiement.
-6. Appliquer les migrations `1780000016000`, `1780000018000`, `1780000019000` et `1780000020000` dans l'ordre prévu par le backend.
+6. Appliquer les migrations jusqu'à `1780000024000` dans l'ordre prévu par le backend.

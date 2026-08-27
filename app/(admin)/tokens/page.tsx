@@ -149,7 +149,7 @@ export default function TokensPage() {
         <div className={styles.panelHeader}>
           <div>
             <h2>Soldes utilisateurs</h2>
-            <p>Un compte unique par utilisateur, libellé en points.</p>
+            <p>Un compte unique par utilisateur, libellé en jetons.</p>
           </div>
           <span className={styles.badge}>{accountsQuery.data?.total ?? 0} compte(s)</span>
         </div>
@@ -302,6 +302,7 @@ function AdjustmentModal({ account, onClose }: { account: WalletAccount; onClose
   const [direction, setDirection] = useState<"credit" | "debit">("credit");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
+  const [requestId] = useState(() => globalThis.crypto.randomUUID());
   const [adjustWallet, state] = useAdjustAdminWalletMutation();
 
   const submit = async (event: React.FormEvent) => {
@@ -315,7 +316,12 @@ function AdjustmentModal({ account, onClose }: { account: WalletAccount; onClose
       return;
     }
     try {
-      await adjustWallet({ userId: account.userId, amount: signedAmount, reason: reason.trim() }).unwrap();
+      await adjustWallet({
+        userId: account.userId,
+        amount: signedAmount,
+        reason: reason.trim(),
+        requestId,
+      }).unwrap();
       onClose();
     } catch {
       // Error is rendered below.

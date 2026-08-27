@@ -127,6 +127,7 @@ export interface AdjustWalletPayload {
   userId: string;
   amount: number;
   reason: string;
+  requestId: string;
 }
 
 export interface ReferralAccount {
