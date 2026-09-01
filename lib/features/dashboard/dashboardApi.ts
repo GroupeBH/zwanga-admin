@@ -12,10 +12,10 @@ import type {
   DriverHighlight,
   KycDocument,
   MetricCard,
+  PlatformUserStats,
   SubscriptionOffering,
   Trip,
   TripLifecycleStatus,
-  User,
 } from "../admin/types";
 
 const integerFormatter = new Intl.NumberFormat("fr-CD");
@@ -55,6 +55,7 @@ const summarizeLifecycle = (trips: Trip[]) => {
 };
 
 const buildMetricCards = (
+  userStats: PlatformUserStats,
   trips: Trip[],
   kycDocuments: KycDocument[],
   fundingRequests: DocumentFundingRequest[],
@@ -66,6 +67,27 @@ const buildMetricCards = (
   const pendingFundingCurrency = planCurrencies[0] ?? "CDF";
 
   return [
+    {
+      id: "users",
+      label: "Utilisateurs",
+      value: formatInteger(userStats.totalUsers),
+      helper: "hors comptes administrateurs",
+      tone: "neutral",
+    },
+    {
+      id: "drivers",
+      label: "Chauffeurs",
+      value: formatInteger(userStats.drivers),
+      helper: "profils conducteurs inscrits",
+      tone: "neutral",
+    },
+    {
+      id: "passengers",
+      label: "Passagers",
+      value: formatInteger(userStats.passengers),
+      helper: "profils passagers inscrits",
+      tone: "neutral",
+    },
     {
       id: "published",
       label: "Trajets publies",
@@ -218,7 +240,7 @@ const buildTopDrivers = (trips: Trip[]): DriverHighlight[] => {
 };
 
 const calculateDashboardMetrics = (
-  users: User[],
+  userStats: PlatformUserStats,
   trips: Trip[],
   kycDocuments: KycDocument[],
   subscriptionPlans: SubscriptionOffering[],
@@ -238,7 +260,13 @@ const calculateDashboardMetrics = (
   return {
     greeting: `${getGreeting()}, pilotage admin Zwanga`,
     dateRange: `Mis a jour le ${dateLabel}`,
-    metrics: buildMetricCards(trips, kycDocuments, fundingRequests, planCurrencies),
+    metrics: buildMetricCards(
+      userStats,
+      trips,
+      kycDocuments,
+      fundingRequests,
+      planCurrencies
+    ),
     tripTrends: buildTripTimeline(trips),
     tripLifecycle: lifecycleBuckets,
     subscriptionPlans,
@@ -267,21 +295,21 @@ export const dashboardApi = baseApi.injectEndpoints({
       async queryFn(_arg, _queryApi, _extraOptions, fetchWithBQ) {
         try {
           const [
-            usersResult,
+            userStatsResult,
             tripsResult,
             kycResult,
             plansResult,
             fundingResult,
           ] = await Promise.all([
-            fetchWithBQ({ url: "/admin/users", params: { page: 1, limit: 1000 } }),
+            fetchWithBQ("/admin/users/stats"),
             fetchWithBQ({ url: "/admin/trips", params: { page: 1, limit: 1000 } }),
             fetchWithBQ("/admin/kyc/pending"),
             fetchWithBQ("/subscriptions/plans"),
             fetchWithBQ("/subscriptions/document-funding-requests"),
           ]);
 
-          if (usersResult.error) {
-            return { error: usersResult.error as any };
+          if (userStatsResult.error) {
+            return { error: userStatsResult.error as any };
           }
           if (tripsResult.error) {
             return { error: tripsResult.error as any };
@@ -290,14 +318,14 @@ export const dashboardApi = baseApi.injectEndpoints({
             return { error: kycResult.error as any };
           }
 
-          const users = (usersResult.data as any)?.users || [];
+          const userStats = userStatsResult.data as PlatformUserStats;
           const trips = (tripsResult.data as any)?.trips || [];
           const kycDocuments = (kycResult.data as KycDocument[]) || [];
           const subscriptionPlans = (plansResult.data as SubscriptionOffering[]) || [];
           const fundingRequests = (fundingResult.data as DocumentFundingRequest[]) || [];
 
           const dashboard = calculateDashboardMetrics(
-            users,
+            userStats,
             trips,
             kycDocuments,
             subscriptionPlans,

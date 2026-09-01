@@ -8,6 +8,12 @@ export interface MetricCard {
   tone: MetricTone;
 }
 
+export interface PlatformUserStats {
+  totalUsers: number;
+  drivers: number;
+  passengers: number;
+}
+
 export interface TrendPoint {
   label: string;
   published: number;
