@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { Download, RefreshCw, Search } from "lucide-react";
 
+import { isSuperAdminRole } from "@/lib/features/auth/adminRoles";
 import {
   useGetAdminReferralAccountsQuery,
   useGetAdminReferralRewardsQuery,
   useGetAdminReferralWithdrawalsQuery,
   useReconcileReferralWithdrawalMutation,
 } from "@/lib/features/finance/financeApi";
+import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import {
   exportCsv,
   financeLabel,
@@ -55,6 +57,9 @@ export default function ReferralsPage() {
   const [rewardStatus, setRewardStatus] = useState<ReferralRewardStatus | "all">("all");
   const [withdrawalStatus, setWithdrawalStatus] = useState<ReferralWithdrawalStatus | "all">("all");
 
+  const { data: profile } = useGetCurrentUserProfileQuery();
+  const canReconcileWithdrawals = isSuperAdminRole(profile?.user.role);
+
   const accountsQuery = useGetAdminReferralAccountsQuery({ page: view === "accounts" ? page : 1, limit: 25, search });
   const rewardsQuery = useGetAdminReferralRewardsQuery({ page: view === "rewards" ? page : 1, limit: 25, search, status: rewardStatus });
   const withdrawalsQuery = useGetAdminReferralWithdrawalsQuery({ page: view === "withdrawals" ? page : 1, limit: 25, search, status: withdrawalStatus });
@@ -82,6 +87,7 @@ export default function ReferralsPage() {
   };
 
   const handleReconcile = async (id: string) => {
+    if (!canReconcileWithdrawals) return;
     if (!confirm("Relancer la vérification FlexPay de ce retrait ?")) return;
     try {
       await reconcileWithdrawal(id).unwrap();
@@ -172,6 +178,11 @@ export default function ReferralsPage() {
 
       {firstError ? <div className={styles.error}>{getApiError(firstError)}</div> : null}
       {reconcileState.error ? <div className={styles.error}>La vérification du retrait a échoué. Contrôlez la transaction et la route de rapprochement admin.</div> : null}
+      {view === "withdrawals" && !canReconcileWithdrawals ? (
+        <div className={styles.notice}>
+          Mode lecture seule : seuls les super administrateurs peuvent rapprocher un retrait FlexPay.
+        </div>
+      ) : null}
 
       <nav className={styles.tabs} aria-label="Vues du parrainage">
         <button className={`${styles.tab} ${view === "accounts" ? styles.tabActive : ""}`} onClick={() => switchView("accounts")}>Comptes parrains</button>
@@ -220,7 +231,7 @@ export default function ReferralsPage() {
         {view === "accounts" && accounts.length > 0 ? <AccountsTable accounts={accounts} /> : null}
         {view === "rewards" && rewards.length > 0 ? <RewardsTable rewards={rewards} /> : null}
         {view === "withdrawals" && withdrawals.length > 0 ? (
-          <WithdrawalsTable withdrawals={withdrawals} onReconcile={handleReconcile} reconciling={reconcileState.isLoading} />
+          <WithdrawalsTable withdrawals={withdrawals} onReconcile={handleReconcile} reconciling={reconcileState.isLoading} canReconcile={canReconcileWithdrawals} />
         ) : null}
 
         <Pagination page={page} pages={pages} total={activeTotal} onChange={setPage} />
@@ -281,10 +292,12 @@ function WithdrawalsTable({
   withdrawals,
   onReconcile,
   reconciling,
+  canReconcile,
 }: {
   withdrawals: ReferralWithdrawal[];
   onReconcile: (id: string) => void;
   reconciling: boolean;
+  canReconcile: boolean;
 }) {
   return (
     <div className={styles.tableWrap}>
@@ -305,7 +318,8 @@ function WithdrawalsTable({
                 <button
                   type="button"
                   className={styles.secondaryButton}
-                  disabled={reconciling || withdrawal.status === "succeeded" || !withdrawal.paymentTransactionId}
+                  disabled={reconciling || !canReconcile || withdrawal.status === "succeeded" || !withdrawal.paymentTransactionId}
+                  title={canReconcile ? undefined : "Action réservée au super administrateur"}
                   onClick={() => onReconcile(withdrawal.id)}
                 >
                   <RefreshCw size={14} /> Vérifier

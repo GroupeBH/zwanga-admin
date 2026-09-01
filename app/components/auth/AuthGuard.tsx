@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { setAuthenticated, setLoading } from "@/lib/features/auth/authSlice";
+import { isAdminRole } from "@/lib/features/auth/adminRoles";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { getApiErrorStatus } from "@/lib/utils/apiErrors";
@@ -31,6 +32,7 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
   const dispatch = useAppDispatch();
   const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
   const isLoginPage = pathname === "/login";
+  const isSettingsPage = pathname === "/settings";
   const isPublicRoute = (PUBLIC_ROUTES.includes(pathname) || PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) && !isLoginPage;
   const hasAuthCookies = checkAuthCookies();
   const shouldCheckProfile = hasAuthCookies && !isPublicRoute;
@@ -61,7 +63,7 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
 
     const profileStatus = getApiErrorStatus(profileError);
     const hasAccessDenied = profileStatus === 401 || profileStatus === 403;
-    const isAdmin = profile?.user.role === "admin";
+    const isAdmin = isAdminRole(profile?.user.role);
 
     if (hasAccessDenied || (profile && !isAdmin)) {
       clearAuthTokens();
@@ -73,13 +75,19 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     }
 
     dispatch(setAuthenticated(true));
+    if (profile?.user.passwordChangeRequired && !isSettingsPage) {
+      router.push("/settings");
+      return;
+    }
+
     if (isLoginPage) {
-      router.push("/dashboard");
+      router.push(profile?.user.passwordChangeRequired ? "/settings" : "/dashboard");
     }
   }, [
     dispatch,
     hasAuthCookies,
     isLoginPage,
+    isSettingsPage,
     isProfileLoading,
     isPublicRoute,
     profile,

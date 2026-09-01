@@ -185,7 +185,7 @@ export interface DocumentFundingRequest {
 }
 
 // Nest backend enums
-export type UserRole = "driver" | "passenger" | "admin";
+export type UserRole = "driver" | "passenger" | "admin" | "super_admin";
 export type UserStatus = "active" | "inactive" | "suspended" | "pending_kyc";
 export type KycStatus = "pending" | "approved" | "rejected";
 
@@ -202,6 +202,7 @@ export interface User {
   fcmToken?: string;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
+  passwordChangeRequired?: boolean;
   isActive: boolean;
   isDriver: boolean;
   lastLoginAt?: string;
@@ -250,6 +251,29 @@ export interface AdminProfile {
     bookingsAsDriver: number;
     messagesSent: number;
   };
+}
+
+export interface AdminAccount {
+  id: string;
+  phone: string;
+  email?: string | null;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  status: UserStatus;
+  isActive: boolean;
+  isPhoneVerified: boolean;
+  passwordChangeRequired: boolean;
+  lastLoginAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminAccountsResponse {
+  accounts: AdminAccount[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 // Trip types from Nest backend

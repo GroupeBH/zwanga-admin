@@ -1,6 +1,6 @@
 # Contrat d'administration financière Zwanga
 
-Date d'analyse : 25 août 2026.
+Date d'analyse : 31 août 2026.
 
 ## État du backend analysé
 
@@ -18,7 +18,8 @@ L'interface admin utilise donc les contrats ci-dessous. La page Paiements possè
 
 ## Règles transversales
 
-- Toutes les routes sont protégées par JWT et `UserRole.ADMIN`.
+- Les routes de lecture sont protégées par JWT et acceptent `UserRole.ADMIN` ou `UserRole.SUPER_ADMIN`.
+- Les mutations financières sensibles exigent `UserRole.SUPER_ADMIN`.
 - La pagination accepte `page`, `limit` (maximum 200), `search` et les filtres indiqués.
 - Chaque réponse paginée contient `total`, `page` et `limit`.
 - Les montants numériques sont sérialisés en nombres, pas en chaînes PostgreSQL `numeric`.
@@ -54,6 +55,8 @@ Chaque paiement reprend la vue assainie de `PaymentTransaction` et ajoute `user`
 
 Relance `PaymentsService.checkPaymentStatus` avec le propriétaire de la transaction, puis les raccordements métier existants (abonnement, portefeuille ou retrait). La réponse ne contient que le paiement assaini et un éventuel message.
 
+Cette action est réservée au super administrateur dans l'interface.
+
 ## Jetons
 
 ### `GET /admin/wallets`
@@ -83,6 +86,8 @@ Chaque compte inclut l'utilisateur assaini.
 Filtres supplémentaires : `type`. Retour : `entries`, `total`, `page`, `limit`. Chaque écriture inclut l'utilisateur assaini, mais pas les réponses FlexPay brutes.
 
 ### `POST /admin/wallets/:userId/adjustments`
+
+Route réservée au super administrateur.
 
 ```json
 {
@@ -128,6 +133,8 @@ Filtres supplémentaires : `status`. Retour : `rewards`, pagination, parrain et 
 Filtres supplémentaires : `status`. Retour : `withdrawals`, pagination, utilisateur et transaction de paiement assainis.
 
 ### `POST /admin/referrals/withdrawals/:withdrawalId/reconcile`
+
+Route réservée au super administrateur.
 
 Retrouve la transaction liée, vérifie son statut chez FlexPay, puis appelle la réconciliation idempotente existante. Aucun retrait ne doit être marqué manuellement comme réussi.
 

@@ -33,6 +33,7 @@ export const clearAuthTokens = () => {
 
 export const isAuthenticated = (): boolean => {
   const accessToken = getAccessToken();
-  return !!accessToken;
+  const refreshToken = getRefreshToken();
+  return !!accessToken || !!refreshToken;
 };
 

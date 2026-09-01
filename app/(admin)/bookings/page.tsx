@@ -310,62 +310,40 @@ export default function BookingsPage() {
 
         {selectedBookingId ? (
           <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0, 0, 0, 0.7)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-            }}
+            className={shared.modalBackdrop}
             onClick={() => setSelectedBookingId(null)}
+            role="presentation"
           >
             <div
-              className={shared.card}
-              style={{ maxWidth: 500, width: "90%" }}
+              className={`${shared.card} ${shared.modalCard} ${shared.modalCompact}`}
               onClick={(event) => event.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="reject-booking-title"
             >
-              <h3>Motif du rejet</h3>
+              <h3 id="reject-booking-title">Motif du rejet</h3>
               <textarea
                 placeholder="Entrez le motif du rejet (obligatoire)"
                 value={rejectReason}
                 onChange={(event) => setRejectReason(event.target.value)}
                 rows={4}
-                style={{
-                  width: "100%",
-                  borderRadius: 16,
-                  border: "1px solid var(--color-border)",
-                  background: "transparent",
-                  color: "var(--color-text)",
-                  padding: "12px 14px",
-                  marginBottom: 16,
-                }}
               />
-              <div className={shared.toolbar}>
+              <div className={shared.modalActions}>
                 <button
                   type="button"
-                  className={shared.primaryButton}
+                  className={shared.secondaryButton}
                   onClick={() => {
                     setSelectedBookingId(null);
                     setRejectReason("");
                   }}
-                  style={{ background: "rgba(255, 255, 255, 0.1)" }}
                 >
                   Annuler
                 </button>
                 <button
                   type="button"
-                  className={shared.primaryButton}
+                  className={shared.dangerButton}
                   onClick={() => handleReject(selectedBookingId)}
                   disabled={isRejecting || !rejectReason.trim()}
-                  style={{
-                    background: "rgba(255, 75, 85, 0.15)",
-                    color: "var(--color-danger)",
-                  }}
                 >
                   {isRejecting ? "Rejet..." : "Confirmer le rejet"}
                 </button>

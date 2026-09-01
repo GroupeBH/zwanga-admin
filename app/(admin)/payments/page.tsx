@@ -13,6 +13,8 @@ import {
   useGetAdminPaymentsQuery,
   useReconcileAdminPaymentMutation,
 } from "@/lib/features/finance/financeApi";
+import { isSuperAdminRole } from "@/lib/features/auth/adminRoles";
+import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import {
   exportCsv,
   financeLabel,
@@ -52,6 +54,9 @@ export default function PaymentsPage() {
   const [searchDraft, setSearchDraft] = useState("");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<AdminPaymentTransaction | null>(null);
+
+  const { data: profile } = useGetCurrentUserProfileQuery();
+  const canReconcilePayments = isSuperAdminRole(profile?.user.role);
 
   const { data, error, isFetching, refetch } = useGetAdminPaymentsQuery({
     page,
@@ -103,7 +108,7 @@ export default function PaymentsPage() {
   };
 
   const handleReconcile = async () => {
-    if (!selected || data?.source !== "admin-api") return;
+    if (!selected || data?.source !== "admin-api" || !canReconcilePayments) return;
     if (!confirm(`Vérifier la transaction ${selected.reference} auprès de FlexPay ?`)) {
       return;
     }
@@ -312,10 +317,17 @@ export default function PaymentsPage() {
                 onClick={handleReconcile}
                 disabled={
                   reconcileState.isLoading ||
+                  !canReconcilePayments ||
                   data?.source !== "admin-api" ||
                   selected.status === "succeeded"
                 }
-                title={data?.source !== "admin-api" ? "Nécessite le contrat admin dédié" : undefined}
+                title={
+                  !canReconcilePayments
+                    ? "Action réservée au super administrateur"
+                    : data?.source !== "admin-api"
+                      ? "Nécessite le contrat admin dédié"
+                      : undefined
+                }
               >
                 <CheckCircle2 size={16} /> Vérifier chez FlexPay
               </button>

@@ -327,25 +327,19 @@ export default function RidesPage() {
 
       {selectedTrip ? (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0, 0, 0, 0.72)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            padding: 16,
-          }}
+          className={shared.modalBackdrop}
           onClick={closeEditModal}
+          role="presentation"
         >
           <form
-            className={shared.card}
+            className={`${shared.card} ${shared.modalCard}`}
             onSubmit={handleSubmitTrip}
             onClick={(event) => event.stopPropagation()}
-            style={{ width: "min(720px, 100%)", maxHeight: "90vh", overflowY: "auto" }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-trip-title"
           >
-            <h3 style={{ margin: 0 }}>Modifier le trajet</h3>
+            <h3 id="edit-trip-title">Modifier le trajet</h3>
             <div className={shared.grid}>
               <label>
                 Depart
@@ -431,7 +425,7 @@ export default function RidesPage() {
                 </select>
               </label>
             </div>
-            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <label className={shared.checkboxRow}>
               <input
                 type="checkbox"
                 checked={Boolean(tripForm.isFree)}
@@ -458,12 +452,11 @@ export default function RidesPage() {
                 }
               />
             </label>
-            <div className={shared.toolbar} style={{ justifyContent: "flex-end" }}>
+            <div className={shared.modalActions}>
               <button
                 type="button"
-                className={shared.primaryButton}
+                className={shared.secondaryButton}
                 onClick={closeEditModal}
-                style={{ background: "rgba(255, 255, 255, 0.1)", color: "var(--color-text)" }}
               >
                 Annuler
               </button>

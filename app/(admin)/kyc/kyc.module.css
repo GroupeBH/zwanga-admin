@@ -98,5 +98,41 @@
   .split {
     grid-template-columns: 1fr;
   }
+
+  .queue {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(260px, 40vw);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: inline proximity;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+  }
+
+  .queueItem {
+    min-height: 112px;
+    scroll-snap-align: start;
+  }
+
+  .detail {
+    border-radius: 22px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .queue {
+    grid-auto-columns: minmax(245px, 82vw);
+  }
+
+  .detail,
+  .documentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .documentPreview {
+    min-height: 220px;
+  }
 }
 

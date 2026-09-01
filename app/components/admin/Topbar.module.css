@@ -2,6 +2,7 @@
   display: flex;
   align-items: center;
   gap: 18px;
+  min-width: 0;
 }
 
 .left {
@@ -9,17 +10,19 @@
   align-items: center;
   gap: 16px;
   flex: 1;
+  min-width: 0;
 }
 
 .right {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 0 0 auto;
 }
 
 .ghostButton {
-  width: 42px;
-  height: 42px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 16px;
   border: 1px solid var(--color-border);
   background: transparent;
@@ -28,6 +31,22 @@
   place-items: center;
   cursor: pointer;
   transition: border 0.2s ease, background 0.2s ease;
+}
+
+.workspaceMeta {
+  flex: 0 0 auto;
+  line-height: 1.25;
+}
+
+.workspaceMeta strong,
+.workspaceMeta span {
+  display: block;
+}
+
+.workspaceMeta span {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  text-transform: capitalize;
 }
 
 .ghostButton:hover {
@@ -43,7 +62,9 @@
   padding: 12px 16px;
   border-radius: 18px;
   border: 1px solid var(--color-border);
-  background: rgba(8, 21, 37, 0.4);
+  background: var(--color-panel-muted);
+  min-width: 180px;
+  min-height: 44px;
 }
 
 .search input {
@@ -51,6 +72,13 @@
   background: transparent;
   border: none;
   color: var(--color-text);
+  min-width: 0;
+  outline: none;
+}
+
+.search:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.12);
 }
 
 .search input::placeholder {
@@ -68,6 +96,8 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  min-height: 44px;
+  white-space: nowrap;
 }
 
 .notificationWrapper {
@@ -102,13 +132,14 @@
   overflow: auto;
   border-radius: 24px;
   border: 1px solid var(--color-border);
-  background: rgba(9, 20, 36, 0.98);
+  background: var(--color-surface);
   box-shadow: var(--shadow-panel);
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  z-index: 20;
+  z-index: 70;
+  overscroll-behavior: contain;
 }
 
 .panelItem {
@@ -138,6 +169,13 @@
   color: var(--color-text-muted);
 }
 
+.emptyPanel {
+  margin: 0;
+  padding: 18px 4px;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
 .profile {
   display: flex;
   align-items: center;
@@ -146,6 +184,7 @@
   border-radius: 999px;
   border: 1px solid var(--color-border);
   cursor: pointer;
+  min-height: 44px;
 }
 
 .avatar {
@@ -174,14 +213,104 @@
   color: var(--color-text-muted);
 }
 
-@media (max-width: 900px) {
+.logoutLabel {
+  display: none;
+}
+
+@media (max-width: 1320px) {
+  .profileInfo,
+  .cta span {
+    display: none;
+  }
+
+  .cta {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .profile {
+    padding: 4px;
+    border-color: transparent;
+  }
+}
+
+@media (max-width: 1024px) {
+  .topbar {
+    gap: 14px;
+  }
+
+  .left {
+    gap: 12px;
+  }
+
+  .right {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 760px) {
   .topbar {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+  }
+
+  .left {
+    flex-wrap: wrap;
+  }
+
+  .workspaceMeta {
+    flex: 1;
+  }
+
+  .search {
+    order: 3;
+    flex: 1 0 100%;
+    width: 100%;
+  }
+
+  .right {
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .panel {
+    position: fixed;
+    inset: 74px 12px auto;
+    width: auto;
+    max-height: min(520px, calc(100dvh - 94px));
+    border-radius: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .workspaceMeta span,
+  .cta,
+  .profile {
+    display: none;
   }
 
   .right {
     justify-content: space-between;
+  }
+
+  .logoutLabel {
+    display: inline;
+  }
+
+  .right > .ghostButton:last-child {
+    width: auto;
+    padding-inline: 12px;
+    display: flex;
+    gap: 7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ghostButton,
+  .cta {
+    transition: none;
   }
 }
 

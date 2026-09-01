@@ -1,28 +1,8 @@
 import { baseApi } from "../api/baseApi";
 
-type LoginWithPhonePayload =
-  | { phone: string; pin: string; newPin?: never }
-  | { phone: string; pin?: never; newPin: string };
-
-interface RegisterWithPhonePayload {
+interface LoginWithPhonePayload {
   phone: string;
-  pin: string;
-  firstName: string;
-  lastName: string;
-  role: "driver" | "passenger" | "admin";
-  isDriver?: boolean;
-  vehicle?: {
-    brand: string;
-    model: string;
-    color: string;
-    licensePlate: string;
-    photoUrl?: string;
-  };
-}
-
-interface GoogleMobileAuthPayload {
-  idToken: string;
-  phone?: string;
+  password: string;
 }
 
 interface RefreshTokenPayload {
@@ -32,6 +12,7 @@ interface RefreshTokenPayload {
 interface AuthResponse {
   accessToken: string;
   refreshToken: string;
+  passwordChangeRequired?: boolean;
   user?: {
     id: string;
     phone: string;
@@ -45,22 +26,25 @@ interface AuthMessage {
   message: string;
 }
 
+interface ChangeAdminPasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
+interface ChangeAdminPasswordResponse {
+  message: string;
+  passwordChangeRequired: boolean;
+}
+
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     loginWithPhone: builder.mutation<AuthResponse, LoginWithPhonePayload>({
       query: (body) => ({
-        url: "/auth/login",
+        url: "/auth/admin/login",
         method: "POST",
         body,
       }),
       invalidatesTags: ["Dashboard", "AdminProfile"],
-    }),
-    registerWithPhone: builder.mutation<AuthResponse, RegisterWithPhonePayload | FormData>({
-      query: (body) => ({
-        url: "/auth/register",
-        method: "POST",
-        body,
-      }),
     }),
     refresh: builder.mutation<AuthResponse, RefreshTokenPayload>({
       query: (body) => ({
@@ -69,12 +53,16 @@ export const authApi = baseApi.injectEndpoints({
         body,
       }),
     }),
-    googleMobile: builder.mutation<AuthResponse, GoogleMobileAuthPayload>({
+    changeAdminPassword: builder.mutation<
+      ChangeAdminPasswordResponse,
+      ChangeAdminPasswordPayload
+    >({
       query: (body) => ({
-        url: "/auth/google/mobile",
+        url: "/auth/admin/password/change",
         method: "POST",
         body,
       }),
+      invalidatesTags: ["AdminProfile"],
     }),
     logout: builder.mutation<AuthMessage, void>({
       query: () => ({
@@ -99,9 +87,8 @@ export const authApi = baseApi.injectEndpoints({
 
 export const {
   useLoginWithPhoneMutation,
-  useRegisterWithPhoneMutation,
   useRefreshMutation,
-  useGoogleMobileMutation,
+  useChangeAdminPasswordMutation,
   useLogoutMutation,
 } = authApi;
 

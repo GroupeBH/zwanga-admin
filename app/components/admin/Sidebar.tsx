@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   UserRound,
   Users,
+  X,
 } from "lucide-react";
 
 import { useGetPendingKycsQuery } from "@/lib/features/kyc/kycApi";
@@ -26,7 +27,8 @@ import { useGetReportsQuery } from "@/lib/features/reports/reportsApi";
 import { useGetDocumentFundingRequestsQuery } from "@/lib/features/subscriptions/subscriptionsApi";
 import { useGetAllTripsQuery } from "@/lib/features/trips/tripsApi";
 import { useGetAllTripRequestsQuery } from "@/lib/features/tripRequests/tripRequestsApi";
-import { useAppSelector } from "@/lib/hooks";
+import { setSidebarOpen } from "@/lib/features/ui/uiSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
 import styles from "./Sidebar.module.css";
 
@@ -67,7 +69,12 @@ const navGroups = [
   },
 ];
 
-export const Sidebar = () => {
+interface SidebarProps {
+  readonly isCompactViewport: boolean;
+}
+
+export const Sidebar = ({ isCompactViewport }: SidebarProps) => {
+  const dispatch = useAppDispatch();
   const pathname = usePathname();
   const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
   const { data: reports } = useGetReportsQuery();
@@ -111,11 +118,20 @@ export const Sidebar = () => {
     return undefined;
   };
 
+  const closeCompactNavigation = () => {
+    if (isCompactViewport) {
+      dispatch(setSidebarOpen(false));
+    }
+  };
+
   return (
     <aside
+      id="admin-navigation"
       className={clsx(styles.sidebar, {
         [styles.collapsed]: !sidebarOpen,
       })}
+      aria-label="Navigation de l'administration"
+      aria-hidden={isCompactViewport && !sidebarOpen}
     >
       <div className={styles.brand}>
         <div className={styles.logo}>
@@ -123,6 +139,14 @@ export const Sidebar = () => {
           <span>Backoffice</span>
         </div>
         <span className={styles.badge}>v1.5</span>
+        <button
+          type="button"
+          className={styles.closeButton}
+          aria-label="Fermer la navigation"
+          onClick={() => dispatch(setSidebarOpen(false))}
+        >
+          <X size={20} aria-hidden="true" />
+        </button>
       </div>
 
       <nav className={styles.navigation} aria-label="Navigation principale">
@@ -142,6 +166,8 @@ export const Sidebar = () => {
                     key={item.href}
                     href={item.href}
                     className={clsx(styles.link, { [styles.active]: active })}
+                    tabIndex={isCompactViewport && !sidebarOpen ? -1 : undefined}
+                    onClick={closeCompactNavigation}
                   >
                     <Icon aria-hidden="true" />
                     <span>{item.label}</span>
@@ -156,13 +182,13 @@ export const Sidebar = () => {
         ))}
       </nav>
 
-      <div className={styles.upgrade}>
+      <div className={styles.statusPanel}>
         <span>Performance live</span>
         <strong>
           Carte Kinshasa
           <br /> temps réel
         </strong>
-        <button type="button">Activer la carte</button>
+        <small>Disponible depuis le tableau de bord</small>
       </div>
     </aside>
   );

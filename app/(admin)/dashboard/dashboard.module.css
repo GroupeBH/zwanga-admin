@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;
 }
 
 .hero {
@@ -259,5 +260,57 @@
 @media (max-width: 1200px) {
   .panels {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    gap: 18px;
+  }
+
+  .hero {
+    align-items: flex-start;
+  }
+
+  .hero h1 {
+    font-size: 1.4rem;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .metric,
+  .panel {
+    border-radius: 20px;
+    padding: 16px;
+  }
+
+  .metricValue {
+    font-size: 1.45rem;
+  }
+
+  .panelHeader,
+  .routeItem,
+  .alert,
+  .driver {
+    align-items: flex-start;
+  }
+
+  .chart {
+    height: 210px;
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .routeItem,
+  .alert,
+  .driver {
+    flex-direction: column;
   }
 }

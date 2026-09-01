@@ -3,11 +3,13 @@
 import { useMemo, useState } from "react";
 import { Coins, Download, SlidersHorizontal, Search } from "lucide-react";
 
+import { isSuperAdminRole } from "@/lib/features/auth/adminRoles";
 import {
   useAdjustAdminWalletMutation,
   useGetAdminWalletAccountsQuery,
   useGetAdminWalletLedgerQuery,
 } from "@/lib/features/finance/financeApi";
+import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import {
   exportCsv,
   financeLabel,
@@ -37,6 +39,9 @@ export default function TokensPage() {
   const [ledgerPage, setLedgerPage] = useState(1);
   const [entryType, setEntryType] = useState<WalletLedgerEntryType | "all">("all");
   const [adjustedAccount, setAdjustedAccount] = useState<WalletAccount | null>(null);
+
+  const { data: profile } = useGetCurrentUserProfileQuery();
+  const canAdjustWallets = isSuperAdminRole(profile?.user.role);
 
   const accountsQuery = useGetAdminWalletAccountsQuery({
     page: accountPage,
@@ -145,6 +150,12 @@ export default function TokensPage() {
         </button>
       </form>
 
+      {!canAdjustWallets ? (
+        <div className={styles.notice}>
+          Mode lecture seule : seuls les super administrateurs peuvent ajuster un solde de jetons.
+        </div>
+      ) : null}
+
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
           <div>
@@ -191,7 +202,16 @@ export default function TokensPage() {
                       <button
                         type="button"
                         className={styles.secondaryButton}
-                        onClick={() => setAdjustedAccount(account)}
+                        disabled={!canAdjustWallets}
+                        title={
+                          canAdjustWallets
+                            ? undefined
+                            : "Action réservée au super administrateur"
+                        }
+                        onClick={() => {
+                          if (!canAdjustWallets) return;
+                          setAdjustedAccount(account);
+                        }}
                       >
                         <SlidersHorizontal size={14} /> Ajuster
                       </button>

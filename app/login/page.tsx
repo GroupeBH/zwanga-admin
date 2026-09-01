@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 
 import { useLoginWithPhoneMutation } from "@/lib/features/auth/authApi";
 import { setAuthenticated } from "@/lib/features/auth/authSlice";
+import { isAdminRole } from "@/lib/features/auth/adminRoles";
 import { useAppDispatch } from "@/lib/hooks";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 import { clearAuthTokens, setAuthTokens } from "@/lib/utils/cookies";
@@ -19,9 +20,7 @@ export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState("");
-  const [newPin, setNewPin] = useState("");
-  const [resetPinMode, setResetPinMode] = useState(false);
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [login, { isLoading }] = useLoginWithPhoneMutation();
 
@@ -30,9 +29,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const payload = resetPinMode
-        ? { phone: phone.trim(), newPin: newPin.trim() }
-        : { phone: phone.trim(), pin: pin.trim() };
+      const payload = { phone: phone.trim(), password: password.trim() };
 
       const response = await login(payload).unwrap();
       const profileResponse = await fetch(`${API_BASE_URL}/users/me`, {
@@ -50,7 +47,7 @@ export default function LoginPage() {
         };
       }
 
-      if (profilePayload?.user?.role !== "admin") {
+      if (!isAdminRole(profilePayload?.user?.role)) {
         clearAuthTokens();
         dispatch(setAuthenticated(false));
         setError("Ce compte n'a pas acces a l'interface admin.");
@@ -59,7 +56,7 @@ export default function LoginPage() {
 
       setAuthTokens(response.accessToken, response.refreshToken);
       dispatch(setAuthenticated(true));
-      router.push("/dashboard");
+      router.push(response.passwordChangeRequired ? "/settings" : "/dashboard");
     } catch (err) {
       clearAuthTokens();
       dispatch(setAuthenticated(false));
@@ -72,7 +69,7 @@ export default function LoginPage() {
       <div className={styles.card}>
         <span>ZWANGA Admin</span>
         <h1>Connexion securisee</h1>
-        <p>Authentification par numero de telephone + code PIN</p>
+        <p>Authentification par numero de telephone + mot de passe admin</p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <input
@@ -83,44 +80,15 @@ export default function LoginPage() {
             required
           />
 
-          {resetPinMode ? (
-            <input
-              type="password"
-              inputMode="numeric"
-              placeholder="Nouveau PIN (4 chiffres)"
-              value={newPin}
-              onChange={(event) => setNewPin(event.target.value)}
-              minLength={4}
-              maxLength={4}
-              pattern="[0-9]{4}"
-              required
-            />
-          ) : (
-            <input
-              type="password"
-              inputMode="numeric"
-              placeholder="PIN (4 chiffres)"
-              value={pin}
-              onChange={(event) => setPin(event.target.value)}
-              minLength={4}
-              maxLength={4}
-              pattern="[0-9]{4}"
-              required
-            />
-          )}
-
-          <button
-            type="button"
-            className={styles.linkButton}
-            onClick={() => {
-              setResetPinMode((prev) => !prev);
-              setError(null);
-              setPin("");
-              setNewPin("");
-            }}
-          >
-            {resetPinMode ? "J'ai mon PIN" : "PIN oublie ? Reinitialiser"}
-          </button>
+          <input
+            type="password"
+            placeholder="Mot de passe administrateur"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            minLength={4}
+            maxLength={128}
+            required
+          />
 
           {error ? <p className={styles.error}>{error}</p> : null}
           <button type="submit" disabled={isLoading}>

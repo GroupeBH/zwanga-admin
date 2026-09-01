@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
+  LogOut,
   Menu,
   Moon,
   Plus,
@@ -15,6 +16,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toggleSidebar, toggleTheme } from "@/lib/features/ui/uiSlice";
 import { useGetNotificationsQuery } from "@/lib/features/notifications/notificationsApi";
 import { useLogoutMutation } from "@/lib/features/auth/authApi";
+import { getAdminRoleLabel } from "@/lib/features/auth/adminRoles";
+import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { clearAuthTokens } from "@/lib/utils/cookies";
 import { setAuthenticated } from "@/lib/features/auth/authSlice";
@@ -24,7 +27,9 @@ import styles from "./Topbar.module.css";
 export const Topbar = () => {
   const dispatch = useAppDispatch();
   const theme = useAppSelector((state) => state.ui.theme);
+  const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
   const { data: notifications } = useGetNotificationsQuery();
+  const { data: profile } = useGetCurrentUserProfileQuery();
   const [panelOpen, setPanelOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -59,6 +64,19 @@ export const Topbar = () => {
   const dateLabel = formatter.format(new Date());
 
   const unreadCount = notifications?.filter((item) => !item.read).length ?? 0;
+  const currentUser = profile?.user;
+  const displayName = currentUser
+    ? `${currentUser.firstName} ${currentUser.lastName}`.trim()
+    : "Admin Zwanga";
+  const roleLabel = getAdminRoleLabel(currentUser?.role);
+  const initials = useMemo(() => {
+    if (!currentUser) {
+      return "ZA";
+    }
+    const first = currentUser.firstName?.trim().charAt(0) ?? "";
+    const last = currentUser.lastName?.trim().charAt(0) ?? "";
+    return `${first}${last}`.toUpperCase() || "ZA";
+  }, [currentUser]);
 
   useEffect(() => {
     const listener = (event: MouseEvent) => {
@@ -81,6 +99,16 @@ export const Topbar = () => {
     setPanelOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPanelOpen(false);
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, []);
+
   return (
     <header className={styles.topbar}>
       <div className={styles.left}>
@@ -88,32 +116,33 @@ export const Topbar = () => {
           type="button"
           className={styles.ghostButton}
           aria-label="Basculer la navigation"
+          aria-controls="admin-navigation"
+          aria-expanded={sidebarOpen}
           onClick={() => dispatch(toggleSidebar())}
         >
           <Menu size={18} aria-hidden="true" />
         </button>
 
-        <div>
+        <div className={styles.workspaceMeta}>
           <strong>ZWANGA HQ</strong>
-          <div style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
-            {dateLabel}
-          </div>
+          <span>{dateLabel}</span>
         </div>
 
         <div className={styles.search}>
           <Search size={18} aria-hidden="true" />
           <input
             type="search"
+            aria-label="Rechercher dans l'administration"
             placeholder="Rechercher un trajet, un utilisateur, un ticket..."
           />
         </div>
       </div>
 
       <div className={styles.right}>
-        <button type="button" className={styles.cta}>
+        <Link href="/rides" className={styles.cta}>
           <Plus size={16} aria-hidden="true" />
-          Nouveau trajet
-        </button>
+          <span>Gérer les trajets</span>
+        </Link>
 
         <button
           type="button"
@@ -128,11 +157,13 @@ export const Topbar = () => {
           )}
         </button>
 
-        <div className={styles.notificationWrapper}>
+        <div ref={panelRef} className={styles.notificationWrapper}>
           <button
             type="button"
             className={`${styles.ghostButton} ${styles.notificationButton}`}
             aria-label="Notifications"
+            aria-expanded={panelOpen}
+            aria-controls="notification-panel"
             onClick={() => setPanelOpen((prev) => !prev)}
           >
             <Bell size={18} aria-hidden="true" />
@@ -142,29 +173,33 @@ export const Topbar = () => {
           </button>
 
           {panelOpen ? (
-            <div ref={panelRef} className={styles.panel}>
+            <div id="notification-panel" className={styles.panel}>
               <strong>Notifications</strong>
-              {notifications?.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`${styles.panelItem} ${
-                    notification.read ? "" : styles.unread
-                  }`}
-                >
-                  <h4>{notification.title}</h4>
-                  <p>{notification.description}</p>
-                  <span>{notification.category}</span>
-                </div>
-              ))}
+              {notifications && notifications.length > 0 ? (
+                notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`${styles.panelItem} ${
+                      notification.read ? "" : styles.unread
+                    }`}
+                  >
+                    <h4>{notification.title}</h4>
+                    <p>{notification.description}</p>
+                    <span>{notification.category}</span>
+                  </div>
+                ))
+              ) : (
+                <p className={styles.emptyPanel}>Aucune notification récente.</p>
+              )}
             </div>
           ) : null}
         </div>
 
         <Link href="/profile" className={styles.profile}>
-          <span className={styles.avatar}>EB</span>
+          <span className={styles.avatar}>{initials}</span>
           <div className={styles.profileInfo}>
-            <strong>Eugène</strong>
-            <span>Head of Ops</span>
+            <strong>{displayName}</strong>
+            <span>{roleLabel}</span>
           </div>
         </Link>
         <button
@@ -172,8 +207,12 @@ export const Topbar = () => {
           className={styles.ghostButton}
           onClick={handleLogout}
           disabled={isLoggingOut}
+          aria-label="Se déconnecter"
         >
-          {isLoggingOut ? "..." : "Logout"}
+          <LogOut size={18} aria-hidden="true" />
+          <span className={styles.logoutLabel}>
+            {isLoggingOut ? "Patientez" : "Déconnexion"}
+          </span>
         </button>
       </div>
     </header>

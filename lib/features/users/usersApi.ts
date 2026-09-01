@@ -1,9 +1,22 @@
 import { baseApi } from "../api/baseApi";
-import type { AdminUserDetailsResponse, User, PaginatedUsersResponse } from "../admin/types";
+import type {
+  AdminAccount,
+  AdminAccountsResponse,
+  AdminUserDetailsResponse,
+  PaginatedUsersResponse,
+  User,
+} from "../admin/types";
 
 export interface UsersQueryParams {
   page?: number;
   limit?: number;
+}
+
+export interface CreateAdminAccountPayload {
+  phone: string;
+  firstName: string;
+  lastName: string;
+  defaultPassword: string;
 }
 
 export const usersApi = baseApi.injectEndpoints({
@@ -30,6 +43,30 @@ export const usersApi = baseApi.injectEndpoints({
         { type: "Bookings", id: "LIST" },
         { type: "TripRequests", id: "LIST" },
         { type: "Payments", id: "LIST" },
+      ],
+    }),
+    getAdminAccounts: builder.query<AdminAccountsResponse, UsersQueryParams | void>({
+      query: ({ page = 1, limit = 25 } = {}) => ({
+        url: "/admin/accounts",
+        params: { page, limit },
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.accounts.map(({ id }) => ({ type: "Users" as const, id })),
+              { type: "Users" as const, id: "ADMIN_ACCOUNTS" },
+            ]
+          : [{ type: "Users" as const, id: "ADMIN_ACCOUNTS" }],
+    }),
+    createAdminAccount: builder.mutation<AdminAccount, CreateAdminAccountPayload>({
+      query: (body) => ({
+        url: "/admin/accounts",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [
+        { type: "Users", id: "ADMIN_ACCOUNTS" },
+        { type: "Users", id: "LIST" },
       ],
     }),
     suspendUser: builder.mutation<User, string>({
@@ -72,6 +109,8 @@ export const usersApi = baseApi.injectEndpoints({
 export const {
   useGetUsersQuery,
   useGetUserDetailsQuery,
+  useGetAdminAccountsQuery,
+  useCreateAdminAccountMutation,
   useSuspendUserMutation,
   useActivateUserMutation,
   useDeactivateUserMutation,
