@@ -28,6 +28,9 @@ const statusClass = (status: KycDocument["status"]) => {
   return `${shared.badge} ${shared.badgeWarning}`;
 };
 
+const providerLabel = (provider?: KycDocument["provider"]) =>
+  provider === "didit" ? "Didit" : "Legacy Zwanga";
+
 export default function KycPage() {
   const { data: documents } = useGetPendingKycsQuery<any>();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -92,6 +95,7 @@ export default function KycPage() {
                 <div className={styles.queueMeta}>
                   <span>{document?.user?.email ?? document?.user?.phone}</span>
                   <span>Créé {formatDate(document?.createdAt)}</span>
+                  <span>{providerLabel(document?.provider)}</span>
                 </div>
               </button>
             ))}
@@ -114,6 +118,10 @@ export default function KycPage() {
                     <span>{formatDate(selected?.updatedAt)}</span>
                   </div>
                   <div className={shared.timelineItem}>
+                    <strong>Fournisseur</strong>
+                    <span>{providerLabel(selected?.provider)}</span>
+                  </div>
+                  <div className={shared.timelineItem}>
                     <strong>
                       {selected.reviewedBy
                         ? `Revu par ${selected?.reviewedBy}`
@@ -128,6 +136,39 @@ export default function KycPage() {
                   </div>
                 ) : null}
               </div>
+
+              {selected?.provider === "didit" ? (
+                <div className={shared.card}>
+                  <h3>Vérification Didit</h3>
+                  <dl className={styles.providerFacts}>
+                    <div>
+                      <dt>Session</dt>
+                      <dd>{selected.diditSessionId ?? "Non renseignée"}</dd>
+                    </div>
+                    <div>
+                      <dt>Numéro</dt>
+                      <dd>{selected.diditSessionNumber ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt>Workflow</dt>
+                      <dd>{selected.diditWorkflowId ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt>Statut Didit</dt>
+                      <dd>{selected.diditSessionStatus ?? selected.status}</dd>
+                    </div>
+                    <div>
+                      <dt>Dernière synchronisation</dt>
+                      <dd>{formatDate(selected.diditLastSyncedAt ?? undefined)}</dd>
+                    </div>
+                  </dl>
+                  <p className={styles.providerHint}>
+                    Les images et données sensibles restent hébergées par Didit.
+                    Zwanga conserve uniquement le statut, les identifiants de
+                    session et un résumé technique minimal.
+                  </p>
+                </div>
+              ) : null}
 
               <div className={styles.documentGrid}>
                 <div className={styles.documentPreview}>

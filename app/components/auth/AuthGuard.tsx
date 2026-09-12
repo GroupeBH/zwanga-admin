@@ -22,6 +22,7 @@ const PUBLIC_ROUTES = [
   "/sales-policy",
   "/demande-documents",
   "/enquiry",
+  "/recrutement-terrain",
 ];
 
 const PUBLIC_ROUTE_PREFIXES = ["/track/"];

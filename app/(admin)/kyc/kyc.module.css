@@ -94,6 +94,39 @@
   font-size: 0.9rem;
 }
 
+.providerFacts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 12px 0 0;
+}
+
+.providerFacts div {
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.providerFacts dt {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  margin-bottom: 4px;
+}
+
+.providerFacts dd {
+  margin: 0;
+  word-break: break-word;
+  font-weight: 700;
+}
+
+.providerHint {
+  margin: 12px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
 @media (max-width: 1100px) {
   .split {
     grid-template-columns: 1fr;

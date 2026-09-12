@@ -221,13 +221,22 @@ export interface KycDocument {
   id: string;
   userId: string;
   user: User;
-  cniFrontUrl?: string;
-  cniBackUrl?: string;
-  selfieUrl?: string;
+  cniFrontUrl?: string | null;
+  cniFrontUrls?: string[] | null;
+  cniBackUrl?: string | null;
+  selfieUrl?: string | null;
   status: KycStatus;
-  rejectionReason?: string;
+  provider?: "legacy" | "didit";
+  rejectionReason?: string | null;
   reviewedBy?: string;
   reviewedAt?: string;
+  diditSessionId?: string | null;
+  diditSessionNumber?: number | null;
+  diditWorkflowId?: string | null;
+  diditVendorData?: string | null;
+  diditSessionStatus?: string | null;
+  diditLastSyncedAt?: string | null;
+  providerMetadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }

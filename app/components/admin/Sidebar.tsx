@@ -17,6 +17,7 @@ import {
   Settings,
   Share2,
   ShieldCheck,
+  UserPlus,
   UserRound,
   Users,
   X,
@@ -42,6 +43,7 @@ const navGroups = [
       { label: "Trajets", href: "/rides", icon: Route },
       { label: "Demandes de trajet", href: "/trip-requests", icon: ClipboardList, badgeKey: "tripRequests" },
       { label: "Réservations", href: "/bookings", icon: Calendar, badgeKey: "bookings" },
+      { label: "Candidatures agents", href: "/candidatures", icon: UserPlus },
     ],
   },
   {
