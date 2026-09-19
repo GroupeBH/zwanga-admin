@@ -39,6 +39,17 @@ export const tripRequestsApi = baseApi.injectEndpoints({
           ...(status && status !== "all" ? { status } : {}),
         },
       }),
+      serializeQueryArgs: ({ queryArgs }) => {
+        const args = queryArgs ?? {};
+        return `trip-requests-${args.page ?? 1}-${args.limit ?? 50}-${args.status ?? "all"}`;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return (
+          currentArg?.status !== previousArg?.status ||
+          currentArg?.page !== previousArg?.page ||
+          currentArg?.limit !== previousArg?.limit
+        );
+      },
       providesTags: (result) =>
         result?.tripRequests
           ? [

@@ -144,8 +144,8 @@ export default function CandidaturesPage() {
     setPage(1);
   };
 
-  const handleExportCsv = () => {
-    const query = buildQuery({ format: "csv" });
+  const handleExportXls = () => {
+    const query = buildQuery({ format: "xls" });
     window.open(`/api/recrutement-terrain?${query}`, "_blank");
   };
 
@@ -187,9 +187,9 @@ export default function CandidaturesPage() {
             </p>
           </div>
           <div className={shared.toolbar}>
-            <button type="button" className={shared.primaryButton} onClick={handleExportCsv}>
+            <button type="button" className={shared.primaryButton} onClick={handleExportXls}>
               <Download size={16} aria-hidden="true" style={{ marginRight: 6 }} />
-              Exporter CSV
+              Exporter XLS
             </button>
           </div>
         </div>

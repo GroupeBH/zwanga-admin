@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 
+import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
 import {
   useGetAdminPaymentsQuery,
   useReconcileAdminPaymentMutation,
@@ -16,13 +17,14 @@ import {
 import { isSuperAdminRole } from "@/lib/features/auth/adminRoles";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import {
-  exportCsv,
   financeLabel,
   formatDateTime,
   formatMoney,
   formatUser,
   formatVolumes,
 } from "@/lib/features/finance/format";
+import { getApiErrorMessage } from "@/lib/utils/apiErrors";
+import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
 import type {
   AdminPaymentTransaction,
   PaymentPurpose,
@@ -66,6 +68,8 @@ export default function PaymentsPage() {
     search,
   });
   const [reconcile, reconcileState] = useReconcileAdminPaymentMutation();
+  const [exportAdminXls, { isLoading: isExporting }] = useExportAdminXlsMutation();
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const payments = data?.payments ?? [];
   const summary = data?.summary;
@@ -77,34 +81,19 @@ export default function PaymentsPage() {
     setSearch(searchDraft.trim());
   };
 
-  const handleExport = () => {
-    exportCsv(
-      `zwanga-paiements-${new Date().toISOString().slice(0, 10)}.csv`,
-      [
-        "Référence",
-        "Utilisateur",
-        "Objet",
-        "Méthode",
-        "Montant",
-        "Devise",
-        "Statut",
-        "Commande",
-        "Créé le",
-        "Payé le",
-      ],
-      payments.map((payment) => [
-        payment.reference,
-        formatUser(payment.user),
-        financeLabel(payment.purpose),
-        financeLabel(payment.method),
-        payment.amount,
-        payment.currency,
-        financeLabel(payment.status),
-        payment.orderNumber,
-        payment.createdAt,
-        payment.paidAt,
-      ])
-    );
+  const handleExport = async () => {
+    setExportError(null);
+    try {
+      const blob = await exportAdminXls({
+        url: "/admin/payments/export",
+        params: { status, purpose, search },
+      }).unwrap();
+      downloadBlob(blob, datedExportName("paiements-zwanga"));
+    } catch (error) {
+      setExportError(
+        getApiErrorMessage(error, "Impossible d'exporter les paiements.")
+      );
+    }
   };
 
   const handleReconcile = async () => {
@@ -141,12 +130,14 @@ export default function PaymentsPage() {
             type="button"
             className={styles.button}
             onClick={handleExport}
-            disabled={payments.length === 0}
+            disabled={isExporting}
           >
-            <Download size={15} aria-hidden="true" /> Exporter la page
+            <Download size={15} aria-hidden="true" /> {isExporting ? "Export..." : "Exporter XLS"}
           </button>
         </div>
       </header>
+
+      {exportError ? <div className={styles.error}>{exportError}</div> : null}
 
       <section className={styles.metricStrip} aria-label="Synthèse des paiements">
         <Metric label="Transactions" value={summary?.total ?? 0} helper="périmètre chargé" />

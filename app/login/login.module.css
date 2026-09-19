@@ -40,7 +40,41 @@
   color: var(--color-text);
 }
 
-.card button {
+.passwordField {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordField input {
+  width: 100%;
+  padding-right: 48px;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.passwordToggle:hover,
+.passwordToggle:focus-visible {
+  color: var(--color-text);
+}
+
+.card button[type="submit"] {
   border-radius: 18px;
   border: none;
   padding: 12px 16px;
@@ -50,7 +84,7 @@
   cursor: pointer;
 }
 
-.card button:disabled {
+.card button[type="submit"]:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

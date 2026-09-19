@@ -18,13 +18,30 @@ import type {
   TripLifecycleStatus,
 } from "../admin/types";
 
-const integerFormatter = new Intl.NumberFormat("fr-CD");
+const toArray = <T>(payload: unknown, nestedKey?: string): T[] => {
+  if (Array.isArray(payload)) {
+    return payload as T[];
+  }
 
-const formatInteger = (value: number) => integerFormatter.format(value);
+  if (payload && typeof payload === "object" && nestedKey) {
+    const nested = (payload as Record<string, unknown>)[nestedKey];
+    if (Array.isArray(nested)) {
+      return nested as T[];
+    }
+  }
+
+  return [];
+};
+
+const toKycDocuments = (payload: unknown): KycDocument[] =>
+  toArray<KycDocument>(payload, "documents");
+
+const formatInteger = (value: number) =>
+  new Intl.NumberFormat("fr-CD").format(Number.isFinite(value) ? value : 0);
 
 const formatAmount = (amount: number, currency: string) => {
   const rounded = Number.isFinite(amount) ? Math.round(amount) : 0;
-  return `${integerFormatter.format(rounded)} ${currency}`;
+  return `${formatInteger(rounded)} ${currency}`;
 };
 
 const getGreeting = () => {
@@ -78,14 +95,14 @@ const buildMetricCards = (
       id: "drivers",
       label: "Chauffeurs",
       value: formatInteger(userStats.drivers),
-      helper: "profils conducteurs inscrits",
+      helper: "KYC validé, véhicule actif et profil conducteur",
       tone: "neutral",
     },
     {
       id: "passengers",
       label: "Passagers",
       value: formatInteger(userStats.passengers),
-      helper: "profils passagers inscrits",
+      helper: "sans KYC validé et véhicule actif",
       tone: "neutral",
     },
     {
@@ -297,13 +314,16 @@ export const dashboardApi = baseApi.injectEndpoints({
           const [
             userStatsResult,
             tripsResult,
-            kycResult,
+            kycHistoryResult,
             plansResult,
             fundingResult,
           ] = await Promise.all([
             fetchWithBQ("/admin/users/stats"),
             fetchWithBQ({ url: "/admin/trips", params: { page: 1, limit: 1000 } }),
-            fetchWithBQ("/admin/kyc/pending"),
+            fetchWithBQ({
+              url: "/admin/kyc",
+              params: { status: "pending", page: 1, limit: 50 },
+            }),
             fetchWithBQ("/subscriptions/plans"),
             fetchWithBQ("/subscriptions/document-funding-requests"),
           ]);
@@ -314,15 +334,21 @@ export const dashboardApi = baseApi.injectEndpoints({
           if (tripsResult.error) {
             return { error: tripsResult.error as any };
           }
-          if (kycResult.error) {
-            return { error: kycResult.error as any };
+
+          let kycDocuments = toKycDocuments(kycHistoryResult.data);
+          if (kycHistoryResult.error) {
+            const pendingResult = await fetchWithBQ("/admin/kyc/pending");
+            kycDocuments = pendingResult.error
+              ? []
+              : toKycDocuments(pendingResult.data);
           }
 
           const userStats = userStatsResult.data as PlatformUserStats;
-          const trips = (tripsResult.data as any)?.trips || [];
-          const kycDocuments = (kycResult.data as KycDocument[]) || [];
-          const subscriptionPlans = (plansResult.data as SubscriptionOffering[]) || [];
-          const fundingRequests = (fundingResult.data as DocumentFundingRequest[]) || [];
+          const trips = toArray<Trip>(tripsResult.data, "trips");
+          const subscriptionPlans = toArray<SubscriptionOffering>(plansResult.data);
+          const fundingRequests = toArray<DocumentFundingRequest>(
+            fundingResult.data
+          );
 
           const dashboard = calculateDashboardMetrics(
             userStats,

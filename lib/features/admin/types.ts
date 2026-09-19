@@ -211,6 +211,9 @@ export interface User {
   passwordChangeRequired?: boolean;
   isActive: boolean;
   isDriver: boolean;
+  hasApprovedKyc?: boolean;
+  hasActiveVehicle?: boolean;
+  isQualifiedDriver?: boolean;
   lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;

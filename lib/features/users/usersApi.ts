@@ -7,9 +7,15 @@ import type {
   User,
 } from "../admin/types";
 
+export type AdminUserRoleFilter =
+  | "driver"
+  | "passenger"
+  | "verified_passenger";
+
 export interface UsersQueryParams {
   page?: number;
   limit?: number;
+  role?: AdminUserRoleFilter;
 }
 
 export interface CreateAdminAccountPayload {
@@ -19,21 +25,54 @@ export interface CreateAdminAccountPayload {
   defaultPassword: string;
 }
 
+export interface ResetAdminAccountPasswordPayload {
+  userId: string;
+  newPassword: string;
+}
+
 export const usersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getUsers: builder.query<User[], UsersQueryParams | void>({
-      query: ({ page = 1, limit = 100 } = {}) => ({
+    getUsers: builder.query<PaginatedUsersResponse, UsersQueryParams | void>({
+      query: ({ page = 1, limit = 100, role } = {}) => ({
         url: "/admin/users",
-        params: { page, limit },
+        params: { page, limit, ...(role ? { role } : {}) },
       }),
-      transformResponse: (response: PaginatedUsersResponse) => response.users,
+      serializeQueryArgs: ({ queryArgs }) => {
+        const args = queryArgs ?? {};
+        return `users-${args.page ?? 1}-${args.limit ?? 10}-${args.role ?? "all"}`;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return (
+          currentArg?.role !== previousArg?.role ||
+          currentArg?.page !== previousArg?.page ||
+          currentArg?.limit !== previousArg?.limit
+        );
+      },
       providesTags: (result) =>
         result
           ? [
-              ...result.map(({ id }) => ({ type: "Users" as const, id })),
+              ...result.users.map(({ id }) => ({ type: "Users" as const, id })),
               { type: "Users" as const, id: "LIST" },
             ]
           : [{ type: "Users" as const, id: "LIST" }],
+    }),
+    exportUsersXls: builder.mutation<Blob, Pick<UsersQueryParams, "role"> | void>({
+      query: ({ role } = {}) => ({
+        url: "/admin/users/export",
+        params: role ? { role } : {},
+        responseHandler: async (response) => {
+          if (!response.ok) {
+            const payload = (await response.json().catch(() => null)) as
+              | { message?: string | string[] }
+              | null;
+            const message = Array.isArray(payload?.message)
+              ? payload.message.join(", ")
+              : payload?.message;
+            throw new Error(message || "Impossible d'exporter les utilisateurs.");
+          }
+          return response.blob();
+        },
+      }),
     }),
     getUserDetails: builder.query<AdminUserDetailsResponse, string>({
       query: (userId) => `/admin/users/${userId}/details`,
@@ -68,6 +107,39 @@ export const usersApi = baseApi.injectEndpoints({
         { type: "Users", id: "ADMIN_ACCOUNTS" },
         { type: "Users", id: "LIST" },
       ],
+    }),
+    deactivateAdminAccount: builder.mutation<AdminAccount, string>({
+      query: (userId) => ({
+        url: `/admin/accounts/${userId}/deactivate`,
+        method: "PUT",
+      }),
+      invalidatesTags: [
+        { type: "Users", id: "ADMIN_ACCOUNTS" },
+        { type: "Users", id: "LIST" },
+        "Dashboard",
+      ],
+    }),
+    activateAdminAccount: builder.mutation<AdminAccount, string>({
+      query: (userId) => ({
+        url: `/admin/accounts/${userId}/activate`,
+        method: "PUT",
+      }),
+      invalidatesTags: [
+        { type: "Users", id: "ADMIN_ACCOUNTS" },
+        { type: "Users", id: "LIST" },
+        "Dashboard",
+      ],
+    }),
+    resetAdminAccountPassword: builder.mutation<
+      AdminAccount,
+      ResetAdminAccountPasswordPayload
+    >({
+      query: ({ userId, newPassword }) => ({
+        url: `/admin/accounts/${userId}/password`,
+        method: "PUT",
+        body: { newPassword },
+      }),
+      invalidatesTags: [{ type: "Users", id: "ADMIN_ACCOUNTS" }],
     }),
     suspendUser: builder.mutation<User, string>({
       query: (userId) => ({
@@ -108,9 +180,13 @@ export const usersApi = baseApi.injectEndpoints({
 
 export const {
   useGetUsersQuery,
+  useExportUsersXlsMutation,
   useGetUserDetailsQuery,
   useGetAdminAccountsQuery,
   useCreateAdminAccountMutation,
+  useDeactivateAdminAccountMutation,
+  useActivateAdminAccountMutation,
+  useResetAdminAccountPasswordMutation,
   useSuspendUserMutation,
   useActivateUserMutation,
   useDeactivateUserMutation,

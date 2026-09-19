@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Coins, Download, SlidersHorizontal, Search } from "lucide-react";
 
 import { isSuperAdminRole } from "@/lib/features/auth/adminRoles";
+import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
 import {
   useAdjustAdminWalletMutation,
   useGetAdminWalletAccountsQuery,
@@ -11,12 +12,13 @@ import {
 } from "@/lib/features/finance/financeApi";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import {
-  exportCsv,
   financeLabel,
   formatDateTime,
   formatTokens,
   formatUser,
 } from "@/lib/features/finance/format";
+import { getApiErrorMessage } from "@/lib/utils/apiErrors";
+import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
 import type {
   WalletAccount,
   WalletLedgerEntryType,
@@ -39,6 +41,8 @@ export default function TokensPage() {
   const [ledgerPage, setLedgerPage] = useState(1);
   const [entryType, setEntryType] = useState<WalletLedgerEntryType | "all">("all");
   const [adjustedAccount, setAdjustedAccount] = useState<WalletAccount | null>(null);
+  const [exportAdminXls, { isLoading: isExporting }] = useExportAdminXlsMutation();
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const { data: profile } = useGetCurrentUserProfileQuery();
   const canAdjustWallets = isSuperAdminRole(profile?.user.role);
@@ -79,20 +83,34 @@ export default function TokensPage() {
     setLedgerPage(1);
   };
 
-  const exportLedger = () => {
-    exportCsv(
-      `zwanga-registre-jetons-${new Date().toISOString().slice(0, 10)}.csv`,
-      ["Date", "Utilisateur", "Type", "Mouvement", "Solde après", "Devise", "Description"],
-      entries.map((entry) => [
-        entry.createdAt,
-        formatUser(entry.user),
-        financeLabel(entry.type),
-        entry.amount,
-        entry.balanceAfter,
-        entry.currency,
-        entry.description,
-      ])
-    );
+  const exportLedger = async () => {
+    setExportError(null);
+    try {
+      const blob = await exportAdminXls({
+        url: "/admin/wallets/ledger/export",
+        params: { search, type: entryType },
+      }).unwrap();
+      downloadBlob(blob, datedExportName("jetons-registre-zwanga"));
+    } catch (error) {
+      setExportError(
+        getApiErrorMessage(error, "Impossible d'exporter le registre des jetons.")
+      );
+    }
+  };
+
+  const exportAccounts = async () => {
+    setExportError(null);
+    try {
+      const blob = await exportAdminXls({
+        url: "/admin/wallets/export",
+        params: { search },
+      }).unwrap();
+      downloadBlob(blob, datedExportName("jetons-soldes-zwanga"));
+    } catch (error) {
+      setExportError(
+        getApiErrorMessage(error, "Impossible d'exporter les soldes de jetons.")
+      );
+    }
   };
 
   return (
@@ -107,13 +125,23 @@ export default function TokensPage() {
           <button
             type="button"
             className={styles.secondaryButton}
-            onClick={exportLedger}
-            disabled={entries.length === 0}
+            onClick={exportAccounts}
+            disabled={isExporting}
           >
-            <Download size={15} /> Exporter le registre
+            <Download size={15} /> {isExporting ? "Export..." : "Exporter les soldes"}
+          </button>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={exportLedger}
+            disabled={isExporting}
+          >
+            <Download size={15} /> {isExporting ? "Export..." : "Exporter le registre"}
           </button>
         </div>
       </header>
+
+      {exportError ? <div className={styles.error}>{exportError}</div> : null}
 
       <section className={styles.metricStrip} aria-label="Synthèse des jetons">
         <Metric

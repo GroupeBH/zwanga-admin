@@ -22,6 +22,17 @@ export const bookingsApi = baseApi.injectEndpoints({
         url: "/admin/bookings",
         params: { page, limit, ...(status && status !== "all" ? { status } : {}) },
       }),
+      serializeQueryArgs: ({ queryArgs }) => {
+        const args = queryArgs ?? {};
+        return `bookings-${args.page ?? 1}-${args.limit ?? 100}-${args.status ?? "all"}`;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return (
+          currentArg?.status !== previousArg?.status ||
+          currentArg?.page !== previousArg?.page ||
+          currentArg?.limit !== previousArg?.limit
+        );
+      },
       transformResponse: (response: PaginatedBookingsResponse): PaginatedBookingsResponse => {
         return {
           bookings: response.bookings,

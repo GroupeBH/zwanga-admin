@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 
 import type { TripPaymentMode, TripRequest, TripRequestStatus } from "@/lib/features/admin/types";
+import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
 import {
   useDeactivateAdminTripRequestMutation,
   useDeleteAdminTripRequestMutation,
@@ -10,6 +11,9 @@ import {
   useUpdateAdminTripRequestMutation,
   type UpdateTripRequestPayload,
 } from "@/lib/features/tripRequests/tripRequestsApi";
+import { getApiErrorMessage } from "@/lib/utils/apiErrors";
+import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
+import { Download } from "lucide-react";
 
 import shared from "../styles/page.module.css";
 
@@ -74,6 +78,8 @@ export default function TripRequestsPage() {
     useDeactivateAdminTripRequestMutation();
   const [deleteTripRequest, { isLoading: isDeleting }] =
     useDeleteAdminTripRequestMutation();
+  const [exportAdminXls, { isLoading: isExporting }] = useExportAdminXlsMutation();
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -164,6 +170,21 @@ export default function TripRequestsPage() {
     }
   };
 
+  const handleExport = async () => {
+    setExportError(null);
+    try {
+      const blob = await exportAdminXls({
+        url: "/admin/trip-requests/export",
+        params: { status: statusFilter },
+      }).unwrap();
+      downloadBlob(blob, datedExportName("demandes-trajets-zwanga"));
+    } catch (error) {
+      setExportError(
+        getApiErrorMessage(error, "Impossible d'exporter les demandes de trajet.")
+      );
+    }
+  };
+
   return (
     <div className={shared.page}>
       <section className={shared.section}>
@@ -194,8 +215,23 @@ export default function TripRequestsPage() {
               <option value="cancelled">Annulees</option>
               <option value="expired">Expirees</option>
             </select>
+            <button
+              type="button"
+              className={shared.primaryButton}
+              onClick={handleExport}
+              disabled={isExporting}
+            >
+              <Download size={16} style={{ marginRight: 8 }} />
+              {isExporting ? "Export..." : "Exporter XLS"}
+            </button>
           </div>
         </div>
+
+        {exportError ? (
+          <p className={shared.errorText} role="alert">
+            {exportError}
+          </p>
+        ) : null}
 
         {isFetching ? (
           <p>Chargement des demandes...</p>

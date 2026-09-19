@@ -139,7 +139,7 @@ export const Topbar = () => {
       </div>
 
       <div className={styles.right}>
-        <Link href="/rides" className={styles.cta}>
+        <Link href="/trips" className={styles.cta}>
           <Plus size={16} aria-hidden="true" />
           <span>Gérer les trajets</span>
         </Link>

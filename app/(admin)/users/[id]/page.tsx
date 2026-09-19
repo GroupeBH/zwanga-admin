@@ -102,6 +102,15 @@ export default function UserDetailsPage() {
             <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
               {user.email ?? "Email absent"} - {user.phone}
             </p>
+            <p style={{ margin: "6px 0 0", color: "var(--color-text-muted)" }}>
+              {user.isQualifiedDriver
+                ? "Conducteur opérationnel: KYC validé et véhicule actif"
+                : user.role === "driver" || user.isDriver
+                  ? `Pas encore conducteur opérationnel${
+                      user.hasApprovedKyc ? "" : " · KYC non validé"
+                    }${user.hasActiveVehicle ? "" : " · aucun véhicule actif"}`
+                  : "Passager"}
+            </p>
           </div>
           <div className={shared.toolbar}>
             <span className={statusBadge(user.status)}>{user.status}</span>

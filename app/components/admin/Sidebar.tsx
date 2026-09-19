@@ -40,7 +40,7 @@ const navGroups = [
       { label: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
       { label: "Utilisateurs", href: "/users", icon: Users },
       { label: "Validation KYC", href: "/kyc", icon: ShieldCheck, badgeKey: "kyc" },
-      { label: "Trajets", href: "/rides", icon: Route },
+      { label: "Trajets", href: "/trips", icon: Route },
       { label: "Demandes de trajet", href: "/trip-requests", icon: ClipboardList, badgeKey: "tripRequests" },
       { label: "Réservations", href: "/bookings", icon: Calendar, badgeKey: "bookings" },
       { label: "Candidatures agents", href: "/candidatures", icon: UserPlus },

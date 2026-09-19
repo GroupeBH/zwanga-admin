@@ -7,9 +7,13 @@ import { FileText, KeyRound, Shield, ShoppingBag, UserPlus, UsersRound } from "l
 import { getAdminRoleLabel, isSuperAdminRole } from "@/lib/features/auth/adminRoles";
 import { useChangeAdminPasswordMutation } from "@/lib/features/auth/authApi";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
+import type { AdminAccount } from "@/lib/features/admin/types";
 import {
+  useActivateAdminAccountMutation,
   useCreateAdminAccountMutation,
+  useDeactivateAdminAccountMutation,
   useGetAdminAccountsQuery,
+  useResetAdminAccountPasswordMutation,
 } from "@/lib/features/users/usersApi";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 
@@ -55,6 +59,12 @@ export default function SettingsPage() {
     useChangeAdminPasswordMutation();
   const [createAdminAccount, { isLoading: isCreatingAdmin }] =
     useCreateAdminAccountMutation();
+  const [deactivateAdminAccount, { isLoading: isDeactivatingAdmin }] =
+    useDeactivateAdminAccountMutation();
+  const [activateAdminAccount, { isLoading: isActivatingAdmin }] =
+    useActivateAdminAccountMutation();
+  const [resetAdminAccountPassword, { isLoading: isResettingAdminPassword }] =
+    useResetAdminAccountPasswordMutation();
   const [notifications, setNotifications] = useState<NotificationPref>({
     email: false,
     sms: false,
@@ -75,6 +85,11 @@ export default function SettingsPage() {
   });
   const [adminMessage, setAdminMessage] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<AdminAccount | null>(null);
+  const [resetPasswordForm, setResetPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   useEffect(() => {
     // Mock notifications for now - backend doesn't provide this yet
@@ -159,6 +174,76 @@ export default function SettingsPage() {
       });
     } catch (error) {
       setAdminError(getApiErrorMessage(error, "Creation du compte admin impossible."));
+    }
+  };
+
+  const canManageAccount = (account: AdminAccount) =>
+    account.id !== profile?.user.id && account.role === "admin";
+
+  const handleToggleAdminAccount = async (account: AdminAccount) => {
+    setAdminError(null);
+    setAdminMessage(null);
+    const actionLabel = account.isActive ? "désactiver" : "réactiver";
+    if (
+      !window.confirm(
+        `Voulez-vous ${actionLabel} le compte de ${account.firstName} ${account.lastName} ?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      if (account.isActive) {
+        await deactivateAdminAccount(account.id).unwrap();
+        setAdminMessage(
+          `Le compte de ${account.firstName} ${account.lastName} a été désactivé.`
+        );
+      } else {
+        await activateAdminAccount(account.id).unwrap();
+        setAdminMessage(
+          `Le compte de ${account.firstName} ${account.lastName} a été réactivé.`
+        );
+      }
+    } catch (error) {
+      setAdminError(
+        getApiErrorMessage(error, "Mise à jour du compte admin impossible.")
+      );
+    }
+  };
+
+  const handleResetAdminPasswordSubmit = async (
+    event: FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
+    if (!passwordTarget) return;
+    setAdminError(null);
+    setAdminMessage(null);
+
+    const newPassword = resetPasswordForm.newPassword.trim();
+    const confirmPassword = resetPasswordForm.confirmPassword.trim();
+    if (newPassword.length < 8) {
+      setAdminError("Le mot de passe temporaire doit contenir au moins 8 caractères.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setAdminError("La confirmation ne correspond pas au nouveau mot de passe.");
+      return;
+    }
+
+    try {
+      await resetAdminAccountPassword({
+        userId: passwordTarget.id,
+        newPassword,
+      }).unwrap();
+      setAdminMessage(
+        `Mot de passe temporaire défini pour ${passwordTarget.firstName} ${passwordTarget.lastName}. Il devra le changer à la prochaine connexion.`
+      );
+      setPasswordTarget(null);
+      setResetPasswordForm({ newPassword: "", confirmPassword: "" });
+    } catch (error) {
+      setAdminError(
+        getApiErrorMessage(error, "Modification du mot de passe admin impossible.")
+      );
     }
   };
 
@@ -427,10 +512,13 @@ export default function SettingsPage() {
                         <th>Etat</th>
                         <th>Mot de passe</th>
                         <th>Derniere connexion</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {adminAccounts.accounts.map((account) => (
+                      {adminAccounts.accounts.map((account) => {
+                        const manageable = canManageAccount(account);
+                        return (
                         <tr key={account.id}>
                           <td>
                             <strong>
@@ -465,8 +553,43 @@ export default function SettingsPage() {
                             </span>
                           </td>
                           <td>{formatDate(account.lastLoginAt)}</td>
+                          <td>
+                            {manageable ? (
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <button
+                                  type="button"
+                                  className={
+                                    account.isActive
+                                      ? shared.dangerButton
+                                      : shared.primaryButton
+                                  }
+                                  disabled={isDeactivatingAdmin || isActivatingAdmin}
+                                  onClick={() => handleToggleAdminAccount(account)}
+                                >
+                                  {account.isActive ? "Désactiver" : "Réactiver"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className={shared.secondaryButton}
+                                  onClick={() => {
+                                    setAdminError(null);
+                                    setPasswordTarget(account);
+                                    setResetPasswordForm({
+                                      newPassword: "",
+                                      confirmPassword: "",
+                                    });
+                                  }}
+                                >
+                                  Mot de passe
+                                </button>
+                              </div>
+                            ) : (
+                              <small className={shared.mutedText}>—</small>
+                            )}
+                          </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -482,6 +605,77 @@ export default function SettingsPage() {
             </p>
           )}
         </section>
+      ) : null}
+
+      {passwordTarget ? (
+        <div
+          className={shared.modalBackdrop}
+          role="presentation"
+          onClick={() => setPasswordTarget(null)}
+        >
+          <form
+            className={`${shared.card} ${shared.modalCard} ${shared.form}`}
+            onSubmit={handleResetAdminPasswordSubmit}
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reset-admin-password-title"
+          >
+            <h3 id="reset-admin-password-title">Nouveau mot de passe temporaire</h3>
+            <p className={shared.mutedText}>
+              {passwordTarget.firstName} {passwordTarget.lastName} · {passwordTarget.phone}
+            </p>
+            <label>
+              Nouveau mot de passe
+              <input
+                type="password"
+                value={resetPasswordForm.newPassword}
+                onChange={(event) =>
+                  setResetPasswordForm((prev) => ({
+                    ...prev,
+                    newPassword: event.target.value,
+                  }))
+                }
+                minLength={8}
+                maxLength={128}
+                required
+              />
+            </label>
+            <label>
+              Confirmer le mot de passe
+              <input
+                type="password"
+                value={resetPasswordForm.confirmPassword}
+                onChange={(event) =>
+                  setResetPasswordForm((prev) => ({
+                    ...prev,
+                    confirmPassword: event.target.value,
+                  }))
+                }
+                minLength={8}
+                maxLength={128}
+                required
+              />
+            </label>
+            {adminError ? <p className={shared.errorText}>{adminError}</p> : null}
+            <div className={shared.modalActions}>
+              <button
+                type="button"
+                className={shared.secondaryButton}
+                onClick={() => setPasswordTarget(null)}
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className={shared.primaryButton}
+                disabled={isResettingAdminPassword}
+              >
+                {isResettingAdminPassword ? "Enregistrement..." : "Enregistrer"}
+              </button>
+            </div>
+          </form>
+        </div>
       ) : null}
 
       <section className={shared.section}>

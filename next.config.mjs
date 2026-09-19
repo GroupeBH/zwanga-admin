@@ -7,6 +7,15 @@ const __dirname = path.dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      {
+        source: '/rides',
+        destination: '/trips',
+        permanent: false,
+      },
+    ];
+  },
   turbopack: {
     root: __dirname,
   },

@@ -1,10 +1,26 @@
 import { baseApi } from "../api/baseApi";
-import type { KycDocument } from "../admin/types";
+import type { KycDocument, KycStatus } from "../admin/types";
 
 interface VerifyKycPayload {
   kycId: string;
   approved: boolean;
   reason?: string;
+}
+
+export type KycStatusFilter = KycStatus | "all";
+
+export interface KycQueryParams {
+  page?: number;
+  limit?: number;
+  status?: KycStatusFilter;
+  search?: string;
+}
+
+export interface PaginatedKycResponse {
+  documents: KycDocument[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export const kycApi = baseApi.injectEndpoints({
@@ -21,6 +37,40 @@ export const kycApi = baseApi.injectEndpoints({
             ]
           : [{ type: "KYC" as const, id: "LIST" }],
     }),
+    getKycDocuments: builder.query<PaginatedKycResponse, KycQueryParams | void>({
+      query: ({ page = 1, limit = 20, status, search } = {}) => ({
+        url: "/admin/kyc",
+        params: {
+          page,
+          limit,
+          ...(status && status !== "all" ? { status } : {}),
+          ...(search ? { search } : {}),
+        },
+      }),
+      serializeQueryArgs: ({ queryArgs }) => {
+        const args = queryArgs ?? {};
+        return `kyc-${args.page ?? 1}-${args.limit ?? 20}-${args.status ?? "all"}-${args.search ?? ""}`;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return (
+          currentArg?.status !== previousArg?.status ||
+          currentArg?.page !== previousArg?.page ||
+          currentArg?.search !== previousArg?.search ||
+          currentArg?.limit !== previousArg?.limit
+        );
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.documents.map(({ id }) => ({ type: "KYC" as const, id })),
+              { type: "KYC" as const, id: "LIST" },
+            ]
+          : [{ type: "KYC" as const, id: "LIST" }],
+    }),
+    getKycDocument: builder.query<KycDocument, string>({
+      query: (kycId) => `/admin/kyc/${kycId}`,
+      providesTags: (_result, _error, id) => [{ type: "KYC", id }],
+    }),
     verifyKyc: builder.mutation<KycDocument, VerifyKycPayload>({
       query: ({ kycId, approved, reason }) => ({
         url: `/admin/kyc/${kycId}/verify`,
@@ -36,5 +86,9 @@ export const kycApi = baseApi.injectEndpoints({
   overrideExisting: false,
 });
 
-export const { useGetPendingKycsQuery, useVerifyKycMutation } = kycApi;
-
+export const {
+  useGetPendingKycsQuery,
+  useGetKycDocumentsQuery,
+  useGetKycDocumentQuery,
+  useVerifyKycMutation,
+} = kycApi;

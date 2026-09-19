@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 import { useLoginWithPhoneMutation } from "@/lib/features/auth/authApi";
 import { setAuthenticated } from "@/lib/features/auth/authSlice";
@@ -21,6 +22,7 @@ export default function LoginPage() {
   const dispatch = useAppDispatch();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [login, { isLoading }] = useLoginWithPhoneMutation();
 
@@ -80,15 +82,27 @@ export default function LoginPage() {
             required
           />
 
-          <input
-            type="password"
-            placeholder="Mot de passe administrateur"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            minLength={4}
-            maxLength={128}
-            required
-          />
+          <div className={styles.passwordField}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Mot de passe administrateur"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              minLength={4}
+              maxLength={128}
+              autoComplete="current-password"
+              required
+            />
+            <button
+              type="button"
+              className={styles.passwordToggle}
+              onClick={() => setShowPassword((visible) => !visible)}
+              aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+            </button>
+          </div>
 
           {error ? <p className={styles.error}>{error}</p> : null}
           <button type="submit" disabled={isLoading}>

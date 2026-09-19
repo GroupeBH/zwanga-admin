@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { Download } from "lucide-react";
 
 import {
   buildTripLifecycleBuckets,
@@ -8,6 +9,7 @@ import {
   getTripLifecycleStatus,
 } from "@/lib/features/admin/insights";
 import type { Trip, TripLifecycleStatus, TripStatus } from "@/lib/features/admin/types";
+import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
 import {
   useDeactivateAdminTripMutation,
   useDeleteAdminTripMutation,
@@ -16,6 +18,7 @@ import {
   type UpdateTripPayload,
 } from "@/lib/features/trips/tripsApi";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/utils/apiErrors";
+import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
 
 import shared from "../styles/page.module.css";
 
@@ -35,6 +38,8 @@ export default function RidesPage() {
   const [updateTrip, { isLoading: isUpdating }] = useUpdateAdminTripMutation();
   const [deactivateTrip, { isLoading: isDeactivating }] = useDeactivateAdminTripMutation();
   const [deleteTrip, { isLoading: isDeleting }] = useDeleteAdminTripMutation();
+  const [exportAdminXls, { isLoading: isExporting }] = useExportAdminXlsMutation();
+  const [exportError, setExportError] = useState<string | null>(null);
   const errorStatus = getApiErrorStatus(error);
   const errorMessage = error
     ? getApiErrorMessage(
@@ -152,6 +157,16 @@ export default function RidesPage() {
     }
   };
 
+  const handleExport = async () => {
+    setExportError(null);
+    try {
+      const blob = await exportAdminXls({ url: "/admin/trips/export" }).unwrap();
+      downloadBlob(blob, datedExportName("trajets-zwanga"));
+    } catch (error) {
+      setExportError(getApiErrorMessage(error, "Impossible d'exporter les trajets."));
+    }
+  };
+
   return (
     <div className={shared.page}>
       <section className={shared.section}>
@@ -179,8 +194,23 @@ export default function RidesPage() {
               <option value="expired">Expires</option>
               <option value="cancelled">Annules</option>
             </select>
+            <button
+              type="button"
+              className={shared.primaryButton}
+              onClick={handleExport}
+              disabled={isExporting}
+            >
+              <Download size={16} style={{ marginRight: 8 }} />
+              {isExporting ? "Export..." : "Exporter XLS"}
+            </button>
           </div>
         </div>
+
+        {exportError ? (
+          <p className={shared.errorText} role="alert">
+            {exportError}
+          </p>
+        ) : null}
 
         {!error ? (
           <div className={shared.grid}>

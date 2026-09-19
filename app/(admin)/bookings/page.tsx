@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Download } from "lucide-react";
 
 import {
   useAcceptBookingMutation,
@@ -8,7 +9,10 @@ import {
   useGetAllBookingsQuery,
   useRejectBookingMutation,
 } from "@/lib/features/bookings/bookingsApi";
+import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
 import type { BookingStatus } from "@/lib/features/admin/types";
+import { getApiErrorMessage } from "@/lib/utils/apiErrors";
+import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
 
 import shared from "../styles/page.module.css";
 
@@ -58,6 +62,8 @@ export default function BookingsPage() {
   const [acceptBooking, { isLoading: isAccepting }] = useAcceptBookingMutation();
   const [rejectBooking, { isLoading: isRejecting }] = useRejectBookingMutation();
   const [cancelBooking, { isLoading: isCancelling }] = useCancelBookingMutation();
+  const [exportAdminXls, { isLoading: isExporting }] = useExportAdminXlsMutation();
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const searchTerm = search.trim().toLowerCase();
@@ -115,6 +121,21 @@ export default function BookingsPage() {
     }
   };
 
+  const handleExport = async () => {
+    setExportError(null);
+    try {
+      const blob = await exportAdminXls({
+        url: "/admin/bookings/export",
+        params: { status: statusFilter },
+      }).unwrap();
+      downloadBlob(blob, datedExportName("reservations-zwanga"));
+    } catch (error) {
+      setExportError(
+        getApiErrorMessage(error, "Impossible d'exporter les reservations.")
+      );
+    }
+  };
+
   const formatDate = (dateString: string) =>
     new Intl.DateTimeFormat("fr-CD", {
       day: "2-digit",
@@ -142,7 +163,10 @@ export default function BookingsPage() {
             />
             <select
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
+              onChange={(event) => {
+                setStatusFilter(event.target.value);
+                setPage(1);
+              }}
             >
               <option value="all">Tous les statuts</option>
               <option value="pending">En attente</option>
@@ -152,8 +176,23 @@ export default function BookingsPage() {
               <option value="completed">Terminees</option>
               <option value="expired">Expirees</option>
             </select>
+            <button
+              type="button"
+              className={shared.primaryButton}
+              onClick={handleExport}
+              disabled={isExporting}
+            >
+              <Download size={16} style={{ marginRight: 8 }} />
+              {isExporting ? "Export..." : "Exporter XLS"}
+            </button>
           </div>
         </div>
+
+        {exportError ? (
+          <p className={shared.errorText} role="alert">
+            {exportError}
+          </p>
+        ) : null}
 
         {isFetching ? (
           <p>Chargement des reservations...</p>

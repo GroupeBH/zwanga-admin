@@ -423,9 +423,11 @@ export default function DashboardPage() {
               data.kycQueueShortlist.map((request) => (
                 <div key={request.id} className={styles.kycItem}>
                   <strong>
-                    {request.user.firstName} {request.user.lastName}
+                    {request.user
+                      ? `${request.user.firstName} ${request.user.lastName}`
+                      : "Utilisateur inconnu"}
                   </strong>
-                  <span>{request.user.email ?? request.user.phone}</span>
+                  <span>{request.user?.email ?? request.user?.phone ?? "—"}</span>
                   <div className={styles.inlineMeta}>
                     <span className={`${styles.pill} ${kycStatusClass(request.status)}`}>
                       {request.status}

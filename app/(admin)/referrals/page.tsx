@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Download, RefreshCw, Search } from "lucide-react";
 
 import { isSuperAdminRole } from "@/lib/features/auth/adminRoles";
+import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
 import {
   useGetAdminReferralAccountsQuery,
   useGetAdminReferralRewardsQuery,
@@ -12,13 +13,14 @@ import {
 } from "@/lib/features/finance/financeApi";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import {
-  exportCsv,
   financeLabel,
   formatDateTime,
   formatMoney,
   formatTokens,
   formatUser,
 } from "@/lib/features/finance/format";
+import { getApiErrorMessage } from "@/lib/utils/apiErrors";
+import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
 import type {
   ReferralAccount,
   ReferralReward,
@@ -64,6 +66,8 @@ export default function ReferralsPage() {
   const rewardsQuery = useGetAdminReferralRewardsQuery({ page: view === "rewards" ? page : 1, limit: 25, search, status: rewardStatus });
   const withdrawalsQuery = useGetAdminReferralWithdrawalsQuery({ page: view === "withdrawals" ? page : 1, limit: 25, search, status: withdrawalStatus });
   const [reconcileWithdrawal, reconcileState] = useReconcileReferralWithdrawalMutation();
+  const [exportAdminXls, { isLoading: isExporting }] = useExportAdminXlsMutation();
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const summary = accountsQuery.data?.summary;
   const accounts = accountsQuery.data?.accounts ?? [];
@@ -96,59 +100,33 @@ export default function ReferralsPage() {
     }
   };
 
-  const handleExport = () => {
-    const day = new Date().toISOString().slice(0, 10);
-    if (view === "accounts") {
-      exportCsv(
-        `zwanga-parrainage-comptes-${day}.csv`,
-        ["Utilisateur", "Code", "Filleuls", "En retenue", "Disponible", "Réservé", "Retiré", "Devise"],
-        accounts.map((account) => [
-          formatUser(account.user),
-          account.profile?.code,
-          account.directReferralsCount,
-          account.pendingTokens,
-          account.availableTokens,
-          account.reservedTokens,
-          account.withdrawnTokens,
-          account.currency,
-        ])
-      );
-      return;
+  const handleExport = async () => {
+    setExportError(null);
+    try {
+      if (view === "accounts") {
+        const blob = await exportAdminXls({
+          url: "/admin/referrals/accounts/export",
+          params: { search },
+        }).unwrap();
+        downloadBlob(blob, datedExportName("parrainage-comptes-zwanga"));
+        return;
+      }
+      if (view === "rewards") {
+        const blob = await exportAdminXls({
+          url: "/admin/referrals/rewards/export",
+          params: { search, status: rewardStatus },
+        }).unwrap();
+        downloadBlob(blob, datedExportName("parrainage-commissions-zwanga"));
+        return;
+      }
+      const blob = await exportAdminXls({
+        url: "/admin/referrals/withdrawals/export",
+        params: { search, status: withdrawalStatus },
+      }).unwrap();
+      downloadBlob(blob, datedExportName("parrainage-retraits-zwanga"));
+    } catch (error) {
+      setExportError(getApiErrorMessage(error, "Impossible d'exporter le parrainage."));
     }
-    if (view === "rewards") {
-      exportCsv(
-        `zwanga-parrainage-commissions-${day}.csv`,
-        ["Date", "Parrain", "Filleul", "Source", "Brut", "Devise", "Taux", "Jetons", "Statut", "Libération"],
-        rewards.map((reward) => [
-          reward.createdAt,
-          formatUser(reward.referrerUser),
-          formatUser(reward.referredUser),
-          reward.sourceType,
-          reward.grossAmount,
-          reward.sourceCurrency,
-          reward.rate,
-          reward.rewardTokens,
-          reward.status,
-          reward.holdUntil,
-        ])
-      );
-      return;
-    }
-    exportCsv(
-      `zwanga-parrainage-retraits-${day}.csv`,
-      ["Date", "Utilisateur", "Jetons", "Montant", "Devise", "Téléphone", "Statut", "Transaction", "Motif échec"],
-      withdrawals.map((withdrawal) => [
-        withdrawal.requestedAt,
-        formatUser(withdrawal.user),
-        withdrawal.tokens,
-        withdrawal.amount,
-        withdrawal.currency,
-        withdrawal.phone,
-        withdrawal.status,
-        withdrawal.paymentTransactionId,
-        withdrawal.failureReason,
-      ])
-    );
   };
 
   return (
@@ -163,11 +141,13 @@ export default function ReferralsPage() {
           <button type="button" className={styles.secondaryButton} onClick={() => activeQuery.refetch()} disabled={activeQuery.isFetching}>
             <RefreshCw size={15} /> Actualiser
           </button>
-          <button type="button" className={styles.button} onClick={handleExport} disabled={activeTotal === 0}>
-            <Download size={15} /> Exporter la vue
+          <button type="button" className={styles.button} onClick={handleExport} disabled={isExporting}>
+            <Download size={15} /> {isExporting ? "Export..." : "Exporter XLS"}
           </button>
         </div>
       </header>
+
+      {exportError ? <div className={styles.error}>{exportError}</div> : null}
 
       <section className={styles.metricStrip} aria-label="Synthèse du parrainage">
         <Metric label="Comptes parrains" value={summary?.accounts ?? accountsQuery.data?.total ?? 0} helper={`${summary?.referredUsers ?? 0} filleul(s) attribué(s)`} />

@@ -9,6 +9,45 @@ import RecrutementAgent from "@/models/RecrutementAgent";
 const LIST_DEFAULT_LIMIT = 20;
 const LIST_MAX_LIMIT = 100;
 
+const escapeXml = (value: string): string =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+
+const cellXml = (value: string): string =>
+  `<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`;
+
+const rowXml = (values: readonly string[]): string =>
+  `<Row>${values.map(cellXml).join("")}</Row>`;
+
+const toXls = (
+  sheetName: string,
+  headers: string[],
+  rows: Array<Record<string, unknown>>,
+) => {
+  const dataRows = rows.map((row) =>
+    rowXml(headers.map((header) => String(row[header] ?? ""))),
+  );
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Worksheet ss:Name="${escapeXml(sheetName.slice(0, 31))}">
+    <Table>
+      ${rowXml(headers)}
+      ${dataRows.join("\n      ")}
+    </Table>
+  </Worksheet>
+</Workbook>
+`;
+  return `\uFEFF${xml}`;
+};
+
 const escapeCsvValue = (value: unknown) => {
   const stringValue = value === undefined || value === null ? "" : String(value);
   if (/[",\n]/.test(stringValue)) {
@@ -151,7 +190,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const format = searchParams.get("format") === "csv" ? "csv" : "json";
+    const formatParam = searchParams.get("format");
+    const format =
+      formatParam === "xls" || formatParam === "csv" ? formatParam : "json";
     const search = searchParams.get("search")?.trim();
     const zone = searchParams.get("zone")?.trim();
     const sexe = searchParams.get("sexe")?.trim();
@@ -182,7 +223,7 @@ export async function GET(request: NextRequest) {
 
     await connectToDatabase();
 
-    if (format === "csv") {
+    if (format === "csv" || format === "xls") {
       const entries = await RecrutementAgent.find(filter).sort({ createdAt: -1 }).lean();
       const rows = entries.map((entry: any) => ({
         "Nom complet": entry.contact?.nomComplet ?? "",
@@ -198,6 +239,21 @@ export async function GET(request: NextRequest) {
         "Zones de déploiement": (entry.zonesDeploiement ?? []).join("; "),
         "Reçue le": entry.createdAt ? new Date(entry.createdAt).toISOString() : "",
       }));
+
+      if (format === "xls") {
+        const xls = toXls("Candidatures", Object.keys(rows[0] ?? {
+          "Nom complet": "",
+        }), rows);
+        return new NextResponse(xls, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/vnd.ms-excel; charset=utf-8",
+            "Content-Disposition": `attachment; filename="candidatures-agents-${new Date().toISOString().slice(0, 10)}.xls"`,
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+
       const csv = `\uFEFF${toCsv(rows)}`;
 
       return new NextResponse(csv, {
