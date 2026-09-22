@@ -79,7 +79,12 @@ export const Sidebar = ({ isCompactViewport }: SidebarProps) => {
   const dispatch = useAppDispatch();
   const pathname = usePathname();
   const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
-  const { data: reports } = useGetReportsQuery();
+  /* Le badge annonce les signalements a traiter: le filtre serveur evite de
+     rapatrier tout l'historique pour n'en compter qu'une partie. */
+  const { data: pendingReports } = useGetReportsQuery({
+    status: "pending",
+    limit: 1,
+  });
   const { data: kyc } = useGetPendingKycsQuery();
   const { data: fundingRequests } = useGetDocumentFundingRequestsQuery();
   const { data: tripsData } = useGetAllTripsQuery({ page: 1, limit: 100 });
@@ -90,34 +95,55 @@ export const Sidebar = ({ isCompactViewport }: SidebarProps) => {
   });
 
   const pendingBookingsCount = useMemo(() => {
-    const trips = tripsData ?? [];
-    return trips.reduce((count: any, trip: any) => {
-      const pendingInTrip = trip.bookings?.filter((b: any) => b.status === "pending")?.length ?? 0;
+    const trips = Array.isArray(tripsData) ? tripsData : [];
+    return trips.reduce((count, trip) => {
+      const pendingInTrip =
+        trip.bookings?.filter((booking) => booking.status === "pending")
+          ?.length ?? 0;
       return count + pendingInTrip;
     }, 0);
   }, [tripsData]);
 
   const getBadge = (key?: string) => {
     if (key === "reports") {
-      return reports?.length ?? 0;
+      return pendingReports?.total ?? 0;
     }
     if (key === "kyc") {
-      return kyc?.filter((item) => item.status === "pending").length ?? 0;
+      return (
+        (Array.isArray(kyc) ? kyc : []).filter(
+          (item) => item.status === "pending"
+        ).length ?? 0
+      );
     }
     if (key === "bookings") {
       return pendingBookingsCount;
     }
     if (key === "tripRequests") {
-      return (
-        tripRequestsData?.tripRequests.filter(
-          (item) => item.status === "pending" || item.status === "offers_received"
-        ).length ?? 0
-      );
+      const tripRequests = Array.isArray(tripRequestsData?.tripRequests)
+        ? tripRequestsData.tripRequests
+        : [];
+      return tripRequests.filter(
+        (item) => item.status === "pending" || item.status === "offers_received"
+      ).length;
     }
     if (key === "subscriptions") {
-      return fundingRequests?.filter((item) => item.status === "pending").length ?? 0;
+      return (Array.isArray(fundingRequests) ? fundingRequests : []).filter(
+        (item) => item.status === "pending"
+      ).length;
     }
     return undefined;
+  };
+
+  // Un simple nombre a cote d'un onglet n'indique pas ce qu'il compte.
+  const describeBadge = (key: string | undefined, value: number) => {
+    if (key === "reports") return `${value} signalement(s) à traiter`;
+    if (key === "kyc") return `${value} dossier(s) KYC en attente`;
+    if (key === "bookings") return `${value} réservation(s) en attente`;
+    if (key === "tripRequests") return `${value} demande(s) de trajet à suivre`;
+    if (key === "subscriptions") {
+      return `${value} demande(s) de financement en attente`;
+    }
+    return `${value} élément(s) à traiter`;
   };
 
   const closeCompactNavigation = () => {
@@ -174,7 +200,13 @@ export const Sidebar = ({ isCompactViewport }: SidebarProps) => {
                     <Icon aria-hidden="true" />
                     <span>{item.label}</span>
                     {typeof badgeValue === "number" && badgeValue > 0 ? (
-                      <span className={styles.pill}>{badgeValue}</span>
+                      <span
+                        className={styles.pill}
+                        title={describeBadge(item.badgeKey, badgeValue)}
+                        aria-label={describeBadge(item.badgeKey, badgeValue)}
+                      >
+                        {badgeValue}
+                      </span>
                     ) : null}
                   </Link>
                 );
@@ -184,13 +216,17 @@ export const Sidebar = ({ isCompactViewport }: SidebarProps) => {
         ))}
       </nav>
 
+      {/* Ce bloc annoncait une carte temps reel inexistante: il rappelle
+          maintenant ou trouver de l'aide sur chaque ecran. */}
       <div className={styles.statusPanel}>
-        <span>Performance live</span>
+        <span>Besoin d’aide ?</span>
         <strong>
-          Carte Kinshasa
-          <br /> temps réel
+          Une explication
+          <br /> sur chaque page
         </strong>
-        <small>Disponible depuis le tableau de bord</small>
+        <small>
+          Les chiffres à côté des onglets indiquent ce qui reste à traiter.
+        </small>
       </div>
     </aside>
   );

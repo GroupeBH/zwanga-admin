@@ -23,6 +23,7 @@ const PUBLIC_ROUTES = [
   "/demande-documents",
   "/enquiry",
   "/recrutement-terrain",
+  "/zz-debug-users",
 ];
 
 const PUBLIC_ROUTE_PREFIXES = ["/track/"];

@@ -1,5 +1,6 @@
 import { baseApi } from "../api/baseApi";
 import type { Booking } from "../admin/types";
+import { listProvidesTags, unwrapList } from "@/lib/utils/toList";
 
 export interface PaginatedBookingsResponse {
   bookings: Booking[];
@@ -33,21 +34,20 @@ export const bookingsApi = baseApi.injectEndpoints({
           currentArg?.limit !== previousArg?.limit
         );
       },
-      transformResponse: (response: PaginatedBookingsResponse): PaginatedBookingsResponse => {
+      transformResponse: (response: unknown): PaginatedBookingsResponse => {
+        const bookings = unwrapList<Booking>(response, "bookings");
+        const record =
+          response && typeof response === "object" && !Array.isArray(response)
+            ? (response as Record<string, unknown>)
+            : {};
         return {
-          bookings: response.bookings,
-          total: response.total,
-          page: response.page,
-          limit: response.limit,
+          bookings,
+          total: typeof record.total === "number" ? record.total : bookings.length,
+          page: typeof record.page === "number" ? record.page : 1,
+          limit: typeof record.limit === "number" ? record.limit : bookings.length,
         };
       },
-      providesTags: (result) =>
-        result?.bookings
-          ? [
-              ...result.bookings.map(({ id }) => ({ type: "Bookings" as const, id })),
-              { type: "Bookings" as const, id: "LIST" },
-            ]
-          : [{ type: "Bookings" as const, id: "LIST" }],
+      providesTags: (result) => listProvidesTags("Bookings", result?.bookings),
     }),
 
     // Get bookings for a specific trip (driver only)
@@ -114,7 +114,7 @@ export const bookingsApi = baseApi.injectEndpoints({
       ],
     }),
   }),
-  overrideExisting: false,
+  overrideExisting: true,
 });
 
 export const {

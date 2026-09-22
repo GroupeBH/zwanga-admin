@@ -2,6 +2,7 @@ import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
 import type { AdminUserDetailsResponse } from "../admin/types";
 import { baseApi } from "../api/baseApi";
+import { listProvidesTags } from "@/lib/utils/toList";
 import type {
   AdjustWalletPayload,
   AdminFinanceUser,
@@ -178,13 +179,7 @@ export const financeApi = baseApi.injectEndpoints({
           },
         };
       },
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.payments.map(({ id }) => ({ type: "Payments" as const, id })),
-              { type: "Payments" as const, id: "LIST" },
-            ]
-          : [{ type: "Payments" as const, id: "LIST" }],
+      providesTags: (result) => listProvidesTags("Payments", result?.payments),
     }),
 
     reconcileAdminPayment: builder.mutation<ReconcileResult, string>({
@@ -311,7 +306,7 @@ export const financeApi = baseApi.injectEndpoints({
       invalidatesTags: ["Referrals", "Payments"],
     }),
   }),
-  overrideExisting: false,
+  overrideExisting: true,
 });
 
 export const {

@@ -1,5 +1,6 @@
 import { baseApi } from "../api/baseApi";
 import type { KycDocument, KycStatus } from "../admin/types";
+import { listProvidesTags, unwrapList } from "@/lib/utils/toList";
 
 interface VerifyKycPayload {
   kycId: string;
@@ -29,13 +30,9 @@ export const kycApi = baseApi.injectEndpoints({
       query: () => ({
         url: "/admin/kyc/pending",
       }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.map(({ id }) => ({ type: "KYC" as const, id })),
-              { type: "KYC" as const, id: "LIST" },
-            ]
-          : [{ type: "KYC" as const, id: "LIST" }],
+      transformResponse: (response: unknown) =>
+        unwrapList<KycDocument>(response, "documents"),
+      providesTags: (result) => listProvidesTags("KYC", result),
     }),
     getKycDocuments: builder.query<PaginatedKycResponse, KycQueryParams | void>({
       query: ({ page = 1, limit = 20, status, search } = {}) => ({
@@ -59,13 +56,20 @@ export const kycApi = baseApi.injectEndpoints({
           currentArg?.limit !== previousArg?.limit
         );
       },
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.documents.map(({ id }) => ({ type: "KYC" as const, id })),
-              { type: "KYC" as const, id: "LIST" },
-            ]
-          : [{ type: "KYC" as const, id: "LIST" }],
+      transformResponse: (response: unknown): PaginatedKycResponse => {
+        const documents = unwrapList<KycDocument>(response, "documents");
+        const record =
+          response && typeof response === "object" && !Array.isArray(response)
+            ? (response as Record<string, unknown>)
+            : {};
+        return {
+          documents,
+          total: typeof record.total === "number" ? record.total : documents.length,
+          page: typeof record.page === "number" ? record.page : 1,
+          limit: typeof record.limit === "number" ? record.limit : documents.length,
+        };
+      },
+      providesTags: (result) => listProvidesTags("KYC", result?.documents),
     }),
     getKycDocument: builder.query<KycDocument, string>({
       query: (kycId) => `/admin/kyc/${kycId}`,
@@ -83,7 +87,7 @@ export const kycApi = baseApi.injectEndpoints({
       ],
     }),
   }),
-  overrideExisting: false,
+  overrideExisting: true,
 });
 
 export const {

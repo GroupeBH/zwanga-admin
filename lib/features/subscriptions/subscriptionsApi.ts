@@ -4,6 +4,7 @@ import type {
   DocumentFundingRequestStatus,
   SubscriptionOffering,
 } from "../admin/types";
+import { listProvidesTags, unwrapList } from "@/lib/utils/toList";
 
 export interface DocumentFundingRequestsQueryParams {
   status?: DocumentFundingRequestStatus | "all";
@@ -13,6 +14,8 @@ export const subscriptionsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getSubscriptionPlans: builder.query<SubscriptionOffering[], void>({
       query: () => "/subscriptions/plans",
+      transformResponse: (response: unknown) =>
+        unwrapList<SubscriptionOffering>(response, "plans"),
       providesTags: ["Subscriptions"],
     }),
 
@@ -24,16 +27,13 @@ export const subscriptionsApi = baseApi.injectEndpoints({
         url: "/subscriptions/document-funding-requests",
         params: status && status !== "all" ? { status } : undefined,
       }),
+      transformResponse: (response: unknown) =>
+        unwrapList<DocumentFundingRequest>(response, "requests"),
       providesTags: (result) =>
-        result
-          ? [
-              ...result.map(({ id }) => ({ type: "Subscriptions" as const, id })),
-              { type: "Subscriptions" as const, id: "DOCUMENT_FUNDING_LIST" },
-            ]
-          : [{ type: "Subscriptions" as const, id: "DOCUMENT_FUNDING_LIST" }],
+        listProvidesTags("Subscriptions", result, "DOCUMENT_FUNDING_LIST"),
     }),
   }),
-  overrideExisting: false,
+  overrideExisting: true,
 });
 
 export const {

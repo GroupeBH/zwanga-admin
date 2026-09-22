@@ -1,3 +1,39 @@
+/* Le panneau d'une liste deroulante native est peint par le systeme, qui
+   ignore selon les plateformes le fond pose sur les options. Un texte clair se
+   retrouvait alors ecrit sur un panneau clair, donc illisible. Le panneau est
+   force en clair et les options en texte sombre: la combinaison reste lisible
+   que le systeme respecte ou non le fond demande. */
+.shell select {
+  color-scheme: light;
+  appearance: none;
+  background-color: var(--color-field);
+  color: var(--color-text);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e9f0ff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+  padding-right: 36px;
+}
+
+:root[data-theme="light"] .shell select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b1b2b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.shell option,
+.shell optgroup {
+  background-color: #ffffff;
+  color: #0b1b2b;
+}
+
+/* Un champ grise sans contraste suffisant passe pour un champ vide: l'opacite
+   reste assez haute pour que la valeur affichee reste lisible. */
+.shell select:disabled,
+.shell input:disabled,
+.shell textarea:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .shell {
   min-height: 100vh;
   display: flex;

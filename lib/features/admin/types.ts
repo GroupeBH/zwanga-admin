@@ -457,62 +457,6 @@ export interface Vehicle {
   updatedAt: string;
 }
 
-// Legacy dashboard/reporting types kept for compatibility with mock-backed pages.
-export interface SubscriptionHealth {
-  plan: string;
-  users: number;
-  arpu: number;
-  trend: number;
-}
-
-export interface ZoneStat {
-  id: string;
-  name: string;
-  rides: number;
-  occupancy: number;
-  status: "stable" | "watch" | "critical";
-}
-
-export interface SubscriptionPlan {
-  id: string;
-  name: string;
-  tier: "Essai" | "Pro" | "Entreprise";
-  price: number;
-  riders: number;
-  renewalRate: number;
-  paymentProviders: string[];
-  lastInvoice: string;
-}
-
-export interface IncidentReport {
-  id: string;
-  type: string;
-  reporter: string;
-  description: string;
-  status: string;
-  priority: string;
-  createdAt: string;
-}
-
-export interface SupportTicket {
-  id: string;
-  channel: string;
-  requester: string;
-  topic: string;
-  status: string;
-  sla: string;
-  lastUpdate: string;
-}
-
-export interface NotificationItem {
-  id: string;
-  title: string;
-  category: "KYC" | "Signalement" | "Utilisateur" | "Support";
-  description: string;
-  createdAt: string;
-  read: boolean;
-}
-
 // Paginated response from Nest
 export interface PaginatedUsersResponse {
   users: User[];

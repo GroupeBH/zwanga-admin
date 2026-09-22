@@ -22,6 +22,49 @@
   color: var(--color-text-muted);
 }
 
+/* Un simple paragraphe brut ne signalait ni le chargement ni la panne:
+   ces etats sont desormais lisibles et proposent une issue. */
+.stateCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  border-radius: 24px;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 22px;
+}
+
+.stateCard h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.stateCard p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.stateError {
+  border-color: rgba(255, 75, 85, 0.24);
+  background: rgba(255, 75, 85, 0.07);
+}
+
+.stateButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-panel-muted);
+  color: var(--color-text);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
 .metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));

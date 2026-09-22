@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, RotateCcw, Trash2, X } from "lucide-react";
+import { Download, Info, RotateCcw, Trash2, X } from "lucide-react";
 
 import {
   APPAREIL_OPTIONS,
@@ -182,7 +182,7 @@ export default function CandidaturesPage() {
         <div className={shared.sectionHeader}>
           <div>
             <h2>Candidatures agents commerciaux</h2>
-            <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
+            <p className={shared.filterSummary}>
               {isLoading ? "Chargement..." : `${total} candidature${total === 1 ? "" : "s"} reçue${total === 1 ? "" : "s"}`}
             </p>
           </div>
@@ -195,58 +195,100 @@ export default function CandidaturesPage() {
         </div>
 
         <div className={shared.toolbar}>
-          <input
-            placeholder="Rechercher (nom, téléphone)"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          <select value={zone} onChange={(event) => setZone(event.target.value)}>
-            <option value="">Zone : Toutes</option>
-            {ZONES_DEPLOIEMENT.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <select value={sexe} onChange={(event) => setSexe(event.target.value)}>
-            <option value="">Sexe : Tous</option>
-            {SEXE_OPTIONS.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <select value={appareil} onChange={(event) => setAppareil(event.target.value)}>
-            <option value="">Téléphone : Tous</option>
-            {APPAREIL_OPTIONS.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <select value={dejaTelecharge} onChange={(event) => setDejaTelecharge(event.target.value)}>
-            <option value="">Déjà téléchargé : Tous</option>
-            {DEJA_TELECHARGE_OPTIONS.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <select value={profilUtilisateur} onChange={(event) => setProfilUtilisateur(event.target.value)}>
-            <option value="">Profil : Tous</option>
-            {PROFIL_UTILISATEUR_OPTIONS.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className={shared.filterField}>
+            <label className={shared.filterLabel} htmlFor="candidatures-search">
+              Rechercher
+            </label>
+            <input
+              id="candidatures-search"
+              className={shared.filterSearch}
+              placeholder="Nom ou téléphone"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+          <div className={shared.filterField}>
+            <label className={shared.filterLabel} htmlFor="candidatures-zone">
+              Zone
+            </label>
+            <select id="candidatures-zone" value={zone} onChange={(event) => setZone(event.target.value)}>
+              <option value="">Toutes les zones</option>
+              {ZONES_DEPLOIEMENT.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={shared.filterField}>
+            <label className={shared.filterLabel} htmlFor="candidatures-sexe">
+              Sexe
+            </label>
+            <select id="candidatures-sexe" value={sexe} onChange={(event) => setSexe(event.target.value)}>
+              <option value="">Tous</option>
+              {SEXE_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={shared.filterField}>
+            <label className={shared.filterLabel} htmlFor="candidatures-appareil">
+              Téléphone
+            </label>
+            <select id="candidatures-appareil" value={appareil} onChange={(event) => setAppareil(event.target.value)}>
+              <option value="">Tous</option>
+              {APPAREIL_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={shared.filterField}>
+            <label className={shared.filterLabel} htmlFor="candidatures-telecharge">
+              Déjà téléchargé
+            </label>
+            <select id="candidatures-telecharge" value={dejaTelecharge} onChange={(event) => setDejaTelecharge(event.target.value)}>
+              <option value="">Tous</option>
+              {DEJA_TELECHARGE_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={shared.filterField}>
+            <label className={shared.filterLabel} htmlFor="candidatures-profil">
+              Profil
+            </label>
+            <select id="candidatures-profil" value={profilUtilisateur} onChange={(event) => setProfilUtilisateur(event.target.value)}>
+              <option value="">Tous</option>
+              {PROFIL_UTILISATEUR_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
           {hasFilters && (
             <button type="button" className={shared.secondaryButton} onClick={resetFilters}>
               <RotateCcw size={14} aria-hidden="true" style={{ marginRight: 6 }} />
-              Réinitialiser
+              Réinitialiser les filtres
             </button>
           )}
         </div>
+
+        <p className={shared.helpText}>
+          <Info size={16} aria-hidden="true" />
+          <span>
+            Ces candidatures viennent du formulaire public de recrutement
+            terrain. Les filtres se combinent entre eux et l’export XLS reprend
+            exactement la sélection affichée. « Voir » ouvre le détail complet
+            du candidat ; « Supprimer » efface définitivement la candidature.
+          </span>
+        </p>
 
         {errorMessage && <p className={shared.errorText}>{errorMessage}</p>}
 

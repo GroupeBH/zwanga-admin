@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download } from "lucide-react";
+import { Download, Info } from "lucide-react";
 
 import {
   useAcceptBookingMutation,
@@ -150,32 +150,45 @@ export default function BookingsPage() {
         <div className={shared.sectionHeader}>
           <div>
             <h2>Gestion des reservations</h2>
-            <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
+            <p className={shared.filterSummary}>
               {allBookings.length} reservation(s) au total •{" "}
               {allBookings.filter((booking) => booking.status === "pending").length} en attente
             </p>
           </div>
           <div className={shared.toolbar}>
-            <input
-              placeholder="Rechercher (passager, telephone)"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <select
-              value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="all">Tous les statuts</option>
-              <option value="pending">En attente</option>
-              <option value="accepted">Acceptees</option>
-              <option value="rejected">Rejetees</option>
-              <option value="cancelled">Annulees</option>
-              <option value="completed">Terminees</option>
-              <option value="expired">Expirees</option>
-            </select>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="bookings-search">
+                Rechercher un passager
+              </label>
+              <input
+                id="bookings-search"
+                className={shared.filterSearch}
+                placeholder="Nom ou téléphone"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="bookings-status">
+                Filtrer par statut
+              </label>
+              <select
+                id="bookings-status"
+                value={statusFilter}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">Tous les statuts</option>
+                <option value="pending">En attente</option>
+                <option value="accepted">Acceptees</option>
+                <option value="rejected">Rejetees</option>
+                <option value="cancelled">Annulees</option>
+                <option value="completed">Terminees</option>
+                <option value="expired">Expirees</option>
+              </select>
+            </div>
             <button
               type="button"
               className={shared.primaryButton}
@@ -187,6 +200,15 @@ export default function BookingsPage() {
             </button>
           </div>
         </div>
+
+        <p className={shared.helpText}>
+          <Info size={16} aria-hidden="true" />
+          <span>
+            Une réservation « en attente » attend la réponse du conducteur.
+            Les places sont libérées automatiquement lorsqu’elle est rejetée,
+            annulée ou expirée.
+          </span>
+        </p>
 
         {exportError ? (
           <p className={shared.errorText} role="alert">

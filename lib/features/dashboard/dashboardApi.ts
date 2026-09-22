@@ -36,6 +36,29 @@ const toArray = <T>(payload: unknown, nestedKey?: string): T[] => {
 const toKycDocuments = (payload: unknown): KycDocument[] =>
   toArray<KycDocument>(payload, "documents");
 
+/* Les listes paginees du backend exposent leur total soit a la racine
+   (signalements) soit sous `meta` (support). */
+const readTotal = (payload: unknown): number => {
+  if (!payload || typeof payload !== "object") {
+    return 0;
+  }
+
+  const record = payload as Record<string, unknown>;
+  if (typeof record.total === "number") {
+    return record.total;
+  }
+
+  const meta = record.meta;
+  if (meta && typeof meta === "object") {
+    const metaTotal = (meta as Record<string, unknown>).total;
+    if (typeof metaTotal === "number") {
+      return metaTotal;
+    }
+  }
+
+  return 0;
+};
+
 const formatInteger = (value: number) =>
   new Intl.NumberFormat("fr-CD").format(Number.isFinite(value) ? value : 0);
 
@@ -71,12 +94,19 @@ const summarizeLifecycle = (trips: Trip[]) => {
   return counters;
 };
 
+/** Volumes de moderation, comptes par le serveur et non par la page. */
+interface ModerationCounts {
+  pendingReports: number;
+  openSupportTickets: number;
+}
+
 const buildMetricCards = (
   userStats: PlatformUserStats,
   trips: Trip[],
   kycDocuments: KycDocument[],
   fundingRequests: DocumentFundingRequest[],
-  planCurrencies: string[]
+  planCurrencies: string[],
+  moderation: ModerationCounts
 ): MetricCard[] => {
   const lifecycle = summarizeLifecycle(trips);
   const pendingKyc = kycDocuments.filter((item) => item.status === "pending").length;
@@ -150,13 +180,34 @@ const buildMetricCards = (
           : "aucune demande ouverte",
       tone: paymentOverview.pendingFundingRequests > 0 ? "warning" : "success",
     },
+    {
+      id: "reports",
+      label: "Signalements a traiter",
+      value: formatInteger(moderation.pendingReports),
+      helper:
+        moderation.pendingReports > 0
+          ? "personne ne s'en occupe encore"
+          : "aucun signalement en attente",
+      tone: moderation.pendingReports > 0 ? "danger" : "success",
+    },
+    {
+      id: "support",
+      label: "Tickets support ouverts",
+      value: formatInteger(moderation.openSupportTickets),
+      helper:
+        moderation.openSupportTickets > 0
+          ? "demandes sans prise en charge"
+          : "aucune demande ouverte",
+      tone: moderation.openSupportTickets > 0 ? "warning" : "success",
+    },
   ];
 };
 
 const buildAlerts = (
   trips: Trip[],
   kycDocuments: KycDocument[],
-  fundingRequests: DocumentFundingRequest[]
+  fundingRequests: DocumentFundingRequest[],
+  moderation: ModerationCounts
 ) => {
   const lifecycle = summarizeLifecycle(trips);
   const pendingKyc = kycDocuments.filter((item) => item.status === "pending").length;
@@ -178,6 +229,30 @@ const buildAlerts = (
             (a, b) =>
               new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           )[0]?.createdAt ?? new Date().toISOString(),
+    });
+  }
+
+  if (moderation.pendingReports > 0) {
+    alerts.push({
+      id: "alert-reports",
+      type: "safety" as const,
+      message: `${moderation.pendingReports} signalement(s) attendent une decision`,
+      severity:
+        moderation.pendingReports >= 3 ? ("high" as const) : ("medium" as const),
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  if (moderation.openSupportTickets > 0) {
+    alerts.push({
+      id: "alert-support",
+      type: "support" as const,
+      message: `${moderation.openSupportTickets} ticket(s) support sans prise en charge`,
+      severity:
+        moderation.openSupportTickets >= 5
+          ? ("medium" as const)
+          : ("low" as const),
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -261,7 +336,8 @@ const calculateDashboardMetrics = (
   trips: Trip[],
   kycDocuments: KycDocument[],
   subscriptionPlans: SubscriptionOffering[],
-  fundingRequests: DocumentFundingRequest[]
+  fundingRequests: DocumentFundingRequest[],
+  moderation: ModerationCounts
 ): DashboardResponse => {
   const lifecycleBuckets = buildTripLifecycleBuckets(trips);
   const planCurrencies = subscriptionPlans.map((item) => item.documentFundingCurrency);
@@ -282,13 +358,14 @@ const calculateDashboardMetrics = (
       trips,
       kycDocuments,
       fundingRequests,
-      planCurrencies
+      planCurrencies,
+      moderation
     ),
     tripTrends: buildTripTimeline(trips),
     tripLifecycle: lifecycleBuckets,
     subscriptionPlans,
     paymentOverview,
-    alerts: buildAlerts(trips, kycDocuments, fundingRequests),
+    alerts: buildAlerts(trips, kycDocuments, fundingRequests, moderation),
     popularRoutes: buildRouteInsights(trips),
     topDrivers: buildTopDrivers(trips),
     recentFundingRequests: [...fundingRequests]
@@ -317,6 +394,8 @@ export const dashboardApi = baseApi.injectEndpoints({
             kycHistoryResult,
             plansResult,
             fundingResult,
+            pendingReportsResult,
+            openTicketsResult,
           ] = await Promise.all([
             fetchWithBQ("/admin/users/stats"),
             fetchWithBQ({ url: "/admin/trips", params: { page: 1, limit: 1000 } }),
@@ -326,6 +405,16 @@ export const dashboardApi = baseApi.injectEndpoints({
             }),
             fetchWithBQ("/subscriptions/plans"),
             fetchWithBQ("/subscriptions/document-funding-requests"),
+            /* Une seule ligne est demandee: seul le total compte pour la
+               vignette, pas le detail des dossiers. */
+            fetchWithBQ({
+              url: "/safety/admin/reports",
+              params: { status: "pending", page: 1, limit: 1 },
+            }),
+            fetchWithBQ({
+              url: "/support/admin/tickets",
+              params: { status: "open", page: 1, limit: 1 },
+            }),
           ]);
 
           if (userStatsResult.error) {
@@ -350,12 +439,24 @@ export const dashboardApi = baseApi.injectEndpoints({
             fundingResult.data
           );
 
+          /* Ces deux comptes sont secondaires: une erreur ne doit pas priver
+             l'admin de tout le tableau de bord. */
+          const moderation: ModerationCounts = {
+            pendingReports: pendingReportsResult.error
+              ? 0
+              : readTotal(pendingReportsResult.data),
+            openSupportTickets: openTicketsResult.error
+              ? 0
+              : readTotal(openTicketsResult.data),
+          };
+
           const dashboard = calculateDashboardMetrics(
             userStats,
             trips,
             kycDocuments,
             subscriptionPlans,
-            fundingRequests
+            fundingRequests,
+            moderation
           );
 
           return { data: dashboard };

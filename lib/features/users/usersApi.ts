@@ -6,6 +6,7 @@ import type {
   PaginatedUsersResponse,
   User,
 } from "../admin/types";
+import { listProvidesTags, unwrapList } from "@/lib/utils/toList";
 
 export type AdminUserRoleFilter =
   | "driver"
@@ -33,7 +34,7 @@ export interface ResetAdminAccountPasswordPayload {
 export const usersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getUsers: builder.query<PaginatedUsersResponse, UsersQueryParams | void>({
-      query: ({ page = 1, limit = 100, role } = {}) => ({
+      query: ({ page = 1, limit = 10, role } = {}) => ({
         url: "/admin/users",
         params: { page, limit, ...(role ? { role } : {}) },
       }),
@@ -48,13 +49,18 @@ export const usersApi = baseApi.injectEndpoints({
           currentArg?.limit !== previousArg?.limit
         );
       },
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.users.map(({ id }) => ({ type: "Users" as const, id })),
-              { type: "Users" as const, id: "LIST" },
-            ]
-          : [{ type: "Users" as const, id: "LIST" }],
+      transformResponse: (response: unknown): PaginatedUsersResponse => {
+        const users = unwrapList<User>(response, "users");
+        const record =
+          response && typeof response === "object" && !Array.isArray(response)
+            ? (response as Record<string, unknown>)
+            : {};
+        return {
+          users,
+          total: typeof record.total === "number" ? record.total : users.length,
+        };
+      },
+      providesTags: (result) => listProvidesTags("Users", result?.users),
     }),
     exportUsersXls: builder.mutation<Blob, Pick<UsersQueryParams, "role"> | void>({
       query: ({ role } = {}) => ({
@@ -90,12 +96,7 @@ export const usersApi = baseApi.injectEndpoints({
         params: { page, limit },
       }),
       providesTags: (result) =>
-        result
-          ? [
-              ...result.accounts.map(({ id }) => ({ type: "Users" as const, id })),
-              { type: "Users" as const, id: "ADMIN_ACCOUNTS" },
-            ]
-          : [{ type: "Users" as const, id: "ADMIN_ACCOUNTS" }],
+        listProvidesTags("Users", result?.accounts, "ADMIN_ACCOUNTS"),
     }),
     createAdminAccount: builder.mutation<AdminAccount, CreateAdminAccountPayload>({
       query: (body) => ({
@@ -175,7 +176,7 @@ export const usersApi = baseApi.injectEndpoints({
       ],
     }),
   }),
-  overrideExisting: false,
+  overrideExisting: true,
 });
 
 export const {

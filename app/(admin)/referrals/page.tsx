@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, RefreshCw, Search } from "lucide-react";
+import { Download, Info, RefreshCw, Search } from "lucide-react";
 
 import { isSuperAdminRole } from "@/lib/features/auth/adminRoles";
 import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
@@ -177,33 +177,60 @@ export default function ReferralsPage() {
             <p>{activeTotal} élément(s) selon les filtres.</p>
           </div>
           <form className={styles.filters} onSubmit={submitSearch}>
-            <input
-              aria-label="Rechercher dans le parrainage"
-              placeholder="Utilisateur, téléphone, code…"
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
-            />
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel} htmlFor="referrals-search">
+                Rechercher
+              </label>
+              <input
+                id="referrals-search"
+                placeholder="Utilisateur, téléphone, code…"
+                value={searchDraft}
+                onChange={(event) => setSearchDraft(event.target.value)}
+              />
+            </div>
             {view === "rewards" ? (
-              <select value={rewardStatus} onChange={(event) => { setPage(1); setRewardStatus(event.target.value as ReferralRewardStatus | "all"); }}>
-                <option value="all">Tous les statuts</option>
-                <option value="pending">En retenue</option>
-                <option value="available">Disponibles</option>
-                <option value="reversed">Annulées</option>
-              </select>
+              <div className={styles.filterField}>
+                <label className={styles.filterLabel} htmlFor="referrals-reward-status">
+                  Statut de la commission
+                </label>
+                <select id="referrals-reward-status" value={rewardStatus} onChange={(event) => { setPage(1); setRewardStatus(event.target.value as ReferralRewardStatus | "all"); }}>
+                  <option value="all">Tous les statuts</option>
+                  <option value="pending">En retenue</option>
+                  <option value="available">Disponibles</option>
+                  <option value="reversed">Annulées</option>
+                </select>
+              </div>
             ) : null}
             {view === "withdrawals" ? (
-              <select value={withdrawalStatus} onChange={(event) => { setPage(1); setWithdrawalStatus(event.target.value as ReferralWithdrawalStatus | "all"); }}>
-                <option value="all">Tous les statuts</option>
-                <option value="pending">En attente</option>
-                <option value="initiated">Initiés</option>
-                <option value="succeeded">Réussis</option>
-                <option value="failed">Échoués</option>
-                <option value="cancelled">Annulés</option>
-              </select>
+              <div className={styles.filterField}>
+                <label className={styles.filterLabel} htmlFor="referrals-withdrawal-status">
+                  Statut du retrait
+                </label>
+                <select id="referrals-withdrawal-status" value={withdrawalStatus} onChange={(event) => { setPage(1); setWithdrawalStatus(event.target.value as ReferralWithdrawalStatus | "all"); }}>
+                  <option value="all">Tous les statuts</option>
+                  <option value="pending">En attente</option>
+                  <option value="initiated">Initiés</option>
+                  <option value="succeeded">Réussis</option>
+                  <option value="failed">Échoués</option>
+                  <option value="cancelled">Annulés</option>
+                </select>
+              </div>
             ) : null}
-            <button type="submit" className={styles.iconButton} aria-label="Rechercher"><Search size={16} /></button>
+            <button type="submit" className={styles.secondaryButton}>
+              <Search size={16} aria-hidden="true" />
+              Rechercher
+            </button>
           </form>
         </div>
+
+        <p className={styles.helpText}>
+          <Info size={16} aria-hidden="true" />
+          <span>
+            Les onglets ci-dessus changent de vue : comptes parrains,
+            commissions générées, puis demandes de retrait. Les filtres
+            s’appliquent à la vue affichée.
+          </span>
+        </p>
 
         {activeQuery.isFetching && activeTotal === 0 ? <div className={styles.empty}>Chargement de la vue…</div> : null}
         {!activeQuery.isFetching && activeTotal === 0 ? <div className={styles.empty}>Aucune donnée disponible dans cette vue.</div> : null}

@@ -1,6 +1,14 @@
 "use client";
 
-import { CreditCard, FileText, Route, ShieldCheck, Wallet } from "lucide-react";
+import Link from "next/link";
+import {
+  CreditCard,
+  FileText,
+  RefreshCw,
+  Route,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react";
 
 import {
   formatDocumentType,
@@ -49,23 +57,60 @@ const kycStatusClass = (status: KycDocument["status"]) => {
   return styles.statusWatch;
 };
 
+// Les codes techniques du backend etaient affiches tels quels dans les pastilles.
+const KYC_STATUS_LABEL: Record<KycDocument["status"], string> = {
+  pending: "En attente",
+  approved: "Validé",
+  rejected: "Rejeté",
+};
+
+const ALERT_SEVERITY_LABEL: Record<string, string> = {
+  high: "Priorité haute",
+  medium: "Priorité moyenne",
+  low: "Priorité basse",
+};
+
 export default function DashboardPage() {
-  const { data, isLoading, error } = useGetDashboardQuery();
+  const { data, isLoading, error, refetch, isFetching } = useGetDashboardQuery();
 
   if (error) {
     const errorStatus = getApiErrorStatus(error);
+    const isPermissionIssue = errorStatus === 401 || errorStatus === 403;
     const errorMessage = getApiErrorMessage(
       error,
-      errorStatus === 401 || errorStatus === 403
+      isPermissionIssue
         ? "Le compte connecte n'a pas les droits admin necessaires pour afficher le tableau de bord."
         : "Impossible de charger le tableau de bord depuis le backend."
     );
 
-    return <p>{errorMessage}</p>;
+    return (
+      <div className={`${styles.stateCard} ${styles.stateError}`} role="alert">
+        <h2>Le tableau de bord n’a pas pu s’afficher</h2>
+        <p>{errorMessage}</p>
+        {isPermissionIssue ? (
+          <p>Demandez à un super administrateur de vérifier vos droits.</p>
+        ) : (
+          <button
+            type="button"
+            className={styles.stateButton}
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw size={16} aria-hidden="true" />
+            {isFetching ? "Nouvelle tentative..." : "Réessayer"}
+          </button>
+        )}
+      </div>
+    );
   }
 
   if (isLoading || !data) {
-    return <p>Chargement du tableau de bord...</p>;
+    return (
+      <div className={styles.stateCard} aria-busy="true">
+        <h2>Chargement du tableau de bord</h2>
+        <p>Les chiffres arrivent, cela prend quelques secondes.</p>
+      </div>
+    );
   }
 
   const maxTripTrendValue = Math.max(
@@ -89,10 +134,12 @@ export default function DashboardPage() {
           <h1>{data.greeting}</h1>
           <span>{data.dateRange}</span>
         </div>
-        <button type="button" className={styles.delta}>
+        {/* Le bouton precedent n'etait relie a aucune action: il mene
+            maintenant a l'ecran qui contient reellement les signalements. */}
+        <Link href="/reports" className={styles.stateButton}>
           <FileText size={16} aria-hidden="true" />
-          Exporter le rapport
-        </button>
+          Voir les signalements
+        </Link>
       </div>
 
       <section className={styles.metrics}>
@@ -115,7 +162,12 @@ export default function DashboardPage() {
               <p className={styles.panelHint}>Publies vs termines sur les 7 derniers jours</p>
             </div>
           </div>
-          <svg viewBox="0 0 100 100" className={styles.chart} role="img">
+          <svg
+            viewBox="0 0 100 100"
+            className={styles.chart}
+            role="img"
+            aria-label="Courbes des trajets publiés et terminés sur les 7 derniers jours. Les chiffres jour par jour sont listés juste en dessous."
+          >
             <polyline
               fill="none"
               stroke="#ffb347"
@@ -153,7 +205,10 @@ export default function DashboardPage() {
           <div className={styles.panelHeader}>
             <div>
               <strong>Trajets publies</strong>
-              <p className={styles.panelHint}>Lecture admin par cycle de vie</p>
+              <p className={styles.panelHint}>
+                Où en sont les trajets publiés, du départ à venir jusqu’à la
+                clôture
+              </p>
             </div>
             <Route size={16} aria-hidden="true" />
           </div>
@@ -174,7 +229,9 @@ export default function DashboardPage() {
           <div className={styles.panelHeader}>
             <div>
               <strong>Abonnements premium</strong>
-              <p className={styles.panelHint}>Plans exposes par le backend</p>
+              <p className={styles.panelHint}>
+                Formules proposées aux conducteurs et leur tarif
+              </p>
             </div>
             <CreditCard size={16} aria-hidden="true" />
           </div>
@@ -227,7 +284,9 @@ export default function DashboardPage() {
           <div className={styles.panelHeader}>
             <div>
               <strong>Paiements et financement</strong>
-              <p className={styles.panelHint}>Synthese des flux premium exposes a l'admin</p>
+              <p className={styles.panelHint}>
+                Demandes de financement de documents et montants en jeu
+              </p>
             </div>
             <Wallet size={16} aria-hidden="true" />
           </div>
@@ -373,7 +432,7 @@ export default function DashboardPage() {
                         : styles.statusStable
                   }`}
                 >
-                  {alert.severity}
+                  {ALERT_SEVERITY_LABEL[alert.severity] ?? alert.severity}
                 </span>
               </div>
             ))}
@@ -412,7 +471,9 @@ export default function DashboardPage() {
           <div className={styles.panelHeader}>
             <div>
               <strong>Queue KYC prioritaire</strong>
-              <p className={styles.panelHint}>Documents en attente de revue admin</p>
+              <p className={styles.panelHint}>
+                Pièces d’identité à contrôler dans l’onglet KYC
+              </p>
             </div>
             <ShieldCheck size={16} aria-hidden="true" />
           </div>
@@ -430,7 +491,7 @@ export default function DashboardPage() {
                   <span>{request.user?.email ?? request.user?.phone ?? "—"}</span>
                   <div className={styles.inlineMeta}>
                     <span className={`${styles.pill} ${kycStatusClass(request.status)}`}>
-                      {request.status}
+                      {KYC_STATUS_LABEL[request.status] ?? request.status}
                     </span>
                     <span className={styles.pill}>Cree {formatDateTime(request.createdAt)}</span>
                     {request.reviewedBy ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Info } from "lucide-react";
 
 import {
   buildPaymentOverview,
@@ -184,32 +185,56 @@ export default function SubscriptionsPage() {
         <div className={shared.sectionHeader}>
           <div>
             <h2>Demandes de financement de documents</h2>
-            <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
+            <p className={shared.filterSummary}>
               {filteredRequests.length} demande(s) selon les filtres
             </p>
           </div>
           <div className={shared.toolbar}>
-            <input
-              placeholder="Rechercher (conducteur, document)..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-            >
-              <option value="all">Tous les statuts</option>
-              <option value="pending">En attente</option>
-              <option value="approved">Approuvees</option>
-              <option value="funded">Financees</option>
-              <option value="rejected">Rejetees</option>
-              <option value="cancelled">Annulees</option>
-            </select>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="funding-search">
+                Rechercher une demande
+              </label>
+              <input
+                id="funding-search"
+                className={shared.filterSearch}
+                placeholder="Conducteur ou document"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="funding-status">
+                Filtrer par statut
+              </label>
+              <select
+                id="funding-status"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value="all">Tous les statuts</option>
+                <option value="pending">En attente</option>
+                <option value="approved">Approuvees</option>
+                <option value="funded">Financees</option>
+                <option value="rejected">Rejetees</option>
+                <option value="cancelled">Annulees</option>
+              </select>
+            </div>
           </div>
         </div>
 
+        <p className={shared.helpText}>
+          <Info size={16} aria-hidden="true" />
+          <span>
+            Un conducteur abonné peut demander que Zwanga avance le coût d’un
+            document officiel. « En attente » signifie qu’une décision reste à
+            prendre, « Approuvée » que l’accord est donné et « Financée » que
+            l’argent a été versé. Cet écran est une consultation : aucune
+            décision ne peut encore être enregistrée depuis le back-office.
+          </span>
+        </p>
+
         {isLoading ? (
-          <p>Chargement des demandes...</p>
+          <p className={shared.emptyState}>Chargement des demandes...</p>
         ) : (
           <div className={shared.tableWrapper}>
             <table className={shared.table}>
@@ -227,8 +252,11 @@ export default function SubscriptionsPage() {
               <tbody>
                 {filteredRequests.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: "center" }}>
-                      Aucune demande de financement trouvee
+                    <td colSpan={7}>
+                      <p className={shared.emptyState}>
+                        Aucune demande ne correspond à ce filtre. Choisissez
+                        « Tous les statuts » pour voir l’ensemble des demandes.
+                      </p>
                     </td>
                   </tr>
                 ) : (

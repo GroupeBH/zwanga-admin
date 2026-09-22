@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   CheckCircle2,
   Download,
+  Info,
   RefreshCw,
   Search,
   X,
@@ -167,47 +168,72 @@ export default function PaymentsPage() {
             <p>{data?.total ?? 0} résultat(s) selon les filtres.</p>
           </div>
           <form className={styles.filters} onSubmit={handleSearch}>
-            <input
-              aria-label="Rechercher une transaction"
-              placeholder="Référence, commande, utilisateur…"
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
-            />
-            <select
-              aria-label="Filtrer par objet"
-              value={purpose}
-              onChange={(event) => {
-                setPage(1);
-                setPurpose(event.target.value as PaymentPurpose | "all");
-              }}
-            >
-              <option value="all">Tous les objets</option>
-              <option value="subscription_pro">Abonnements</option>
-              <option value="trip_booking">Réservations</option>
-              <option value="wallet_top_up">Achats de jetons</option>
-              <option value="driver_payout">Versements conducteurs</option>
-              <option value="referral_payout">Retraits parrainage</option>
-            </select>
-            <select
-              aria-label="Filtrer par statut"
-              value={status}
-              onChange={(event) => {
-                setPage(1);
-                setStatus(event.target.value as PaymentStatus | "all");
-              }}
-            >
-              <option value="all">Tous les statuts</option>
-              <option value="pending">En attente</option>
-              <option value="initiated">Initiés</option>
-              <option value="succeeded">Réussis</option>
-              <option value="failed">Échoués</option>
-              <option value="cancelled">Annulés</option>
-            </select>
-            <button type="submit" className={styles.iconButton} aria-label="Rechercher">
-              <Search size={16} />
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel} htmlFor="payments-search">
+                Rechercher
+              </label>
+              <input
+                id="payments-search"
+                placeholder="Référence, commande, utilisateur…"
+                value={searchDraft}
+                onChange={(event) => setSearchDraft(event.target.value)}
+              />
+            </div>
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel} htmlFor="payments-purpose">
+                Type d’opération
+              </label>
+              <select
+                id="payments-purpose"
+                value={purpose}
+                onChange={(event) => {
+                  setPage(1);
+                  setPurpose(event.target.value as PaymentPurpose | "all");
+                }}
+              >
+                <option value="all">Tous les objets</option>
+                <option value="subscription_pro">Abonnements</option>
+                <option value="trip_booking">Réservations</option>
+                <option value="wallet_top_up">Achats de jetons</option>
+                <option value="driver_payout">Versements conducteurs</option>
+                <option value="referral_payout">Retraits parrainage</option>
+              </select>
+            </div>
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel} htmlFor="payments-status">
+                Statut
+              </label>
+              <select
+                id="payments-status"
+                value={status}
+                onChange={(event) => {
+                  setPage(1);
+                  setStatus(event.target.value as PaymentStatus | "all");
+                }}
+              >
+                <option value="all">Tous les statuts</option>
+                <option value="pending">En attente</option>
+                <option value="initiated">Initiés</option>
+                <option value="succeeded">Réussis</option>
+                <option value="failed">Échoués</option>
+                <option value="cancelled">Annulés</option>
+              </select>
+            </div>
+            <button type="submit" className={styles.secondaryButton}>
+              <Search size={16} aria-hidden="true" />
+              Rechercher
             </button>
           </form>
         </div>
+
+        <p className={styles.helpText}>
+          <Info size={16} aria-hidden="true" />
+          <span>
+            La recherche se lance avec le bouton « Rechercher » ou la touche
+            Entrée. « Initié » signifie que l’opérateur mobile a été appelé mais
+            n’a pas encore confirmé le paiement.
+          </span>
+        </p>
 
         {error ? <div className={styles.error}>{errorMessage(error)}</div> : null}
         {isFetching && payments.length === 0 ? (

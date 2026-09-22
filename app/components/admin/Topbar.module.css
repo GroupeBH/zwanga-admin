@@ -67,6 +67,24 @@
   min-height: 44px;
 }
 
+.searchSubmit,
+.searchClear {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 8px;
+}
+
+.searchSubmit:hover,
+.searchClear:hover {
+  color: var(--color-primary);
+}
+
 .search input {
   flex: 1;
   background: transparent;
@@ -142,15 +160,50 @@
   overscroll-behavior: contain;
 }
 
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelAction {
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.panelAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Chaque notification est cliquable pour etre marquee comme lue: le bloc est
+   donc un bouton, qu'il faut ramener a une mise en page de carte. */
 .panelItem {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.02);
   padding: 12px 14px;
   border: 1px solid transparent;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: block;
 }
 
 .unread {
   border-color: rgba(255, 122, 0, 0.4);
+}
+
+/* Une notification deja lue qui ne mene a aucun ecran n'a plus d'action. */
+.panelItem:disabled {
+  cursor: default;
 }
 
 .panelItem h4 {

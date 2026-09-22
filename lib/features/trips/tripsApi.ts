@@ -1,5 +1,6 @@
 import { baseApi } from "../api/baseApi";
 import type { Trip, PaginatedTripsResponse, TripStatus } from "../admin/types";
+import { listProvidesTags, unwrapList } from "@/lib/utils/toList";
 
 export interface TripsQueryParams {
   page?: number;
@@ -26,14 +27,9 @@ export const tripsApi = baseApi.injectEndpoints({
         url: "/admin/trips",
         params: { page, limit },
       }),
-      transformResponse: (response: PaginatedTripsResponse) => response.trips,
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.map(({ id }) => ({ type: "Rides" as const, id })),
-              { type: "Rides" as const, id: "LIST" },
-            ]
-          : [{ type: "Rides" as const, id: "LIST" }],
+      transformResponse: (response: PaginatedTripsResponse | Trip[]) =>
+        unwrapList<Trip>(response, "trips"),
+      providesTags: (result) => listProvidesTags("Rides", result),
     }),
 
     // Get single trip details
@@ -88,7 +84,7 @@ export const tripsApi = baseApi.injectEndpoints({
       ],
     }),
   }),
-  overrideExisting: false,
+  overrideExisting: true,
 });
 
 export const {

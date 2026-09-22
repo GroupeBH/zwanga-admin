@@ -26,18 +26,84 @@
 .toolbar {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
   gap: 10px;
 }
 
+/* Fond pose en longhand: le raccourci `background` effacerait le chevron que
+   l'admin dessine lui-meme sur chaque liste deroulante. */
 .toolbar input,
 .toolbar select {
   min-height: 44px;
   min-width: 0;
   border-radius: 16px;
-  border: 1px solid var(--color-border);
-  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  background-color: var(--color-field);
   padding: 10px 14px;
   color: var(--color-text);
+}
+
+.toolbar select {
+  cursor: pointer;
+  padding-right: 36px;
+}
+
+.toolbar input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.toolbar input:hover,
+.toolbar select:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-field-hover);
+}
+
+.toolbar input:focus-visible,
+.toolbar select:focus-visible {
+  border-color: var(--color-primary);
+}
+
+/* Un filtre sans libelle visible oblige a deviner son role: chaque controle
+   est donc annonce par un intitule court, lisible par un non-initie. */
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.filterLabel {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.filterSearch {
+  width: min(280px, 100%);
+}
+
+.filterSummary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.helpText {
+  margin: 6px 0 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-muted);
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
 }
 
 .primaryButton {
@@ -234,13 +300,29 @@
 .card select,
 .card textarea {
   border-radius: 12px;
-  border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-strong);
+  background-color: var(--color-field);
   color: var(--color-text);
   padding: 10px 12px;
   font: inherit;
   min-width: 0;
   min-height: 44px;
+}
+
+.card select {
+  cursor: pointer;
+  padding-right: 36px;
+}
+
+.card input::placeholder,
+.card textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.card input:focus-visible,
+.card select:focus-visible,
+.card textarea:focus-visible {
+  border-color: var(--color-primary);
 }
 
 .card textarea {
@@ -319,12 +401,60 @@
   background: var(--color-panel-muted);
   font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
 }
 
 .dangerButton {
   color: var(--color-danger);
   border-color: rgba(255, 75, 85, 0.24);
   background: rgba(255, 75, 85, 0.12);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.dangerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Les boutons de tableau partageaient le style de l'action principale: la
+   lecture devenait ambigue entre consulter et suspendre un compte. */
+.rowActions .secondaryButton,
+.rowActions .dangerButton,
+.rowActions .primaryButton {
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.86rem;
+  text-decoration: none;
+}
+
+.pagination {
+  align-items: center;
+}
+
+.paginationInfo {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.paginationButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .checkboxRow {
@@ -399,9 +529,18 @@
   .toolbar input,
   .toolbar select,
   .toolbar button,
-  .primaryButton {
+  .primaryButton,
+  .filterField,
+  .filterSearch {
     flex: 1 1 100%;
     width: 100%;
+  }
+
+  .rowActions .secondaryButton,
+  .rowActions .dangerButton,
+  .rowActions .primaryButton {
+    flex: 1 1 auto;
+    min-height: 44px;
   }
 
   .grid {

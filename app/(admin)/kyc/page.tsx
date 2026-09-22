@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { Info } from "lucide-react";
 
 import {
   useGetKycDocumentsQuery,
@@ -90,41 +91,62 @@ export default function KycPage() {
         <div className={shared.sectionHeader}>
           <div>
             <h2>Historique KYC</h2>
-            <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
+            <p className={shared.filterSummary}>
               {total} dossier{total > 1 ? "s" : ""} — validés, rejetés et en attente
             </p>
           </div>
           <div className={shared.toolbar}>
-            <input
-              placeholder="Rechercher (nom, email, téléphone)"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
-            />
-            <select
-              aria-label="Filtrer les dossiers KYC"
-              value={statusFilter}
-              onChange={(event) =>
-                handleStatusChange(event.target.value as KycStatusFilter)
-              }
-            >
-              <option value="all">Statut : Tous</option>
-              <option value="pending">En attente</option>
-              <option value="approved">Validés</option>
-              <option value="rejected">Rejetés</option>
-            </select>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="kyc-search">
+                Rechercher un dossier
+              </label>
+              <input
+                id="kyc-search"
+                className={shared.filterSearch}
+                placeholder="Nom, email ou téléphone"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="kyc-status">
+                Filtrer par statut
+              </label>
+              <select
+                id="kyc-status"
+                value={statusFilter}
+                onChange={(event) =>
+                  handleStatusChange(event.target.value as KycStatusFilter)
+                }
+              >
+                <option value="all">Tous les statuts</option>
+                <option value="pending">En attente</option>
+                <option value="approved">Validés</option>
+                <option value="rejected">Rejetés</option>
+              </select>
+            </div>
             <button
               type="button"
-              className={shared.primaryButton}
+              className={shared.secondaryButton}
               onClick={() => refetch()}
               disabled={isFetching}
             >
-              Recharger les pièces
+              {isFetching ? "Actualisation..." : "Actualiser"}
             </button>
           </div>
         </div>
+
+        <p className={shared.helpText}>
+          <Info size={16} aria-hidden="true" />
+          <span>
+            Sélectionnez un dossier à gauche pour afficher les pièces
+            d’identité à droite, puis validez ou rejetez. Un rejet demande un
+            motif, qui est transmis à l’utilisateur.
+          </span>
+        </p>
 
         <div className={styles.split}>
           <div className={styles.queue}>

@@ -1,12 +1,15 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { FileText, KeyRound, Shield, ShoppingBag, UserPlus, UsersRound } from "lucide-react";
 
 import { getAdminRoleLabel, isSuperAdminRole } from "@/lib/features/auth/adminRoles";
 import { useChangeAdminPasswordMutation } from "@/lib/features/auth/authApi";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
+import { useGetNotificationsQuery } from "@/lib/features/notifications/notificationsApi";
+import { useGetSubscriptionPlansQuery } from "@/lib/features/subscriptions/subscriptionsApi";
+import { formatPaymentMethod } from "@/lib/features/admin/insights";
 import type { AdminAccount } from "@/lib/features/admin/types";
 import {
   useActivateAdminAccountMutation,
@@ -18,12 +21,6 @@ import {
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 
 import shared from "../styles/page.module.css";
-
-type NotificationPref = {
-  email: boolean;
-  sms: boolean;
-  push: boolean;
-};
 
 const dateFormatter = new Intl.DateTimeFormat("fr-CD", {
   dateStyle: "medium",
@@ -65,11 +62,8 @@ export default function SettingsPage() {
     useActivateAdminAccountMutation();
   const [resetAdminAccountPassword, { isLoading: isResettingAdminPassword }] =
     useResetAdminAccountPasswordMutation();
-  const [notifications, setNotifications] = useState<NotificationPref>({
-    email: false,
-    sms: false,
-    push: true,
-  });
+  const { data: notificationsData } = useGetNotificationsQuery({ limit: 1 });
+  const { data: subscriptionPlans } = useGetSubscriptionPlansQuery();
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -91,20 +85,12 @@ export default function SettingsPage() {
     confirmPassword: "",
   });
 
-  useEffect(() => {
-    // Mock notifications for now - backend doesn't provide this yet
-    if (profile) {
-      setNotifications({
-        email: true,
-        sms: false,
-        push: true,
-      });
-    }
-  }, [profile]);
-
-  const handleToggle = (key: keyof NotificationPref) => {
-    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  const notificationsTotal = notificationsData?.total ?? 0;
+  const notificationsUnread = notificationsData?.unreadCount ?? 0;
+  const paymentMethods = useMemo(() => {
+    const plans = subscriptionPlans ?? [];
+    return Array.from(new Set(plans.flatMap((plan) => plan.paymentMethods)));
+  }, [subscriptionPlans]);
 
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -256,9 +242,10 @@ export default function SettingsPage() {
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h2>Parametres generaux</h2>
+            <h2>Paramètres généraux</h2>
             <p className={shared.mutedText}>
-              Identite, securite du compte et integrations API.
+              Votre identité, la sécurité de votre compte et les services
+              connectés.
             </p>
           </div>
         </div>
@@ -266,7 +253,7 @@ export default function SettingsPage() {
         {profile ? (
           <div className={shared.grid}>
             <article className={shared.card}>
-              <strong>Identite admin</strong>
+              <strong>Mon identité</strong>
               <div>
                 {profile.user.firstName} {profile.user.lastName}
               </div>
@@ -276,12 +263,12 @@ export default function SettingsPage() {
               </small>
               {profile.user.passwordChangeRequired ? (
                 <p className={`${shared.notice} ${shared.noticeWarning}`}>
-                  Mot de passe temporaire detecte. Change-le avant de continuer
-                  les operations back-office.
+                  Vous utilisez encore un mot de passe temporaire. Changez-le
+                  ci-contre avant d’aller plus loin.
                 </p>
               ) : (
                 <span className={`${shared.badge} ${shared.badgeSuccess}`}>
-                  Mot de passe personnalise
+                  Mot de passe personnel défini
                 </span>
               )}
             </article>
@@ -310,7 +297,7 @@ export default function SettingsPage() {
                 </label>
 
                 <label>
-                  Nouveau mot de passe
+                  Nouveau mot de passe (8 caractères minimum)
                   <input
                     type="password"
                     value={passwordForm.newPassword}
@@ -360,27 +347,41 @@ export default function SettingsPage() {
               </form>
             </article>
 
+            {/* Cette carte affichait des preferences de canal inventees, que le
+                backend ne stocke pas. Elle rend compte a la place des
+                notifications reellement recues par ce compte. */}
             <article className={shared.card}>
-              <strong>Notifications</strong>
-              {Object.entries(notifications).map(([key, value]) => (
-                <label className={shared.checkboxRow} key={key}>
-                  <input
-                    type="checkbox"
-                    checked={value}
-                    onChange={() => handleToggle(key as keyof NotificationPref)}
-                  />
-                  {key.toUpperCase()}
-                </label>
-              ))}
+              <strong>Mes notifications</strong>
+              <p className={shared.mutedText}>
+                {notificationsTotal} notification{notificationsTotal > 1 ? "s" : ""}{" "}
+                reçue{notificationsTotal > 1 ? "s" : ""} sur ce compte, dont{" "}
+                {notificationsUnread} non lue{notificationsUnread > 1 ? "s" : ""}.
+              </p>
+              <p className={shared.mutedText}>
+                Elles se consultent avec l’icône cloche, en haut à droite de
+                l’écran. Le suivi courant des trajets et des demandes de trajet
+                n’y est pas repris pour garder cette liste lisible.
+              </p>
             </article>
 
             <article className={shared.card}>
-              <strong>Integrations actives</strong>
-              <ul className={shared.compactList}>
-                <li>Orange Money - Webhook OK</li>
-                <li>M-Pesa - Token valide</li>
-                <li>Firebase Cloud Messaging</li>
-              </ul>
+              <strong>Moyens de paiement acceptés</strong>
+              {paymentMethods.length > 0 ? (
+                <ul className={shared.compactList}>
+                  {paymentMethods.map((method) => (
+                    <li key={method}>{formatPaymentMethod(method)}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={shared.emptyState}>
+                  Aucun moyen de paiement n’est configuré sur les offres
+                  d’abonnement.
+                </p>
+              )}
+              <p className={shared.mutedText}>
+                Cette liste vient de la configuration réelle des offres
+                d’abonnement.
+              </p>
             </article>
           </div>
         ) : null}
@@ -390,13 +391,14 @@ export default function SettingsPage() {
         <section className={shared.section}>
           <div className={shared.sectionHeader}>
             <div>
-              <h2>Comptes back-office</h2>
+              <h2>Comptes administrateurs</h2>
               <p className={shared.mutedText}>
-                Creation ou promotion des administrateurs operationnels avec mot de passe temporaire.
+                Créez un administrateur, désactivez-le ou donnez-lui un nouveau
+                mot de passe temporaire.
               </p>
             </div>
             <span className={`${shared.badge} ${shared.badgeWarning}`}>
-              Reserve super admin
+              Réservé au super admin
             </span>
           </div>
 
@@ -405,11 +407,11 @@ export default function SettingsPage() {
             <article className={shared.card}>
               <strong className={shared.cardTitle}>
                 <UserPlus size={18} />
-                Creer ou promouvoir un admin
+                Créer ou promouvoir un admin
               </strong>
               <form className={shared.form} onSubmit={handleCreateAdminSubmit}>
                 <label>
-                  Telephone
+                  Téléphone
                   <input
                     type="tel"
                     placeholder="+243 000 000 000"
@@ -423,7 +425,7 @@ export default function SettingsPage() {
 
                 <div className={shared.fieldGrid}>
                   <label>
-                    Prenom
+                    Prénom
                     <input
                       type="text"
                       value={adminForm.firstName}
@@ -456,7 +458,7 @@ export default function SettingsPage() {
                 </div>
 
                 <label>
-                  Mot de passe temporaire
+                  Mot de passe temporaire (8 caractères minimum)
                   <input
                     type="password"
                     value={adminForm.defaultPassword}
@@ -473,8 +475,10 @@ export default function SettingsPage() {
                 </label>
 
                 <p className={shared.mutedText}>
-                  Transmets ce mot de passe hors de l'application. Zwanga ne le
-                  reaffichera pas apres creation.
+                  Transmettez ce mot de passe en dehors de l’application, par
+                  exemple de vive voix. Zwanga ne le réaffichera plus après la
+                  création, et la personne devra le changer à sa première
+                  connexion.
                 </p>
 
                 {adminError ? <p className={shared.errorText}>{adminError}</p> : null}
@@ -485,7 +489,7 @@ export default function SettingsPage() {
                   type="submit"
                   disabled={isCreatingAdmin}
                 >
-                  {isCreatingAdmin ? "Traitement..." : "Creer ou promouvoir"}
+                  {isCreatingAdmin ? "Traitement..." : "Créer ou promouvoir"}
                 </button>
               </form>
             </article>
@@ -508,10 +512,10 @@ export default function SettingsPage() {
                     <thead>
                       <tr>
                         <th>Compte</th>
-                        <th>Role</th>
-                        <th>Etat</th>
+                        <th>Rôle</th>
+                        <th>État</th>
                         <th>Mot de passe</th>
-                        <th>Derniere connexion</th>
+                        <th>Dernière connexion</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -548,14 +552,14 @@ export default function SettingsPage() {
                               }`}
                             >
                               {account.passwordChangeRequired
-                                ? "A changer"
-                                : "Personnalise"}
+                                ? "Temporaire, à changer"
+                                : "Défini par la personne"}
                             </span>
                           </td>
                           <td>{formatDate(account.lastLoginAt)}</td>
                           <td>
                             {manageable ? (
-                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <div className={shared.rowActions}>
                                 <button
                                   type="button"
                                   className={
@@ -580,11 +584,15 @@ export default function SettingsPage() {
                                     });
                                   }}
                                 >
-                                  Mot de passe
+                                  Réinitialiser le mot de passe
                                 </button>
                               </div>
                             ) : (
-                              <small className={shared.mutedText}>—</small>
+                              <small className={shared.mutedText}>
+                                {account.id === profile?.user.id
+                                  ? "Votre propre compte"
+                                  : "Compte super admin protégé"}
+                              </small>
                             )}
                           </td>
                         </tr>
@@ -594,14 +602,17 @@ export default function SettingsPage() {
                   </table>
                 </div>
               ) : !isFetchingAdmins ? (
-                <p className={shared.emptyState}>Aucun compte admin trouve.</p>
+                <p className={shared.emptyState}>
+                  Aucun compte administrateur pour le moment. Utilisez le
+                  formulaire à gauche pour en créer un.
+                </p>
               ) : null}
             </article>
           </div>
           ) : (
             <p className={`${shared.notice} ${shared.noticeWarning}`}>
-              Change d'abord le mot de passe temporaire de ce super admin. La
-              creation des administrateurs sera disponible juste apres.
+              Changez d’abord votre mot de passe temporaire ci-dessus. La gestion
+              des administrateurs se débloquera juste après.
             </p>
           )}
         </section>
@@ -681,9 +692,10 @@ export default function SettingsPage() {
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h2>Documents et conformite</h2>
+            <h2>Documents et conformité</h2>
             <p className={shared.mutedText}>
-              Acces rapide aux pages legales exposees publiquement.
+              Les pages légales visibles par le public. Elles s’ouvrent dans un
+              nouvel onglet.
             </p>
           </div>
         </div>

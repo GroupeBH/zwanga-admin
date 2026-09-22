@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Coins, Download, SlidersHorizontal, Search } from "lucide-react";
+import { Coins, Download, Info, SlidersHorizontal, Search } from "lucide-react";
 
 import { isSuperAdminRole } from "@/lib/features/auth/adminRoles";
 import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
@@ -265,26 +265,39 @@ export default function TokensPage() {
             <p>Écritures signées et solde calculé après chaque opération.</p>
           </div>
           <div className={styles.filters}>
-            <select
-              aria-label="Filtrer les écritures"
-              value={entryType}
-              onChange={(event) => {
-                setLedgerPage(1);
-                setEntryType(event.target.value as WalletLedgerEntryType | "all");
-              }}
-            >
-              <option value="all">Tous les mouvements</option>
-              <option value="top_up">Achats</option>
-              <option value="loyalty_reward">Fidélité</option>
-              <option value="booking_payment">Réservations</option>
-              <option value="subscription_payment">Abonnements</option>
-              <option value="subscription_reward">Récompenses abonnement</option>
-              <option value="transfer_out">Transferts sortants</option>
-              <option value="transfer_in">Transferts entrants</option>
-              <option value="admin_adjustment">Ajustements admin</option>
-            </select>
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel} htmlFor="ledger-type">
+                Type de mouvement
+              </label>
+              <select
+                id="ledger-type"
+                value={entryType}
+                onChange={(event) => {
+                  setLedgerPage(1);
+                  setEntryType(event.target.value as WalletLedgerEntryType | "all");
+                }}
+              >
+                <option value="all">Tous les mouvements</option>
+                <option value="top_up">Achats</option>
+                <option value="loyalty_reward">Fidélité</option>
+                <option value="booking_payment">Réservations</option>
+                <option value="subscription_payment">Abonnements</option>
+                <option value="subscription_reward">Récompenses abonnement</option>
+                <option value="transfer_out">Transferts sortants</option>
+                <option value="transfer_in">Transferts entrants</option>
+                <option value="admin_adjustment">Ajustements admin</option>
+              </select>
+            </div>
           </div>
         </div>
+
+        <p className={styles.helpText}>
+          <Info size={16} aria-hidden="true" />
+          <span>
+            Un crédit ajoute des jetons au compte, un débit en retire. Chaque
+            ajustement manuel exige un motif et reste tracé dans ce registre.
+          </span>
+        </p>
 
         {ledgerQuery.error ? <div className={styles.error}>{getApiError(ledgerQuery.error)}</div> : null}
         {ledgerQuery.isFetching && entries.length === 0 ? (

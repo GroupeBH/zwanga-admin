@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { Download } from "lucide-react";
+import { Download, Info } from "lucide-react";
 
 import {
   buildTripLifecycleBuckets,
@@ -173,27 +173,41 @@ export default function RidesPage() {
         <div className={shared.sectionHeader}>
           <div>
             <h2>Gestion des trajets publies</h2>
-            <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
-              {filtered.length} trajet(s) visibles - lecture admin par cycle de vie
+            <p className={shared.filterSummary}>
+              {filtered.length} trajet{filtered.length > 1 ? "s" : ""} affiché
+              {filtered.length > 1 ? "s" : ""}
             </p>
           </div>
           <div className={shared.toolbar}>
-            <input
-              placeholder="Rechercher (lieu, conducteur, telephone)..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-            >
-              <option value="all">Tous les statuts</option>
-              <option value="ongoing">En cours</option>
-              <option value="upcoming">A venir</option>
-              <option value="completed">Termines</option>
-              <option value="expired">Expires</option>
-              <option value="cancelled">Annules</option>
-            </select>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="trips-search">
+                Rechercher un trajet
+              </label>
+              <input
+                id="trips-search"
+                className={shared.filterSearch}
+                placeholder="Lieu, conducteur ou téléphone"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="trips-status">
+                Filtrer par état
+              </label>
+              <select
+                id="trips-status"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value="all">Tous les états</option>
+                <option value="ongoing">En cours</option>
+                <option value="upcoming">A venir</option>
+                <option value="completed">Termines</option>
+                <option value="expired">Expires</option>
+                <option value="cancelled">Annules</option>
+              </select>
+            </div>
             <button
               type="button"
               className={shared.primaryButton}
@@ -205,6 +219,15 @@ export default function RidesPage() {
             </button>
           </div>
         </div>
+
+        <p className={shared.helpText}>
+          <Info size={16} aria-hidden="true" />
+          <span>
+            « Expiré » signifie que l’heure de départ est dépassée de plus de
+            2 heures sans clôture par le conducteur. Les compteurs ci-dessous
+            reflètent toujours le filtre actif.
+          </span>
+        </p>
 
         {exportError ? (
           <p className={shared.errorText} role="alert">

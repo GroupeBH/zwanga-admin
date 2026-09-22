@@ -5,6 +5,7 @@ import type {
   TripRequest,
   TripRequestStatus,
 } from "../admin/types";
+import { listProvidesTags, unwrapList } from "@/lib/utils/toList";
 
 export interface TripRequestsQueryParams {
   page?: number;
@@ -50,16 +51,23 @@ export const tripRequestsApi = baseApi.injectEndpoints({
           currentArg?.limit !== previousArg?.limit
         );
       },
+      transformResponse: (
+        response: unknown
+      ): PaginatedTripRequestsResponse => {
+        const tripRequests = unwrapList<TripRequest>(response, "tripRequests");
+        const record =
+          response && typeof response === "object" && !Array.isArray(response)
+            ? (response as Record<string, unknown>)
+            : {};
+        return {
+          tripRequests,
+          total: typeof record.total === "number" ? record.total : tripRequests.length,
+          page: typeof record.page === "number" ? record.page : 1,
+          limit: typeof record.limit === "number" ? record.limit : tripRequests.length,
+        };
+      },
       providesTags: (result) =>
-        result?.tripRequests
-          ? [
-              ...result.tripRequests.map(({ id }) => ({
-                type: "TripRequests" as const,
-                id,
-              })),
-              { type: "TripRequests" as const, id: "LIST" },
-            ]
-          : [{ type: "TripRequests" as const, id: "LIST" }],
+        listProvidesTags("TripRequests", result?.tripRequests),
     }),
 
     getTripRequestById: builder.query<TripRequest, string>({
@@ -107,7 +115,7 @@ export const tripRequestsApi = baseApi.injectEndpoints({
       ],
     }),
   }),
-  overrideExisting: false,
+  overrideExisting: true,
 });
 
 export const {

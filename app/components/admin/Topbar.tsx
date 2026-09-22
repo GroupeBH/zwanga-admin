@@ -1,20 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   LogOut,
   Menu,
   Moon,
-  Plus,
+  Route,
   Search,
   Sun,
+  X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { toggleSidebar, toggleTheme } from "@/lib/features/ui/uiSlice";
-import { useGetNotificationsQuery } from "@/lib/features/notifications/notificationsApi";
+import {
+  useGetNotificationsQuery,
+  useMarkAllNotificationsAsReadMutation,
+  useMarkNotificationsAsReadMutation,
+  type AdminNotification,
+} from "@/lib/features/notifications/notificationsApi";
 import { useLogoutMutation } from "@/lib/features/auth/authApi";
 import { getAdminRoleLabel } from "@/lib/features/auth/adminRoles";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
@@ -24,15 +30,86 @@ import { setAuthenticated } from "@/lib/features/auth/authSlice";
 
 import styles from "./Topbar.module.css";
 
+const SEARCH_TARGET = "/users";
+
+/* Une notification doit mener a l'ecran qui permet d'agir. L'ordre compte:
+   les motifs les plus precis passent avant les plus larges. */
+const NOTIFICATION_TARGETS: Array<{ pattern: RegExp; href: string }> = [
+  { pattern: /report|signalement/, href: "/reports" },
+  { pattern: /support|ticket/, href: "/support" },
+  { pattern: /kyc/, href: "/kyc" },
+  { pattern: /funding|subscription|abonnement/, href: "/subscriptions" },
+  { pattern: /referral|parrainage|filleul/, href: "/referrals" },
+  { pattern: /token|jeton/, href: "/tokens" },
+  { pattern: /revenue|earning|settlement|payment|paiement|gain/, href: "/payments" },
+  { pattern: /trip_request|driver_offer|offer_accepted|demande/, href: "/trip-requests" },
+  { pattern: /booking|reservation/, href: "/bookings" },
+  { pattern: /trip|trajet|pickup|dropoff|interruption/, href: "/trips" },
+];
+
+const resolveNotificationTarget = (notification: AdminNotification) => {
+  const type =
+    typeof notification.data?.type === "string" ? notification.data.type : "";
+  const haystack = `${type} ${notification.title}`.toLowerCase();
+  return (
+    NOTIFICATION_TARGETS.find(({ pattern }) => pattern.test(haystack))?.href ??
+    null
+  );
+};
+
 export const Topbar = () => {
   const dispatch = useAppDispatch();
   const theme = useAppSelector((state) => state.ui.theme);
   const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
-  const { data: notifications } = useGetNotificationsQuery();
+  /* La cloche doit refleter l'etat reel sans recharger la page: on interroge
+     le serveur a intervalle regulier tant qu'un onglet admin est ouvert. */
+  const { data: notificationsData, isLoading: isLoadingNotifications } =
+    useGetNotificationsQuery(
+      { limit: 20 },
+      { pollingInterval: 60_000, refetchOnFocus: true }
+    );
+  const [markNotificationsAsRead] = useMarkNotificationsAsReadMutation();
+  const [markAllNotificationsAsRead, { isLoading: isMarkingAll }] =
+    useMarkAllNotificationsAsReadMutation();
   const { data: profile } = useGetCurrentUserProfileQuery();
   const [panelOpen, setPanelOpen] = useState(false);
+  const [searchDraft, setSearchDraft] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const router = useRouter();
+  /* Le champ reflete la recherche active de la liste des utilisateurs. La
+     lecture passe par l'URL du navigateur et non par useSearchParams: ce
+     composant vit dans la mise en page, ou le hook ne recoit pas les
+     parametres et ne se rejoue pas a la navigation. */
+  useEffect(() => {
+    const syncFromUrl = () => {
+      setSearchDraft(
+        window.location.pathname === SEARCH_TARGET
+          ? new URLSearchParams(window.location.search).get("q") ?? ""
+          : ""
+      );
+    };
+
+    syncFromUrl();
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, [pathname]);
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const term = searchDraft.trim();
+    router.push(
+      term ? `${SEARCH_TARGET}?q=${encodeURIComponent(term)}` : SEARCH_TARGET
+    );
+  };
+
+  const handleSearchClear = () => {
+    setSearchDraft("");
+    if (pathname === SEARCH_TARGET) {
+      router.push(SEARCH_TARGET);
+    }
+  };
+
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   const handleLogout = async () => {
     try {
@@ -61,9 +138,26 @@ export const Topbar = () => {
       }),
     []
   );
-  const dateLabel = formatter.format(new Date());
+  /* L'heure affichee doit rester juste sur un onglet laisse ouvert la journee. */
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const dateLabel = formatter.format(now);
 
-  const unreadCount = notifications?.filter((item) => !item.read).length ?? 0;
+  const notifications = notificationsData?.notifications ?? [];
+  const unreadCount = notificationsData?.unreadCount ?? 0;
+  const relativeFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat("fr-CD", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    []
+  );
   const currentUser = profile?.user;
   const displayName = currentUser
     ? `${currentUser.firstName} ${currentUser.lastName}`.trim()
@@ -125,22 +219,41 @@ export const Topbar = () => {
 
         <div className={styles.workspaceMeta}>
           <strong>ZWANGA HQ</strong>
-          <span>{dateLabel}</span>
+          <span suppressHydrationWarning>{dateLabel}</span>
         </div>
 
-        <div className={styles.search}>
-          <Search size={18} aria-hidden="true" />
+        <form className={styles.search} onSubmit={handleSearchSubmit}>
+          <button
+            type="submit"
+            className={styles.searchSubmit}
+            aria-label="Lancer la recherche"
+          >
+            <Search size={18} aria-hidden="true" />
+          </button>
           <input
             type="search"
-            aria-label="Rechercher dans l'administration"
-            placeholder="Rechercher un trajet, un utilisateur, un ticket..."
+            name="q"
+            aria-label="Rechercher un utilisateur"
+            placeholder="Rechercher une personne (nom, email, téléphone)"
+            value={searchDraft}
+            onChange={(event) => setSearchDraft(event.target.value)}
           />
-        </div>
+          {searchDraft ? (
+            <button
+              type="button"
+              className={styles.searchClear}
+              aria-label="Effacer la recherche"
+              onClick={handleSearchClear}
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          ) : null}
+        </form>
       </div>
 
       <div className={styles.right}>
         <Link href="/trips" className={styles.cta}>
-          <Plus size={16} aria-hidden="true" />
+          <Route size={16} aria-hidden="true" />
           <span>Gérer les trajets</span>
         </Link>
 
@@ -174,22 +287,60 @@ export const Topbar = () => {
 
           {panelOpen ? (
             <div id="notification-panel" className={styles.panel}>
-              <strong>Notifications</strong>
-              {notifications && notifications.length > 0 ? (
-                notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`${styles.panelItem} ${
-                      notification.read ? "" : styles.unread
-                    }`}
+              <div className={styles.panelHeader}>
+                <strong>Notifications</strong>
+                {unreadCount > 0 ? (
+                  <button
+                    type="button"
+                    className={styles.panelAction}
+                    onClick={() => void markAllNotificationsAsRead()}
+                    disabled={isMarkingAll}
                   >
-                    <h4>{notification.title}</h4>
-                    <p>{notification.description}</p>
-                    <span>{notification.category}</span>
-                  </div>
-                ))
+                    {isMarkingAll ? "Patientez" : "Tout marquer comme lu"}
+                  </button>
+                ) : null}
+              </div>
+
+              {isLoadingNotifications ? (
+                <p className={styles.emptyPanel}>Chargement des notifications...</p>
+              ) : notifications.length > 0 ? (
+                notifications.map((notification) => {
+                  const target = resolveNotificationTarget(notification);
+                  return (
+                    <button
+                      type="button"
+                      key={notification.id}
+                      className={`${styles.panelItem} ${
+                        notification.isRead ? "" : styles.unread
+                      }`}
+                      disabled={notification.isRead && !target}
+                      onClick={() => {
+                        if (!notification.isRead) {
+                          void markNotificationsAsRead([notification.id]);
+                        }
+                        if (target) {
+                          setPanelOpen(false);
+                          router.push(target);
+                        }
+                      }}
+                    >
+                      <h4>{notification.title}</h4>
+                      <p>{notification.body}</p>
+                      <span>
+                        {relativeFormatter.format(
+                          new Date(notification.createdAt)
+                        )}
+                        {notification.isRead ? "" : " · non lue"}
+                        {target ? " · appuyez pour ouvrir" : ""}
+                      </span>
+                    </button>
+                  );
+                })
               ) : (
-                <p className={styles.emptyPanel}>Aucune notification récente.</p>
+                <p className={styles.emptyPanel}>
+                  Aucune alerte à traiter. Le suivi courant des trajets et des
+                  demandes de trajet reste dans l’application mobile.
+                </p>
               )}
             </div>
           ) : null}

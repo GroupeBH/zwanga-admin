@@ -13,7 +13,7 @@ import {
 } from "@/lib/features/tripRequests/tripRequestsApi";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
-import { Download } from "lucide-react";
+import { Download, Info } from "lucide-react";
 
 import shared from "../styles/page.module.css";
 
@@ -191,30 +191,44 @@ export default function TripRequestsPage() {
         <div className={shared.sectionHeader}>
           <div>
             <h2>Demandes de trajet</h2>
-            <p style={{ margin: 0, color: "var(--color-text-muted)" }}>
-              {filtered.length} demande(s) visible(s)
+            <p className={shared.filterSummary}>
+              {filtered.length} demande{filtered.length > 1 ? "s" : ""} affichée
+              {filtered.length > 1 ? "s" : ""}
             </p>
           </div>
           <div className={shared.toolbar}>
-            <input
-              placeholder="Rechercher (lieu, passager, telephone)"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <select
-              value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value as TripRequestStatus | "all");
-                setPage(1);
-              }}
-            >
-              <option value="all">Tous les statuts</option>
-              <option value="pending">En attente</option>
-              <option value="offers_received">Offres recues</option>
-              <option value="driver_selected">Conducteur choisi</option>
-              <option value="cancelled">Annulees</option>
-              <option value="expired">Expirees</option>
-            </select>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="requests-search">
+                Rechercher une demande
+              </label>
+              <input
+                id="requests-search"
+                className={shared.filterSearch}
+                placeholder="Lieu, passager ou téléphone"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="requests-status">
+                Filtrer par statut
+              </label>
+              <select
+                id="requests-status"
+                value={statusFilter}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value as TripRequestStatus | "all");
+                  setPage(1);
+                }}
+              >
+                <option value="all">Tous les statuts</option>
+                <option value="pending">En attente</option>
+                <option value="offers_received">Offres recues</option>
+                <option value="driver_selected">Conducteur choisi</option>
+                <option value="cancelled">Annulees</option>
+                <option value="expired">Expirees</option>
+              </select>
+            </div>
             <button
               type="button"
               className={shared.primaryButton}
@@ -226,6 +240,15 @@ export default function TripRequestsPage() {
             </button>
           </div>
         </div>
+
+        <p className={shared.helpText}>
+          <Info size={16} aria-hidden="true" />
+          <span>
+            Une demande est publiée par un passager qui cherche un conducteur.
+            « Offres reçues » indique qu’au moins un conducteur a répondu ;
+            « Conducteur choisi » que le passager a tranché.
+          </span>
+        </p>
 
         {exportError ? (
           <p className={shared.errorText} role="alert">

@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   --font-body: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
   --color-bg: #0b1b2b;
@@ -7,6 +7,8 @@
   --color-surface-soft: rgba(9, 20, 36, 0.8);
   --color-panel: #182c43;
   --color-panel-muted: rgba(24, 44, 67, 0.35);
+  --color-field: #152a40;
+  --color-field-hover: #1d3550;
   --color-border: rgba(255, 255, 255, 0.06);
   --color-border-strong: rgba(255, 255, 255, 0.12);
   --color-text: #e9f0ff;
@@ -28,6 +30,8 @@
   --color-surface-soft: rgba(255, 255, 255, 0.8);
   --color-panel: #ffffff;
   --color-panel-muted: rgba(10, 31, 68, 0.08);
+  --color-field: #ffffff;
+  --color-field-hover: #eef2f8;
   --color-border: rgba(14, 49, 84, 0.08);
   --color-border-strong: rgba(14, 49, 84, 0.22);
   --color-text: #0b1b2b;
@@ -81,6 +85,7 @@ select,
 textarea {
   font: inherit;
 }
+
 
 button,
 [role="button"],
