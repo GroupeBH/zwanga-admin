@@ -50,6 +50,7 @@ const navGroups = [
     label: "Finance",
     items: [
       { label: "Paiements", href: "/payments", icon: BadgeDollarSign },
+      { label: "Zwanga Services", href: "/pro-services", icon: ClipboardList },
       { label: "Jetons", href: "/tokens", icon: Coins },
       { label: "Parrainage", href: "/referrals", icon: Share2 },
       { label: "Abonnements", href: "/subscriptions", icon: Crown, badgeKey: "subscriptions" },

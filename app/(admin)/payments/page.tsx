@@ -99,7 +99,7 @@ export default function PaymentsPage() {
 
   const handleReconcile = async () => {
     if (!selected || data?.source !== "admin-api" || !canReconcilePayments) return;
-    if (!confirm(`Vérifier la transaction ${selected.reference} auprès de FlexPay ?`)) {
+    if (!confirm(`Vérifier la transaction ${selected.reference} auprès de ${selected.provider === "pawapay" ? "PawaPay" : "FlexPay"} ?`)) {
       return;
     }
     try {
@@ -116,7 +116,7 @@ export default function PaymentsPage() {
         <div>
           <span className={styles.eyebrow}>Finance · registre central</span>
           <h1>Paiements</h1>
-          <p>Suivi de tous les encaissements et décaissements FlexPay.</p>
+          <p>Suivi des encaissements et décaissements FlexPay et PawaPay.</p>
         </div>
         <div className={styles.headingActions}>
           <button
@@ -314,7 +314,8 @@ export default function PaymentsPage() {
               <dt>Montant</dt><dd>{formatMoney(selected.amount, selected.currency)}</dd>
               <dt>Objet</dt><dd>{financeLabel(selected.purpose)}</dd>
               <dt>Méthode</dt><dd>{financeLabel(selected.method)}</dd>
-              <dt>Commande FlexPay</dt><dd className={styles.reference}>{selected.orderNumber ?? "—"}</dd>
+              <dt>Prestataire</dt><dd>{financeLabel(selected.provider)}</dd>
+              <dt>Référence prestataire</dt><dd className={styles.reference}>{selected.orderNumber ?? "—"}</dd>
               <dt>Référence fournisseur</dt><dd className={styles.reference}>{selected.providerReference ?? "—"}</dd>
               <dt>Code fournisseur</dt><dd>{selected.providerStatusCode ?? "—"}</dd>
               <dt>Message</dt><dd>{selected.providerMessage ?? "—"}</dd>
@@ -346,7 +347,7 @@ export default function PaymentsPage() {
                       : undefined
                 }
               >
-                <CheckCircle2 size={16} /> Vérifier chez FlexPay
+                <CheckCircle2 size={16} /> Vérifier chez le prestataire
               </button>
             </div>
           </aside>

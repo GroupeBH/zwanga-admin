@@ -4,10 +4,11 @@ import { useEffect } from "react";
 
 interface Props {
   readonly status: string;
+  readonly path?: string;
 }
 
-export function OpenZwangaApp({ status }: Props) {
-  const appUrl = `zwanga://subscriptions/payment?status=${encodeURIComponent(status)}`;
+export function OpenZwangaApp({ status, path = "subscriptions/payment" }: Props) {
+  const appUrl = `zwanga://${path}?status=${encodeURIComponent(status)}`;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

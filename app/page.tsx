@@ -1169,7 +1169,7 @@ export default function HomePage() {
             <div className={styles.footerSection}>
               <h4 className={styles.footerTitle}>Liens rapides</h4>
               <Link href="/">Accueil</Link>
-              <Link href="/enquiry">Demander des documents</Link>
+              <Link href="/enquiry">Zwanga Services</Link>
               <Link href="#benefits">Avantages</Link>
               <Link href="#how-it-works">Comment ca marche</Link>
               <Link href="/privacy">Politique de confidentialite</Link>

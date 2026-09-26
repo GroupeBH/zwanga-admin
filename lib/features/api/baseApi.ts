@@ -87,6 +87,7 @@ export const baseApi = createApi({
     "Referrals",
     "Vehicles",
     "Subscriptions",
+    "ProServices",
     "Reports",
     "Support",
     "Notifications",

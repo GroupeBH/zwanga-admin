@@ -9,7 +9,7 @@ const PAYMENT_STATUS_COPY: Record<
   success: {
     title: "Paiement recu",
     message:
-      "Retournez dans l'application Zwanga pour verifier FlexPay et activer votre abonnement conducteur.",
+      "Retournez dans l'application Zwanga pour confirmer le paiement et activer votre abonnement conducteur.",
     tone: "#0f8b57",
   },
   cancel: {
@@ -84,7 +84,7 @@ export default async function SubscriptionPaymentReturnPage({ params }: Props) {
             textTransform: "uppercase",
           }}
         >
-          FlexPay
+          Paiement
         </p>
         <h1
           style={{

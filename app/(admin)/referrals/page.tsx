@@ -92,7 +92,7 @@ export default function ReferralsPage() {
 
   const handleReconcile = async (id: string) => {
     if (!canReconcileWithdrawals) return;
-    if (!confirm("Relancer la vérification FlexPay de ce retrait ?")) return;
+    if (!confirm("Relancer la vérification du retrait auprès du prestataire ?")) return;
     try {
       await reconcileWithdrawal(id).unwrap();
     } catch {
@@ -135,7 +135,7 @@ export default function ReferralsPage() {
         <div>
           <span className={styles.eyebrow}>Croissance · audit financier</span>
           <h1>Parrainage</h1>
-          <p>Attributions ChottuLink, commissions en retenue et retraits FlexPay.</p>
+          <p>Attributions ChottuLink, commissions en retenue et retraits Mobile Money.</p>
         </div>
         <div className={styles.headingActions}>
           <button type="button" className={styles.secondaryButton} onClick={() => activeQuery.refetch()} disabled={activeQuery.isFetching}>
@@ -160,7 +160,7 @@ export default function ReferralsPage() {
       {reconcileState.error ? <div className={styles.error}>La vérification du retrait a échoué. Contrôlez la transaction et la route de rapprochement admin.</div> : null}
       {view === "withdrawals" && !canReconcileWithdrawals ? (
         <div className={styles.notice}>
-          Mode lecture seule : seuls les super administrateurs peuvent rapprocher un retrait FlexPay.
+          Mode lecture seule : seuls les super administrateurs peuvent rapprocher un retrait Mobile Money.
         </div>
       ) : null}
 

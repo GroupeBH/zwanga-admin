@@ -4,8 +4,8 @@ import { FormWizard } from "./FormWizard";
 import styles from "./wizard.module.css";
 
 export const metadata: Metadata = {
-  title: "Souscription au pack pro pour conducteurs",
-  description: "Soumettez votre demande de documents administratifs en quelques etapes.",
+  title: "Zwanga Services — Démarches et solutions professionnelles",
+  description: "Déposez une demande d’accompagnement pour votre activité professionnelle.",
 };
 
 export default function DemandeDocumentsPage() {
@@ -13,10 +13,10 @@ export default function DemandeDocumentsPage() {
     <main className={styles.page}>
       <section className={styles.shell}>
         <header className={styles.header}>
-          <p className={styles.kicker}>Souscription au pack pro pour conducteurs</p>
-          <h1>Souscrire au pack pro pour les documents de votre vehicule</h1>
+          <p className={styles.kicker}>Zwanga Services</p>
+          <h1>Vos démarches, accompagnées.</h1>
           <p className={styles.subtitle}>
-            Remplissez ce formulaire simplifie pour soumettre votre demande administrative.
+            Décrivez votre besoin. Notre équipe vous recontactera pour construire une solution adaptée.
           </p>
         </header>
         <FormWizard />

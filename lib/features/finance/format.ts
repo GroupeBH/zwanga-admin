@@ -41,6 +41,8 @@ const labels: Record<string, string> = {
   referral_payout: "Retrait parrainage",
   mobile_money: "Mobile Money",
   card: "Carte",
+  flexpay: "FlexPay",
+  pawapay: "PawaPay",
   pending: "En attente",
   initiated: "Initié",
   succeeded: "Réussi",

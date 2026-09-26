@@ -1,10 +1,7 @@
 .page {
   min-height: 100vh;
   color: #0b1b2b;
-  background:
-    radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.18), transparent 34%),
-    radial-gradient(circle at 85% 0%, rgba(255, 122, 0, 0.2), transparent 32%),
-    linear-gradient(160deg, #f7fbff, #e9f4ff 72%);
+  background: #f4f7f8;
 }
 
 .topbar {

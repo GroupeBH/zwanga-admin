@@ -1,452 +1,234 @@
 "use client";
-
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { ZodIssue } from "zod";
-import { useRouter } from "next/navigation";
-
-import { FORM_STEPS, SERVICES } from "@/config/form.config";
-import { computeServicesTotal, contactSchema, demandePayloadSchema, identiteSchema, servicesSchema, vehiculeSchema } from "@/lib/validation";
-
-import styles from "./wizard.module.css";
-
-type FormData = {
-  identite: {
-    nomComplet: string;
-  };
-  contact: {
-    telephone: string;
-  };
-  vehicule: {
-    marqueComplete: string;
-    plaqueImmatriculation: string;
-  };
-  services: string[];
-};
-
-type SubmittedDemande = {
-  id: string;
-  date: string;
-  total: number;
-  data: FormData;
-};
-
-const STORAGE_KEY = "demande-documents-wizard-v3";
-
-const initialFormData: FormData = {
-  identite: {
-    nomComplet: "",
-  },
-  contact: {
-    telephone: "",
-  },
-  vehicule: {
-    marqueComplete: "",
-    plaqueImmatriculation: "",
-  },
-  services: [],
-};
-
-const mapIssues = (issues: ZodIssue[], prefix = "") => {
-  const mappedErrors: Record<string, string> = {};
-  issues.forEach((issue) => {
-    const key = `${prefix}${issue.path.join(".")}`.replace(/\.$/, "");
-    if (!mappedErrors[key]) mappedErrors[key] = issue.message;
-  });
-  return mappedErrors;
-};
-
-const getStepFromErrorKey = (key: string) => {
-  if (key.startsWith("services")) return 1;
-  return 0;
-};
-
-const SIMPLE_SERVICE_LABELS: Record<string, string> = {
-  "nouveau-permis": "Nouveau permis",
-  "renouvellement-permis": "Renouvellement permis",
-  "plaque-immatriculation": "Nouvelle plaque",
-  "carte-rose": "Carte rose",
-  mutation: "Mutation",
-  "attestation-perte": "Attestation perte",
-  "vignette-annuelle": "Vignette annuelle",
-  "controle-technique": "Controle technique",
-  "autorisation-transport": "Autorisation transport",
-  "assurance-auto": "Assurance auto",
-};
-
-const SIMPLE_SERVICE_SUBHEADS: Record<string, string> = {
-  "nouveau-permis": "Conduite",
-  "renouvellement-permis": "Conduite",
-  "plaque-immatriculation": "Immatriculation",
-  "carte-rose": "Propriete",
-  mutation: "Propriete",
-  "attestation-perte": "Regularisation",
-  "vignette-annuelle": "Taxe annuelle",
-  "controle-technique": "Controle",
-  "autorisation-transport": "Transport",
-  "assurance-auto": "Assurance",
-};
+import { useEffect, useRef, useState } from "react";
+import type { Offering } from "@/lib/features/proServices/types";
+import { publicServiceRequest } from "@/lib/features/proServices/publicRequest";
+import s from "../(admin)/pro-services/services.module.css";
 
 export function FormWizard() {
-  const router = useRouter();
-  const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState<FormData>(initialFormData);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isRestored, setIsRestored] = useState(false);
-  const [submittedDemande, setSubmittedDemande] = useState<SubmittedDemande | null>(null);
-  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-
-  const stepTitleRef = useRef<HTMLHeadingElement>(null);
-  const successModalRef = useRef<HTMLDivElement>(null);
-
-  const total = useMemo(() => computeServicesTotal(formData.services), [formData.services]);
-  const totalSteps = FORM_STEPS.length;
-
+  const [catalogue, setCatalogue] = useState<Offering[]>([]);
+  const [service, setService] = useState("documents");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [reference, setReference] = useState("");
+  const [uncertain, setUncertain] = useState(false);
+  const [reload, setReload] = useState(0);
+  const pending = useRef<unknown>(null);
+  const abort = useRef<AbortController | null>(null);
   useEffect(() => {
-    stepTitleRef.current?.focus();
-  }, [step]);
-
-  useEffect(() => {
-    if (!isSuccessModalOpen) return;
-    successModalRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsSuccessModalOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isSuccessModalOpen]);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        setIsRestored(true);
-        return;
-      }
-      const parsed = JSON.parse(raw) as Partial<FormData>;
-      setFormData((previous) => ({
-        ...previous,
-        ...parsed,
-        identite: { ...previous.identite, ...parsed.identite },
-        contact: { ...previous.contact, ...parsed.contact },
-        vehicule: { ...previous.vehicule, ...parsed.vehicule },
-        services: Array.isArray(parsed.services) ? parsed.services.filter((service) => typeof service === "string") : [],
-      }));
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    } finally {
-      setIsRestored(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isRestored) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
-  }, [formData, isRestored]);
-
-  const setFieldError = (field: string) => errors[field];
-
-  const updateField = <Section extends keyof Omit<FormData, "services">>(
-    section: Section,
-    field: keyof FormData[Section],
-    value: string,
-  ) => {
-    setFormData((previous) => ({
-      ...previous,
-      [section]: {
-        ...previous[section],
-        [field]: value,
-      },
-    }));
-    setErrors((previous) => {
-      const next = { ...previous };
-      delete next[`${String(section)}.${String(field)}`];
-      return next;
-    });
-  };
-
-  const toggleService = (serviceId: string) => {
-    setFormData((previous) => {
-      const exists = previous.services.includes(serviceId);
-      const services = exists ? previous.services.filter((service) => service !== serviceId) : [...previous.services, serviceId];
-      return { ...previous, services };
-    });
-    setErrors((previous) => {
-      const next = { ...previous };
-      delete next.services;
-      return next;
-    });
-  };
-
-  const validateCurrentStep = () => {
-    if (step === 0) {
-      const step0Schema = identiteSchema.and(contactSchema).and(vehiculeSchema);
-      const result = step0Schema.safeParse({
-        ...formData.identite,
-        ...formData.contact,
-        ...formData.vehicule,
+    const controller = new AbortController();
+    setError("");
+    publicServiceRequest(controller.signal)
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.message);
+        if (!controller.signal.aborted) setCatalogue(body);
+      })
+      .catch((reason) => {
+        if (!controller.signal.aborted)
+          setError(reason.message || "Catalogue indisponible.");
       });
-      if (!result.success) {
-        setErrors((previous) => ({ ...previous, ...mapIssues(result.error.issues) }));
-        return false;
-      }
-      return true;
-    }
-
-    if (step === 1) {
-      const result = servicesSchema.safeParse(formData.services);
-      if (!result.success) {
-        setErrors((previous) => ({ ...previous, ...mapIssues(result.error.issues, "services") }));
-        return false;
-      }
-      return true;
-    }
-
-    return true;
-  };
-
-  const onNext = () => {
-    setSubmitError(null);
-    if (!validateCurrentStep()) return;
-    setStep((previous) => Math.min(previous + 1, totalSteps - 1));
-  };
-
-  const onPrevious = () => {
-    setSubmitError(null);
-    setStep((previous) => Math.max(previous - 1, 0));
-  };
-
-  const resetForm = () => {
-    setFormData(initialFormData);
-    setErrors({});
-    setStep(0);
-    setSubmitError(null);
-    localStorage.removeItem(STORAGE_KEY);
-  };
-
-  const onSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSubmitError(null);
-
-    const payload = {
-      ...formData,
-      total,
-    };
-
-    const parsed = demandePayloadSchema.safeParse(payload);
-    if (!parsed.success) {
-      const mappedErrors = mapIssues(parsed.error.issues);
-      setErrors(mappedErrors);
-      const firstError = Object.keys(mappedErrors)[0];
-      if (firstError) setStep(getStepFromErrorKey(firstError));
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      const response = await fetch("/api/demandes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = (await response.json()) as {
-        success?: boolean;
-        message?: string;
-        id?: string;
-        total?: number;
-        errors?: Array<{ field: string; message: string }>;
-      };
-
-      if (!response.ok || !data.success) {
-        if (Array.isArray(data.errors)) {
-          const apiErrors: Record<string, string> = {};
-          data.errors.forEach((error) => {
-            if (error.field && !apiErrors[error.field]) apiErrors[error.field] = error.message;
-          });
-          setErrors((previous) => ({ ...previous, ...apiErrors }));
-        }
-        setSubmitError(data.message ?? "Une erreur est survenue pendant la soumission.");
-        return;
-      }
-
-      const serveurTotal = typeof data.total === "number" ? data.total : total;
-      setSubmittedDemande({
-        id: data.id ?? "N/A",
-        date: new Date().toISOString(),
-        total: serveurTotal,
-        data: { ...formData, services: [...formData.services] },
-      });
-      setIsSuccessModalOpen(true);
-      resetForm();
-    } catch {
-      setSubmitError("Impossible d'envoyer la demande pour le moment.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+    return () => controller.abort();
+  }, [reload]);
+  useEffect(() => () => abort.current?.abort(), []);
+  const selected = catalogue.find((item) => item.code === service);
+  if (reference)
+    return (
+      <section className={s.panel} aria-live="polite">
+        <h2>Votre demande est enregistrée.</h2>
+        <p>
+          L’équipe Zwanga vous contactera pour étudier votre besoin. Aucun
+          financement n’est engagé.
+        </p>
+        <p>
+          Conservez votre référence : <strong>{reference}</strong>
+        </p>
+        <p className={s.muted}>
+          Pour suivre le dossier dans l’application, l’équipe vérifiera votre
+          compte avant de le rattacher.
+        </p>
+      </section>
+    );
   return (
-    <>
-      <form className={styles.formCard} onSubmit={onSubmit} noValidate>
-        <div className={styles.progressRow}>
-          <p className={styles.stepText}>
-            Etape {step + 1} sur {totalSteps}
-          </p>
-          <div className={styles.progressBar} aria-hidden="true">
-            <span style={{ width: `${((step + 1) / totalSteps) * 100}%` }} />
+    <section className={s.panel}>
+      <p className={s.notice}>
+        Vous déposez une demande d’accompagnement, pas une souscription à
+        l’abonnement Pro. Les tarifs et conditions seront précisés dans un
+        devis. Aucun original ne sera conservé sans conditions validées et
+        acceptées.
+      </p>
+      <form
+        className={s.form}
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (busy) return;
+          const data = new FormData(event.currentTarget);
+          pending.current ??= {
+            submissionKey: crypto.randomUUID(),
+            contactConsent: true,
+            serviceCode: service,
+            application: {
+              fullName: data.get("name"),
+              phone: data.get("phone"),
+              vehicleDescription: data.get("vehicle"),
+              plate: data.get("plate"),
+              documents: data.getAll("documents"),
+              description: data.get("description"),
+            },
+          };
+          setBusy(true);
+          setError("");
+          const controller = new AbortController();
+          abort.current = controller;
+          try {
+            const response = await publicServiceRequest(controller.signal, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(pending.current),
+            });
+            const body = await response.json();
+            if (!response.ok) {
+              const definitive =
+                !uncertain && response.status >= 400 && response.status < 500;
+              // A rejection on retry cannot cancel a possibly committed first attempt.
+              if (definitive) pending.current = null;
+              setUncertain(!definitive);
+              throw new Error(
+                Array.isArray(body.message)
+                  ? body.message.join(", ")
+                  : body.message,
+              );
+            }
+            setReference(body.id);
+            setUncertain(false);
+          } catch (reason) {
+            if (!controller.signal.aborted) {
+              setUncertain(Boolean(pending.current));
+              setError(
+                reason instanceof Error
+                  ? reason.message
+                  : "Envoi non confirmé.",
+              );
+            }
+          } finally {
+            if (!controller.signal.aborted) setBusy(false);
+          }
+        }}
+      >
+        <fieldset
+          disabled={busy || uncertain}
+          className={s.form}
+          style={{ border: 0, padding: 0 }}
+        >
+          <label>
+            Service
+            <select
+              value={service}
+              onChange={(event) => setService(event.target.value)}
+            >
+              {catalogue.map((item) => (
+                <option
+                  key={item.code}
+                  value={item.code}
+                  disabled={item.availability !== "open"}
+                >
+                  {item.name}
+                  {item.availability !== "open" ? " — à venir / en pause" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className={s.columns}>
+            <label>
+              Nom complet
+              <input
+                name="name"
+                autoComplete="name"
+                minLength={3}
+                maxLength={180}
+                required
+              />
+            </label>
+            <label>
+              Téléphone
+              <input
+                name="phone"
+                type="tel"
+                autoComplete="tel"
+                minLength={8}
+                maxLength={20}
+                required
+              />
+            </label>
           </div>
-        </div>
-
-        <h2 className={styles.stepTitle} ref={stepTitleRef} tabIndex={-1}>
-          {FORM_STEPS[step]}
-        </h2>
-
-        <div className={styles.stepFrame} key={FORM_STEPS[step]}>
-          {step === 0 && (
-            <div className={styles.grid}>
-              <div className={styles.fieldWide}>
-                <label htmlFor="nomComplet">Nom complet</label>
-                <input id="nomComplet" value={formData.identite.nomComplet} onChange={(event) => updateField("identite", "nomComplet", event.target.value)} />
-                {setFieldError("nomComplet") && <p className={styles.error}>{setFieldError("nomComplet")}</p>}
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="telephone">Telephone</label>
-                <input id="telephone" type="tel" value={formData.contact.telephone} onChange={(event) => updateField("contact", "telephone", event.target.value)} />
-                {setFieldError("telephone") && <p className={styles.error}>{setFieldError("telephone")}</p>}
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="marqueComplete">Marque complete du vehicule</label>
-                <input
-                  id="marqueComplete"
-                  value={formData.vehicule.marqueComplete}
-                  onChange={(event) => updateField("vehicule", "marqueComplete", event.target.value)}
-                />
-                {setFieldError("marqueComplete") && <p className={styles.error}>{setFieldError("marqueComplete")}</p>}
-              </div>
-              <div className={styles.fieldWide}>
-                <label htmlFor="plaqueImmatriculation">Numero de plaque d'immatriculation</label>
-                <input
-                  id="plaqueImmatriculation"
-                  value={formData.vehicule.plaqueImmatriculation}
-                  onChange={(event) => updateField("vehicule", "plaqueImmatriculation", event.target.value.toUpperCase())}
-                />
-                {setFieldError("plaqueImmatriculation") && <p className={styles.error}>{setFieldError("plaqueImmatriculation")}</p>}
-              </div>
-            </div>
-          )}
-
-          {step === 1 && (
-            <div className={styles.grid}>
-              <fieldset className={`${styles.servicesFieldset} ${styles.servicesFullWidth}`}>
-                <legend>Documents souhaites</legend>
-                <p className={styles.servicesHelp}>Choisis les documents dont tu as besoin. Clique simplement sur une carte.</p>
-                <div className={styles.servicesList}>
-                  {SERVICES.map((service) => {
-                    const checked = formData.services.includes(service.id);
-                    return (
-                      <label
-                        key={service.id}
-                        className={`${styles.serviceOption} ${checked ? styles.serviceOptionActive : ""}`}
-                      >
-                        <input type="checkbox" checked={checked} onChange={() => toggleService(service.id)} />
-                        <span className={styles.serviceBadge}>{checked ? "Choisi" : "Choisir"}</span>
-                        <div className={styles.serviceContent}>
-                          <span className={styles.serviceTitle}>{SIMPLE_SERVICE_LABELS[service.id] ?? service.label}</span>
-                          <span className={styles.serviceSubhead}>{SIMPLE_SERVICE_SUBHEADS[service.id] ?? "Document"}</span>
-                          <span className={styles.serviceHint}>Clique pour ajouter ce document a ta demande.</span>
-                        </div>
-                        <strong className={styles.servicePrice}>{service.prix} $</strong>
-                      </label>
-                    );
-                  })}
-                </div>
-                {setFieldError("services") && <p className={styles.error}>{setFieldError("services")}</p>}
-                <p className={styles.total}>Total dynamique: {total} USD</p>
-                <p className={styles.totalNotice}>
-                  Le total affiche est provisoire, le montant final sera fixe apres analyse et traitement de votre demande
-                </p>
-              </fieldset>
-            </div>
-          )}
-        </div>
-
-        {submitError && (
-          <p className={styles.submitError} role="alert">
-            {submitError}
+          <div className={s.columns}>
+            <label>
+              Véhicule (facultatif)
+              <input name="vehicle" maxLength={180} />
+            </label>
+            <label>
+              Plaque (facultatif)
+              <input name="plate" maxLength={40} />
+            </label>
+          </div>
+          {selected?.documentOptions.length ? (
+            <fieldset style={{ border: 0, padding: 0 }}>
+              <legend>Documents souhaités</legend>
+              {selected.documentOptions.map((doc) => (
+                <label className={s.check} key={doc.code}>
+                  <input type="checkbox" name="documents" value={doc.code} />
+                  {doc.label}
+                </label>
+              ))}
+            </fieldset>
+          ) : null}
+          <label>
+            Votre besoin
+            <textarea
+              name="description"
+              maxLength={2000}
+              minLength={service === "documents" ? undefined : 10}
+              required={service !== "documents"}
+            />
+          </label>
+          <label className={s.check}>
+            <input type="checkbox" required />
+            Je souhaite être contacté pour étudier cette demande. Je comprends
+            qu’un devis et des conditions validées devront être acceptés avant
+            tout engagement.
+          </label>
+          <a href="/privacy">Utilisation de vos données personnelles</a>
+        </fieldset>
+        {error && (
+          <p role="alert" className={s.error}>
+            {error}
           </p>
         )}
-
-        <div className={styles.actions}>
-          <button type="button" onClick={onPrevious} disabled={step === 0 || isSubmitting} className={styles.secondaryBtn}>
-            Retour
-          </button>
-          {step < totalSteps - 1 ? (
-            <button type="button" onClick={onNext} disabled={isSubmitting} className={styles.primaryBtn}>
-              Suivant
-            </button>
-          ) : (
-            <button type="submit" disabled={isSubmitting} className={styles.primaryBtn}>
-              {isSubmitting ? "Soumission..." : "Soumettre la demande"}
-            </button>
-          )}
-        </div>
-      </form>
-
-      {isSuccessModalOpen && submittedDemande && (
-        <div className={styles.modalOverlay} role="presentation" onClick={() => setIsSuccessModalOpen(false)}>
-          <div
-            className={styles.modalCard}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="success-modal-title"
-            tabIndex={-1}
-            ref={successModalRef}
-            onClick={(event) => event.stopPropagation()}
+        {!catalogue.length && (
+          <button
+            type="button"
+            className={s.button}
+            onClick={() => setReload((value) => value + 1)}
           >
-            <h3 id="success-modal-title">Demande envoyee avec succes</h3>
-            <p className={styles.modalSub}>
-              Reference: {submittedDemande.id} | Date: {new Date(submittedDemande.date).toLocaleString("fr-FR")}
-            </p>
-            <ul className={styles.modalSummary}>
-              <li>
-                <span>Nom complet:</span> {submittedDemande.data.identite.nomComplet}
-              </li>
-              <li>
-                <span>Telephone:</span> {submittedDemande.data.contact.telephone}
-              </li>
-              <li>
-                <span>Vehicule:</span> {submittedDemande.data.vehicule.marqueComplete} - {submittedDemande.data.vehicule.plaqueImmatriculation}
-              </li>
-              <li>
-                <span>Services:</span>{" "}
-                {submittedDemande.data.services
-                  .map((serviceId) => SERVICES.find((service) => service.id === serviceId)?.label ?? serviceId)
-                  .join(", ")}
-              </li>
-              <li>
-                <span>Total:</span> {submittedDemande.total} USD
-              </li>
-            </ul>
-            <div className={styles.modalActions}>
-              <button type="button" className={styles.secondaryBtn} onClick={() => setIsSuccessModalOpen(false)}>
-                Fermer
-              </button>
-              <button
-                type="button"
-                className={styles.primaryBtn}
-                onClick={() => {
-                  setIsSuccessModalOpen(false);
-                  router.push("/");
-                }}
-              >
-                Retour a l'accueil
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+            Recharger le catalogue
+          </button>
+        )}
+        {uncertain && (
+          <p className={s.muted}>
+            L’envoi n’est pas confirmé. Ne recréez pas de demande : réessayez
+            ici avec la même référence.
+          </p>
+        )}
+        <button
+          className={s.button}
+          disabled={busy || selected?.availability !== "open"}
+        >
+          {busy
+            ? "Envoi…"
+            : uncertain
+              ? "Vérifier mon envoi"
+              : "Envoyer ma demande"}
+        </button>
+      </form>
+    </section>
   );
 }

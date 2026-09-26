@@ -76,7 +76,7 @@ export interface PaymentTransaction {
   purpose: string;
   relatedEntityType: string | null;
   relatedEntityId: string | null;
-  provider: "flexpay";
+  provider: "flexpay" | "pawapay";
   method: PaymentMethod;
   status: PaymentStatus;
   reference: string;
