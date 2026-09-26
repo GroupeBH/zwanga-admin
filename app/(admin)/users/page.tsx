@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { Download, Info, RotateCcw } from "lucide-react";
 
 import {
@@ -57,7 +57,7 @@ const matchesUserSegment = (
   return Boolean(user.hasApprovedKyc) && !user.hasActiveVehicle;
 };
 
-export default function UsersPage() {
+function UsersPageContent() {
   /* La recherche de la barre superieure arrive par ?q=. La page est souvent
      deja ouverte quand ce parametre change: il faut le suivre, sinon la
      recherche resterait sans effet. */
@@ -392,5 +392,13 @@ export default function UsersPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function UsersPage() {
+  return (
+    <Suspense fallback={null}>
+      <UsersPageContent />
+    </Suspense>
   );
 }
