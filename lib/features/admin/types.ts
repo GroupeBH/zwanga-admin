@@ -198,23 +198,26 @@ export type KycStatus = "pending" | "approved" | "rejected";
 // User entity from Nest
 export interface User {
   id: string;
-  email?: string;
+  email?: string | null;
   phone: string;
   firstName: string;
   lastName: string;
-  profilePicture?: string;
+  gender?: string | null;
+  profilePicture?: string | null;
+  hasPublishedTrip?: boolean;
   role: UserRole;
   status: UserStatus;
-  fcmToken?: string;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   passwordChangeRequired?: boolean;
   isActive: boolean;
   isDriver: boolean;
+  driverOnboardingRequestedAt?: string | null;
+  driverActivatedAt?: string | null;
   hasApprovedKyc?: boolean;
   hasActiveVehicle?: boolean;
   isQualifiedDriver?: boolean;
-  lastLoginAt?: string;
+  lastLoginAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

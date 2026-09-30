@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { Download, Info, RotateCcw } from "lucide-react";
@@ -14,6 +13,8 @@ import {
 } from "@/lib/features/users/usersApi";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 import type { User } from "@/lib/features/admin/types";
+
+import UserDetailsPage from "./UserDetails";
 
 import shared from "../styles/page.module.css";
 
@@ -58,6 +59,14 @@ const matchesUserSegment = (
 };
 
 function UsersPageContent() {
+  const ficheId = useSearchParams().get("fiche");
+  if (ficheId) {
+    return <UserDetailsPage userId={ficheId} />;
+  }
+  return <UsersList />;
+}
+
+function UsersList() {
   /* La recherche de la barre superieure arrive par ?q=. La page est souvent
      deja ouverte quand ce parametre change: il faut le suivre, sinon la
      recherche resterait sans effet. */
@@ -332,12 +341,16 @@ function UsersPageContent() {
                   </td>
                   <td>
                     <div className={shared.rowActions}>
-                      <Link
-                        href={`/users/${user.id}`}
+                      <a
+                        href={
+                          user.id
+                            ? `/users?fiche=${encodeURIComponent(user.id)}`
+                            : "/users"
+                        }
                         className={shared.secondaryButton}
                       >
                         Voir la fiche
-                      </Link>
+                      </a>
                       {user.status === "suspended" ? (
                         <button
                           type="button"
