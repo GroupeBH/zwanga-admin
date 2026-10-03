@@ -18,6 +18,7 @@ export type PaymentPurpose =
   | "subscription_pro"
   | "trip_booking"
   | "wallet_top_up"
+  | "wallet_payout"
   | "driver_payout"
   | "referral_payout";
 

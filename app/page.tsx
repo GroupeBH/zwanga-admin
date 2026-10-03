@@ -373,7 +373,7 @@ export default function HomePage() {
         name: "Zwanga",
         url: publicSiteUrl,
         logo: `${publicSiteUrl}/zwanga.png`,
-        email: "info@biso-tech.org",
+        email: "contact@biso-tech.org",
       },
       {
         "@context": "https://schema.org",
@@ -1182,7 +1182,10 @@ export default function HomePage() {
             </div>
             <div className={styles.footerSection}>
               <h4 className={styles.footerTitle}>Contact</h4>
-              <p className={styles.footerText}>Email: info@biso-tech.org</p>
+              <p className={styles.footerText}>
+                Email:{" "}
+                <a href="mailto:contact@biso-tech.org">contact@biso-tech.org</a>
+              </p>
               <p className={styles.footerText}>Telephone: +243999403012</p>
             </div>
           </div>

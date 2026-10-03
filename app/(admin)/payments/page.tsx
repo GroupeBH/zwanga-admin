@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  Ban,
   CheckCircle2,
   Download,
   Info,
@@ -12,6 +13,7 @@ import {
 
 import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
 import {
+  useCancelEnqueuedPayoutMutation,
   useGetAdminPaymentsQuery,
   useReconcileAdminPaymentMutation,
 } from "@/lib/features/finance/financeApi";
@@ -42,6 +44,12 @@ const statusClass = (status: PaymentStatus) => {
   return `${styles.badge} ${styles.badgeWarning}`;
 };
 
+const PAYOUT_PURPOSES: PaymentPurpose[] = [
+  "driver_payout",
+  "wallet_payout",
+  "referral_payout",
+];
+
 const errorMessage = (error: unknown) => {
   const candidate = error as { status?: number; data?: { message?: string } };
   if (candidate?.status === 404) {
@@ -69,6 +77,8 @@ export default function PaymentsPage() {
     search,
   });
   const [reconcile, reconcileState] = useReconcileAdminPaymentMutation();
+  const [cancelPayout, cancelState] = useCancelEnqueuedPayoutMutation();
+  const [cancelNotice, setCancelNotice] = useState<string | null>(null);
   const [exportAdminXls, { isLoading: isExporting }] = useExportAdminXlsMutation();
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -94,6 +104,39 @@ export default function PaymentsPage() {
       setExportError(
         getApiErrorMessage(error, "Impossible d'exporter les paiements.")
       );
+    }
+  };
+
+  const openPayment = (payment: AdminPaymentTransaction) => {
+    setCancelNotice(null);
+    cancelState.reset();
+    reconcileState.reset();
+    setSelected(payment);
+  };
+
+  const handleCancelPayout = async () => {
+    if (!selected || !canReconcilePayments) return;
+    const label =
+      selected.purpose === "driver_payout"
+        ? "ce versement de gains"
+        : "ce retrait";
+    if (
+      !confirm(
+        `Annuler ${label} encore en file chez PawaPay ? Le montant réservé redevient disponible. Si l’opérateur a déjà envoyé l’argent, l’annulation est refusée.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const updated = await cancelPayout(selected.id).unwrap();
+      setSelected((current) =>
+        current ? { ...current, ...updated, user: current.user ?? updated.user } : current
+      );
+      setCancelNotice(
+        "Le versement a été annulé. Le montant réservé est de nouveau disponible."
+      );
+    } catch {
+      setCancelNotice(null);
     }
   };
 
@@ -195,7 +238,8 @@ export default function PaymentsPage() {
                 <option value="subscription_pro">Abonnements</option>
                 <option value="trip_booking">Réservations</option>
                 <option value="wallet_top_up">Achats de jetons</option>
-                <option value="driver_payout">Versements conducteurs</option>
+                <option value="driver_payout">Versements de gains</option>
+                <option value="wallet_payout">Retraits de jetons</option>
                 <option value="referral_payout">Retraits parrainage</option>
               </select>
             </div>
@@ -275,7 +319,7 @@ export default function PaymentsPage() {
                       <button
                         type="button"
                         className={styles.secondaryButton}
-                        onClick={() => setSelected(payment)}
+                        onClick={() => openPayment(payment)}
                       >
                         Détails
                       </button>
@@ -323,12 +367,56 @@ export default function PaymentsPage() {
               <dt>Créée le</dt><dd>{formatDateTime(selected.createdAt)}</dd>
               <dt>Payée le</dt><dd>{formatDateTime(selected.paidAt)}</dd>
             </dl>
+            {cancelNotice ? (
+              <div className={styles.notice} style={{ marginTop: 18 }}>
+                {cancelNotice}
+              </div>
+            ) : null}
+            {cancelState.error ? (
+              <div className={styles.error} style={{ marginTop: 18 }}>
+                {getApiErrorMessage(
+                  cancelState.error,
+                  "L’annulation n’a pas abouti. Le versement doit encore être en file chez PawaPay."
+                )}
+              </div>
+            ) : null}
             {reconcileState.error ? (
               <div className={styles.error} style={{ marginTop: 18 }}>
                 Le rapprochement n’a pas abouti. Vérifiez que la route admin est déployée.
               </div>
             ) : null}
+            {selected &&
+            PAYOUT_PURPOSES.includes(selected.purpose as PaymentPurpose) &&
+            (selected.status === "pending" || selected.status === "initiated") ? (
+              <p className={styles.helpText}>
+                <Info size={16} aria-hidden="true" />
+                <span>
+                  {selected.provider === "pawapay" && selected.orderNumber
+                    ? "Le super admin peut annuler ce versement tant que PawaPay le garde en file. Le montant réservé redevient alors disponible."
+                    : "L’annulation manuelle concerne un versement PawaPay déjà transmis et encore en file. Pour celui-ci, le rapprochement suit la réponse du prestataire."}
+                </span>
+              </p>
+            ) : null}
             <div className={styles.modalActions}>
+              {canReconcilePayments &&
+              selected.provider === "pawapay" &&
+              selected.orderNumber &&
+              PAYOUT_PURPOSES.includes(selected.purpose as PaymentPurpose) &&
+              (selected.status === "pending" || selected.status === "initiated") ? (
+                <button
+                  type="button"
+                  className={styles.dangerButton}
+                  onClick={handleCancelPayout}
+                  disabled={cancelState.isLoading || Boolean(cancelNotice)}
+                >
+                  <Ban size={16} />{" "}
+                  {cancelState.isLoading
+                    ? "Annulation..."
+                    : selected.purpose === "driver_payout"
+                      ? "Annuler le versement de gains"
+                      : "Annuler le retrait en attente"}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className={styles.button}

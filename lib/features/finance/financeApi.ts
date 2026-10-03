@@ -195,6 +195,19 @@ export const financeApi = baseApi.injectEndpoints({
       ],
     }),
 
+    cancelEnqueuedPayout: builder.mutation<AdminPaymentTransaction, string>({
+      query: (paymentId) => ({
+        url: `/payments/pawapay/transactions/${paymentId}/fail-enqueued`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: "Payments", id },
+        { type: "Payments", id: "LIST" },
+        "Wallets",
+        "Referrals",
+      ],
+    }),
+
     getAdminWalletAccounts: builder.query<
       AdminWalletAccountsResponse,
       AdminWalletQuery
@@ -312,6 +325,7 @@ export const financeApi = baseApi.injectEndpoints({
 export const {
   useGetAdminPaymentsQuery,
   useReconcileAdminPaymentMutation,
+  useCancelEnqueuedPayoutMutation,
   useGetAdminWalletAccountsQuery,
   useGetAdminWalletLedgerQuery,
   useAdjustAdminWalletMutation,
