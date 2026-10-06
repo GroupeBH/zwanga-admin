@@ -1,0 +1,125 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.muted {
+  color: var(--color-text-muted);
+  margin: 6px 0 16px;
+  line-height: 1.6;
+}
+.balance {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.button,
+.danger,
+.secondary {
+  border: 1px solid var(--color-border, #8885);
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  background: var(--color-surface, transparent);
+  color: inherit;
+  font: inherit;
+}
+.button {
+  background: var(--color-primary, #276744);
+  color: white;
+  border-color: transparent;
+}
+.danger {
+  border-color: var(--color-danger, #bb3344);
+  color: var(--color-danger, #bb3344);
+}
+.button:disabled,
+.danger:disabled,
+.secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.form {
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid var(--color-border, #8885);
+  border-radius: 10px;
+}
+.field {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+.field input,
+.field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #8885);
+  border-radius: 8px;
+  background: var(--color-background, transparent);
+  color: inherit;
+  font: inherit;
+}
+.field textarea {
+  min-height: 85px;
+  resize: vertical;
+}
+.message {
+  padding: 12px;
+  border: 1px solid var(--color-border, #8885);
+  border-radius: 8px;
+  margin: 12px 0;
+  line-height: 1.5;
+}
+.error {
+  color: var(--color-danger, #bb3344);
+  margin: 12px 0;
+}
+.error p {
+  margin: 0 0 10px;
+}
+.filleuls {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: grid;
+  gap: 8px;
+}
+.filleuls li {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #8885);
+  border-radius: 8px;
+}
+.filleuls small {
+  display: block;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+.tableWrap {
+  overflow-x: auto;
+  margin-top: 16px;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+.table th,
+.table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--color-border, #8885);
+  vertical-align: top;
+}
+.table td:last-child {
+  min-width: 180px;
+  overflow-wrap: anywhere;
+}

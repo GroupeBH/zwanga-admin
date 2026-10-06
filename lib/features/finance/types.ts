@@ -60,6 +60,9 @@ export interface WalletAccount {
   user?: AdminFinanceUser | null;
   type: "points";
   balance: number;
+  withdrawableBalance?: number;
+  reservedWithdrawalBalance?: number;
+  withdrawalsBlocked?: boolean;
   currency: string;
   createdAt: string;
   updatedAt: string;

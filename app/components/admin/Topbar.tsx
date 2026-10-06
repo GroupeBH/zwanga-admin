@@ -25,6 +25,7 @@ import { useLogoutMutation } from "@/lib/features/auth/authApi";
 import { getAdminRoleLabel } from "@/lib/features/auth/adminRoles";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { beginNavigation } from "@/app/components/navigation/NavigationLoader";
 import { clearAuthTokens } from "@/lib/utils/cookies";
 import { setAuthenticated } from "@/lib/features/auth/authSlice";
 
@@ -98,14 +99,15 @@ export const Topbar = () => {
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const term = searchDraft.trim();
-    router.push(
-      term ? `${SEARCH_TARGET}?q=${encodeURIComponent(term)}` : SEARCH_TARGET
-    );
+    const href = term ? `${SEARCH_TARGET}?q=${encodeURIComponent(term)}` : SEARCH_TARGET;
+    beginNavigation(href);
+    router.push(href);
   };
 
   const handleSearchClear = () => {
     setSearchDraft("");
     if (pathname === SEARCH_TARGET) {
+      beginNavigation(SEARCH_TARGET);
       router.push(SEARCH_TARGET);
     }
   };
@@ -119,12 +121,14 @@ export const Topbar = () => {
       // Mettre à jour l'état Redux
       dispatch(setAuthenticated(false));
       // Rediriger vers la page de connexion
+      beginNavigation("/login");
       window.location.href = "/login";
     } catch (error) {
       console.error("Logout failed", error);
       // Même en cas d'erreur, nettoyer les cookies locaux
       clearAuthTokens();
       dispatch(setAuthenticated(false));
+      beginNavigation("/login");
       window.location.href = "/login";
     }
   };
@@ -320,6 +324,7 @@ export const Topbar = () => {
                         }
                         if (target) {
                           setPanelOpen(false);
+                          beginNavigation(target);
                           router.push(target);
                         }
                       }}

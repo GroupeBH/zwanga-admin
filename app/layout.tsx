@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import { StoreProvider } from "./StoreProvider";
 import { ThemeWatcher } from "./components/theme/ThemeWatcher";
 import { AuthGuard } from "./components/auth/AuthGuard";
+import { NavigationLoader } from "./components/navigation/NavigationLoader";
 
 import "./styles/globals.css";
 
@@ -94,6 +95,7 @@ export default function RootLayout({ children }: Props) {
       <html lang="fr" className={inter.variable} suppressHydrationWarning>
         <body suppressHydrationWarning>
           <ThemeWatcher />
+          <NavigationLoader />
           <AuthGuard>{children}</AuthGuard>
         </body>
       </html>

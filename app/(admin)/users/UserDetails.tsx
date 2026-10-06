@@ -13,6 +13,7 @@ import type {
 } from "@/lib/features/admin/types";
 
 import shared from "../styles/page.module.css";
+import UserFinancialActions from "./UserFinancialActions";
 
 const formatDate = (dateString?: string | null) => {
   if (!dateString) return "—";
@@ -171,7 +172,7 @@ export default function UserDetailsPage({ userId }: { userId: string }) {
     await activateUser(data.user.id).unwrap();
   };
 
-  if (isFetching) {
+  if (isFetching && !data) {
     return (
       <div className={shared.page}>
         <section className={shared.section}>Chargement du dossier utilisateur...</section>
@@ -268,6 +269,8 @@ export default function UserDetailsPage({ userId }: { userId: string }) {
           />
         </div>
       </section>
+
+      <UserFinancialActions key={user.id} user={user} />
 
       <section className={shared.section}>
         <div className={shared.sectionHeader}>

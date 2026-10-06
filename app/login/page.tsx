@@ -10,6 +10,7 @@ import { setAuthenticated } from "@/lib/features/auth/authSlice";
 import { isAdminRole } from "@/lib/features/auth/adminRoles";
 import { useAppDispatch } from "@/lib/hooks";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
+import { beginNavigation } from "@/app/components/navigation/NavigationLoader";
 import { clearAuthTokens, setAuthTokens } from "@/lib/utils/cookies";
 
 import styles from "./login.module.css";
@@ -58,7 +59,9 @@ export default function LoginPage() {
 
       setAuthTokens(response.accessToken, response.refreshToken);
       dispatch(setAuthenticated(true));
-      router.push(response.passwordChangeRequired ? "/settings" : "/dashboard");
+      const destination = response.passwordChangeRequired ? "/settings" : "/dashboard";
+      beginNavigation(destination);
+      router.push(destination);
     } catch (err) {
       clearAuthTokens();
       dispatch(setAuthenticated(false));

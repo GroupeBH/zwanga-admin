@@ -1,0 +1,86 @@
+.field {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.compact {
+  margin: 0;
+}
+
+.field label {
+  font: inherit;
+}
+
+.field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #8885);
+  border-radius: 8px;
+  background: var(--color-background, transparent);
+  color: inherit;
+  font: inherit;
+}
+
+.field input:focus {
+  outline: 2px solid color-mix(in srgb, var(--color-primary, #276744) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.field input:disabled {
+  opacity: 0.6;
+}
+
+.menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--color-border, #8885);
+  border-radius: 10px;
+  background: var(--color-surface, #16202b);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+.option,
+.optionActive {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option small,
+.optionActive small,
+.status {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.optionActive,
+.option:hover {
+  background: color-mix(in srgb, var(--color-primary, #276744) 20%, transparent);
+}
+
+.status,
+.error {
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.error {
+  color: var(--color-danger, #bb3344);
+}

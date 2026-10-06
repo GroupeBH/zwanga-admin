@@ -51,6 +51,11 @@
   flex-wrap: wrap;
 }
 
+.filters {
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
 .button,
 .secondaryButton,
 .dangerButton,
@@ -179,6 +184,8 @@
    l'admin dessine lui-meme sur chaque liste deroulante. */
 .filters input,
 .filters select,
+.formStack input,
+.formStack textarea,
 .field input,
 .field textarea,
 .field select {
@@ -198,6 +205,8 @@
 }
 
 .filters input::placeholder,
+.formStack input::placeholder,
+.formStack textarea::placeholder,
 .field input::placeholder,
 .field textarea::placeholder {
   color: var(--color-text-muted);
@@ -237,6 +246,8 @@
 
 .filters input:focus,
 .filters select:focus,
+.formStack input:focus,
+.formStack textarea:focus,
 .field input:focus,
 .field textarea:focus,
 .field select:focus {
@@ -298,6 +309,7 @@
 
 .userCell small,
 .stack small {
+  display: block;
   color: var(--color-text-muted);
 }
 
@@ -440,9 +452,11 @@
 .modalBackdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
-  display: grid;
-  place-items: center;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
   padding: 20px;
   background: rgba(3, 10, 18, 0.65);
   backdrop-filter: blur(7px);
@@ -451,6 +465,7 @@
 
 .modal {
   width: min(520px, 100%);
+  margin: auto;
   border: 1px solid var(--color-border-strong);
   border-radius: 20px;
   background: var(--color-surface);
@@ -491,6 +506,45 @@
 .field textarea {
   min-height: 96px;
   resize: vertical;
+}
+
+.formStack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.formStack input,
+.formStack textarea {
+  width: 100%;
+}
+
+.formStack > .button {
+  align-self: flex-start;
+}
+
+.candidateList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.candidate {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.candidate small {
+  display: block;
+  color: var(--color-text-muted);
 }
 
 .formError {

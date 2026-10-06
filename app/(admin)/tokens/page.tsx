@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Coins, Download, Info, SlidersHorizontal, Search } from "lucide-react";
 
-import { isSuperAdminRole } from "@/lib/features/auth/adminRoles";
+import { isAdminRole } from "@/lib/features/auth/adminRoles";
 import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
 import {
   useAdjustAdminWalletMutation,
@@ -26,6 +27,17 @@ import type {
 
 import styles from "../finance.module.css";
 
+const ACCOUNT_PAGE_SIZE = 25;
+
+type BalanceFilter = "all" | "positive" | "negative" | "zero";
+
+const matchesBalance = (balance: number, filter: BalanceFilter) => {
+  if (filter === "positive") return balance > 0;
+  if (filter === "negative") return balance < 0;
+  if (filter === "zero") return balance === 0;
+  return true;
+};
+
 const getApiError = (error: unknown) => {
   const value = error as { status?: number; data?: { message?: string } };
   if (value?.status === 404) {
@@ -35,37 +47,60 @@ const getApiError = (error: unknown) => {
 };
 
 export default function TokensPage() {
-  const [searchDraft, setSearchDraft] = useState("");
-  const [search, setSearch] = useState("");
+  const [accountSearchDraft, setAccountSearchDraft] = useState("");
+  const [accountSearch, setAccountSearch] = useState("");
+  const [balanceFilter, setBalanceFilter] = useState<BalanceFilter>("all");
   const [accountPage, setAccountPage] = useState(1);
+  const [ledgerSearchDraft, setLedgerSearchDraft] = useState("");
+  const [ledgerSearch, setLedgerSearch] = useState("");
   const [ledgerPage, setLedgerPage] = useState(1);
   const [entryType, setEntryType] = useState<WalletLedgerEntryType | "all">("all");
   const [adjustedAccount, setAdjustedAccount] = useState<WalletAccount | null>(null);
+  const [adjustmentDirection, setAdjustmentDirection] = useState<"credit" | "debit">("credit");
   const [exportAdminXls, { isLoading: isExporting }] = useExportAdminXlsMutation();
   const [exportError, setExportError] = useState<string | null>(null);
 
   const { data: profile } = useGetCurrentUserProfileQuery();
-  const canAdjustWallets = isSuperAdminRole(profile?.user.role);
+  const canAdjustWallets = isAdminRole(profile?.user.role);
 
+  const balanceFiltered = balanceFilter !== "all";
   const accountsQuery = useGetAdminWalletAccountsQuery({
-    page: accountPage,
-    limit: 25,
-    search,
+    page: balanceFiltered ? 1 : accountPage,
+    limit: balanceFiltered ? 200 : ACCOUNT_PAGE_SIZE,
+    search: accountSearch,
   });
   const ledgerQuery = useGetAdminWalletLedgerQuery({
     page: ledgerPage,
     limit: 25,
-    search,
+    search: ledgerSearch,
     type: entryType,
   });
 
-  const accounts = accountsQuery.data?.accounts ?? [];
-  const entries = ledgerQuery.data?.entries ?? [];
+  const fetchedAccounts = Array.isArray(accountsQuery.data?.accounts)
+    ? accountsQuery.data.accounts
+    : [];
+  const matchingAccounts = balanceFiltered
+    ? fetchedAccounts.filter((account) => matchesBalance(account.balance, balanceFilter))
+    : fetchedAccounts;
+  const accounts = balanceFiltered
+    ? matchingAccounts.slice(
+        (accountPage - 1) * ACCOUNT_PAGE_SIZE,
+        accountPage * ACCOUNT_PAGE_SIZE,
+      )
+    : matchingAccounts;
+  const entries = Array.isArray(ledgerQuery.data?.entries)
+    ? ledgerQuery.data.entries
+    : [];
   const summary = accountsQuery.data?.summary;
+  const accountTotal = balanceFiltered
+    ? matchingAccounts.length
+    : (accountsQuery.data?.total ?? 0);
   const accountPages = Math.max(
     1,
-    Math.ceil((accountsQuery.data?.total ?? 0) / (accountsQuery.data?.limit ?? 25))
+    Math.ceil(accountTotal / (balanceFiltered ? ACCOUNT_PAGE_SIZE : (accountsQuery.data?.limit ?? ACCOUNT_PAGE_SIZE)))
   );
+  const balanceFilterTruncated =
+    balanceFiltered && (accountsQuery.data?.total ?? 0) > fetchedAccounts.length;
   const ledgerPages = Math.max(
     1,
     Math.ceil((ledgerQuery.data?.total ?? 0) / (ledgerQuery.data?.limit ?? 25))
@@ -76,10 +111,15 @@ export default function TokensPage() {
     [entries]
   );
 
-  const submitSearch = (event: React.FormEvent) => {
+  const submitAccountSearch = (event: React.FormEvent) => {
     event.preventDefault();
-    setSearch(searchDraft.trim());
+    setAccountSearch(accountSearchDraft.trim());
     setAccountPage(1);
+  };
+
+  const submitLedgerSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    setLedgerSearch(ledgerSearchDraft.trim());
     setLedgerPage(1);
   };
 
@@ -88,7 +128,7 @@ export default function TokensPage() {
     try {
       const blob = await exportAdminXls({
         url: "/admin/wallets/ledger/export",
-        params: { search, type: entryType },
+        params: { search: ledgerSearch, type: entryType },
       }).unwrap();
       downloadBlob(blob, datedExportName("jetons-registre-zwanga"));
     } catch (error) {
@@ -103,7 +143,7 @@ export default function TokensPage() {
     try {
       const blob = await exportAdminXls({
         url: "/admin/wallets/export",
-        params: { search },
+        params: { search: accountSearch },
       }).unwrap();
       downloadBlob(blob, datedExportName("jetons-soldes-zwanga"));
     } catch (error) {
@@ -166,21 +206,9 @@ export default function TokensPage() {
         />
       </section>
 
-      <form className={styles.filters} onSubmit={submitSearch}>
-        <input
-          aria-label="Rechercher un portefeuille"
-          placeholder="Nom, téléphone ou identifiant utilisateur…"
-          value={searchDraft}
-          onChange={(event) => setSearchDraft(event.target.value)}
-        />
-        <button type="submit" className={styles.button}>
-          <Search size={15} /> Rechercher
-        </button>
-      </form>
-
       {!canAdjustWallets ? (
         <div className={styles.notice}>
-          Mode lecture seule : seuls les super administrateurs peuvent ajuster un solde de jetons.
+          Mode lecture seule : seuls les administrateurs peuvent ajuster un solde de jetons.
         </div>
       ) : null}
 
@@ -190,14 +218,63 @@ export default function TokensPage() {
             <h2>Soldes utilisateurs</h2>
             <p>Un compte unique par utilisateur, libellé en jetons.</p>
           </div>
-          <span className={styles.badge}>{accountsQuery.data?.total ?? 0} compte(s)</span>
+          <span className={styles.badge}>{accountTotal} compte(s)</span>
         </div>
+
+        <form className={styles.filters} onSubmit={submitAccountSearch}>
+          <div className={styles.filterField}>
+            <label className={styles.filterLabel} htmlFor="wallet-user-search">
+              Rechercher un utilisateur
+            </label>
+            <input
+              id="wallet-user-search"
+              aria-label="Rechercher un utilisateur"
+              placeholder="Nom, téléphone, e-mail ou identifiant"
+              value={accountSearchDraft}
+              onChange={(event) => setAccountSearchDraft(event.target.value)}
+            />
+          </div>
+          <div className={styles.filterField}>
+            <label className={styles.filterLabel} htmlFor="wallet-balance-filter">
+              Solde
+            </label>
+            <select
+              id="wallet-balance-filter"
+              value={balanceFilter}
+              onChange={(event) => {
+                setAccountPage(1);
+                setBalanceFilter(event.target.value as BalanceFilter);
+              }}
+            >
+              <option value="all">Tous les soldes</option>
+              <option value="positive">Soldes positifs</option>
+              <option value="negative">Soldes négatifs</option>
+              <option value="zero">Soldes à zéro</option>
+            </select>
+          </div>
+          <button type="submit" className={styles.button}>
+            <Search size={15} /> Rechercher
+          </button>
+        </form>
+        {balanceFilterTruncated ? (
+          <p className={styles.helpText}>
+            <Info size={16} aria-hidden="true" />
+            <span>
+              Le filtre de solde porte sur les 200 comptes les plus récemment mis à jour.
+              Précisez le nom, le téléphone ou l’e-mail pour cibler un utilisateur.
+            </span>
+          </p>
+        ) : null}
 
         {accountsQuery.error ? <div className={styles.error}>{getApiError(accountsQuery.error)}</div> : null}
         {accountsQuery.isFetching && accounts.length === 0 ? (
           <div className={styles.empty}>Chargement des portefeuilles…</div>
         ) : accounts.length === 0 ? (
-          <div className={styles.empty}>Aucun portefeuille disponible.</div>
+          <div className={styles.empty}>
+            {accountSearch || balanceFilter !== "all"
+              ? "Aucun utilisateur ne correspond à cette recherche."
+              : "Aucun portefeuille disponible."}
+          </div>
         ) : (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
@@ -217,6 +294,7 @@ export default function TokensPage() {
                     <td className={styles.userCell}>
                       <strong>{formatUser(account.user)}</strong>
                       <small>{account.user?.phone ?? account.userId}</small>
+                      {account.user?.email ? <small>{account.user.email}</small> : null}
                     </td>
                     <td>
                       <strong className={account.balance < 0 ? styles.amountNegative : styles.amountPositive}>
@@ -227,22 +305,50 @@ export default function TokensPage() {
                     <td>{formatDateTime(account.updatedAt)}</td>
                     <td className={styles.reference}>{account.id}</td>
                     <td>
-                      <button
-                        type="button"
-                        className={styles.secondaryButton}
-                        disabled={!canAdjustWallets}
-                        title={
-                          canAdjustWallets
-                            ? undefined
-                            : "Action réservée au super administrateur"
-                        }
-                        onClick={() => {
-                          if (!canAdjustWallets) return;
-                          setAdjustedAccount(account);
-                        }}
-                      >
-                        <SlidersHorizontal size={14} /> Ajuster
-                      </button>
+                      <div className={styles.rowActions}>
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          disabled={!canAdjustWallets}
+                          title={
+                            canAdjustWallets
+                              ? "Ajouter des jetons utilisables, non retirables en argent"
+                              : "Action réservée aux administrateurs"
+                          }
+                          onClick={() => {
+                            if (!canAdjustWallets) return;
+                            setAdjustmentDirection("credit");
+                            setAdjustedAccount(account);
+                          }}
+                        >
+                          <SlidersHorizontal size={14} /> Ajouter
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.dangerButton}
+                          disabled={
+                            !canAdjustWallets ||
+                            account.balance <= 0 ||
+                            account.withdrawalsBlocked
+                          }
+                          title={
+                            !canAdjustWallets
+                              ? "Action réservée aux administrateurs"
+                              : account.withdrawalsBlocked
+                                ? "Les débits sont bloqués sur ce portefeuille"
+                                : account.balance <= 0
+                                  ? "Aucun jeton à retirer"
+                                  : "Retirer des jetons du solde disponible"
+                          }
+                          onClick={() => {
+                            if (!canAdjustWallets || account.balance <= 0 || account.withdrawalsBlocked) return;
+                            setAdjustmentDirection("debit");
+                            setAdjustedAccount(account);
+                          }}
+                        >
+                          Retirer
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -253,7 +359,7 @@ export default function TokensPage() {
         <Pagination
           page={accountPage}
           pages={accountPages}
-          total={accountsQuery.data?.total ?? 0}
+          total={accountTotal}
           onChange={setAccountPage}
         />
       </section>
@@ -264,7 +370,20 @@ export default function TokensPage() {
             <h2>Registre des mouvements</h2>
             <p>Écritures signées et solde calculé après chaque opération.</p>
           </div>
-          <div className={styles.filters}>
+        </div>
+        <form className={styles.filters} onSubmit={submitLedgerSearch}>
+            <div className={styles.filterField}>
+              <label className={styles.filterLabel} htmlFor="ledger-user-search">
+                Utilisateur
+              </label>
+              <input
+                id="ledger-user-search"
+                aria-label="Rechercher dans le registre"
+                placeholder="Nom, téléphone ou e-mail"
+                value={ledgerSearchDraft}
+                onChange={(event) => setLedgerSearchDraft(event.target.value)}
+              />
+            </div>
             <div className={styles.filterField}>
               <label className={styles.filterLabel} htmlFor="ledger-type">
                 Type de mouvement
@@ -288,8 +407,10 @@ export default function TokensPage() {
                 <option value="admin_adjustment">Ajustements admin</option>
               </select>
             </div>
-          </div>
-        </div>
+            <button type="submit" className={styles.button}>
+              <Search size={15} /> Filtrer
+            </button>
+          </form>
 
         <p className={styles.helpText}>
           <Info size={16} aria-hidden="true" />
@@ -353,18 +474,46 @@ export default function TokensPage() {
       </section>
 
       {adjustedAccount ? (
-        <AdjustmentModal account={adjustedAccount} onClose={() => setAdjustedAccount(null)} />
+        <AdjustmentModal
+          key={`${adjustedAccount.id}-${adjustmentDirection}`}
+          account={adjustedAccount}
+          initialDirection={adjustmentDirection}
+          onClose={() => setAdjustedAccount(null)}
+        />
       ) : null}
     </div>
   );
 }
 
-function AdjustmentModal({ account, onClose }: { account: WalletAccount; onClose: () => void }) {
-  const [direction, setDirection] = useState<"credit" | "debit">("credit");
+function AdjustmentModal({
+  account,
+  initialDirection,
+  onClose,
+}: {
+  account: WalletAccount;
+  initialDirection: "credit" | "debit";
+  onClose: () => void;
+}) {
+  const [direction, setDirection] = useState<"credit" | "debit">(initialDirection);
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [requestId] = useState(() => globalThis.crypto.randomUUID());
   const [adjustWallet, state] = useAdjustAdminWalletMutation();
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCloseRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -373,7 +522,8 @@ function AdjustmentModal({ account, onClose }: { account: WalletAccount; onClose
       return;
     }
     const signedAmount = direction === "credit" ? numericAmount : -numericAmount;
-    if (!confirm(`${direction === "credit" ? "Créditer" : "Débiter"} ${formatTokens(numericAmount)} pour ${formatUser(account.user)} ?`)) {
+    if (signedAmount < 0 && numericAmount > account.balance) return;
+    if (!confirm(`${direction === "credit" ? "Ajouter" : "Retirer"} ${formatTokens(numericAmount)} ${direction === "credit" ? "à" : "de"} ${formatUser(account.user)} ?`)) {
       return;
     }
     try {
@@ -391,12 +541,28 @@ function AdjustmentModal({ account, onClose }: { account: WalletAccount; onClose
 
   const invalid = Number(amount) <= 0 || reason.trim().length < 10;
 
-  return (
-    <div className={styles.modalBackdrop} role="presentation" onMouseDown={onClose}>
-      <form className={styles.modal} onSubmit={submit} onMouseDown={(event) => event.stopPropagation()}>
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => onCloseRef.current()}>
+      <form
+        className={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="wallet-adjustment-title"
+        onSubmit={submit}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         <span className={styles.eyebrow}><Coins size={14} /> Ajustement audité</span>
-        <h2>Modifier le solde</h2>
-        <p>{formatUser(account.user)} dispose actuellement de {formatTokens(account.balance)}.</p>
+        <h2 id="wallet-adjustment-title">
+          {direction === "credit" ? "Ajouter des jetons" : "Retirer des jetons"}
+        </h2>
+        <p>
+          {formatUser(account.user)} dispose actuellement de {formatTokens(account.balance)}.
+          {direction === "credit"
+            ? " Les jetons ajoutés ici sont utilisables dans l’application, mais ne sont pas retirables en argent."
+            : " Le retrait ne peut pas dépasser le solde actuel."}
+        </p>
         <div className={styles.formGrid}>
           <label className={styles.field}>
             Opération
@@ -414,15 +580,23 @@ function AdjustmentModal({ account, onClose }: { account: WalletAccount; onClose
             <textarea maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Minimum 10 caractères : correction, geste commercial, régularisation…" required />
           </label>
         </div>
-        {state.error ? <div className={styles.formError}>L’ajustement a échoué. Vérifiez le contrat POST /admin/wallets/:userId/adjustments.</div> : null}
+        {direction === "debit" && Number(amount) > account.balance ? (
+          <div className={styles.formError}>Le nombre de jetons à retirer dépasse le solde disponible.</div>
+        ) : null}
+        {state.error ? (
+          <div className={styles.formError}>
+            {getApiErrorMessage(state.error, "L’ajustement a échoué.")}
+          </div>
+        ) : null}
         <div className={styles.modalActions}>
-          <button type="button" className={styles.secondaryButton} onClick={onClose}>Annuler</button>
-          <button type="submit" className={direction === "debit" ? styles.dangerButton : styles.button} disabled={invalid || state.isLoading}>
+          <button type="button" className={styles.secondaryButton} onClick={() => onCloseRef.current()}>Annuler</button>
+          <button type="submit" className={direction === "debit" ? styles.dangerButton : styles.button} disabled={invalid || state.isLoading || (direction === "debit" && Number(amount) > account.balance)}>
             {state.isLoading ? "Enregistrement…" : direction === "credit" ? "Créditer" : "Débiter"}
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

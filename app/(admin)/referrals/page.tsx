@@ -30,6 +30,7 @@ import type {
 } from "@/lib/features/finance/types";
 
 import styles from "../finance.module.css";
+import { AttachReferralPanel } from "./AttachReferralPanel";
 
 type View = "accounts" | "rewards" | "withdrawals";
 
@@ -155,6 +156,12 @@ export default function ReferralsPage() {
         <Metric label="Disponible" value={formatTokens(summary?.availableTokens ?? 0)} helper={`${formatTokens(summary?.reservedTokens ?? 0)} réservé(s)`} />
         <Metric label="Déjà retiré" value={formatTokens(summary?.withdrawnTokens ?? 0)} helper={`${summary?.pendingWithdrawals ?? 0} retrait(s) à rapprocher`} />
       </section>
+
+      {canReconcileWithdrawals ? <AttachReferralPanel /> : (
+        <div className={styles.notice}>
+          Le rattachement d’un filleul à un parrain est réservé aux super administrateurs.
+        </div>
+      )}
 
       {firstError ? <div className={styles.error}>{getApiError(firstError)}</div> : null}
       {reconcileState.error ? <div className={styles.error}>La vérification du retrait a échoué. Contrôlez la transaction et la route de rapprochement admin.</div> : null}

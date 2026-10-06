@@ -8,6 +8,7 @@ import { isAdminRole } from "@/lib/features/auth/adminRoles";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { getApiErrorStatus } from "@/lib/utils/apiErrors";
+import { beginNavigation } from "@/app/components/navigation/NavigationLoader";
 import { clearAuthTokens, isAuthenticated as checkAuthCookies } from "@/lib/utils/cookies";
 
 interface AuthGuardProps {
@@ -54,6 +55,7 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     if (!hasAuthCookies) {
       dispatch(setAuthenticated(false));
       if (!isLoginPage) {
+        beginNavigation("/login");
         router.push("/login");
       }
       return;
@@ -71,6 +73,7 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
       clearAuthTokens();
       dispatch(setAuthenticated(false));
       if (!isLoginPage) {
+        beginNavigation("/login");
         router.push("/login");
       }
       return;
@@ -78,12 +81,15 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
 
     dispatch(setAuthenticated(true));
     if (profile?.user.passwordChangeRequired && !isSettingsPage) {
+      beginNavigation("/settings");
       router.push("/settings");
       return;
     }
 
     if (isLoginPage) {
-      router.push(profile?.user.passwordChangeRequired ? "/settings" : "/dashboard");
+      const destination = profile?.user.passwordChangeRequired ? "/settings" : "/dashboard";
+      beginNavigation(destination);
+      router.push(destination);
     }
   }, [
     dispatch,
