@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Coins,
   Crown,
+  Download,
   LayoutDashboard,
   LifeBuoy,
   Route,
@@ -61,6 +62,7 @@ const navGroups = [
     items: [
       { label: "Signalements", href: "/reports", icon: AlertTriangle, badgeKey: "reports" },
       { label: "Support", href: "/support", icon: LifeBuoy },
+      { label: "Mises à jour", href: "/app-updates", icon: Download },
     ],
   },
   {

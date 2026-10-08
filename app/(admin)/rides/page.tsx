@@ -138,17 +138,17 @@ export default function RidesPage() {
   };
 
   const handleDeactivateTrip = async (trip: Trip) => {
-    if (!confirm("Desactiver ce trajet ? Il passera au statut annule.")) return;
+    if (!confirm("Désactiver ce trajet ? Il passera au statut annulé.")) return;
     try {
       await deactivateTrip(trip.id).unwrap();
     } catch (deactivateError) {
       console.error("Failed to deactivate trip:", deactivateError);
-      alert("Impossible de desactiver ce trajet.");
+      alert("Impossible de désactiver ce trajet.");
     }
   };
 
   const handleDeleteTrip = async (trip: Trip) => {
-    if (!confirm("Supprimer definitivement ce trajet ?")) return;
+    if (!confirm("Supprimer définitivement ce trajet ?")) return;
     try {
       await deleteTrip(trip.id).unwrap();
     } catch (deleteError) {
@@ -172,7 +172,7 @@ export default function RidesPage() {
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h2>Gestion des trajets publies</h2>
+            <h2>Gestion des trajets publiés</h2>
             <p className={shared.filterSummary}>
               {filtered.length} trajet{filtered.length > 1 ? "s" : ""} affiché
               {filtered.length > 1 ? "s" : ""}
@@ -289,7 +289,7 @@ export default function RidesPage() {
                         </strong>
                         <br />
                         <small style={{ color: "var(--color-text-muted)" }}>
-                          {trip.driver?.phone ?? "Telephone indisponible"}
+                          {trip.driver?.phone ?? "Téléphone indisponible"}
                         </small>
                       </td>
                       <td>
@@ -344,7 +344,7 @@ export default function RidesPage() {
                                 color: "var(--color-warning)",
                               }}
                             >
-                              Desactiver
+                              Désactiver
                             </button>
                           ) : null}
                           <button
@@ -419,7 +419,7 @@ export default function RidesPage() {
                 />
               </label>
               <label>
-                Date depart
+                Date de départ
                 <input
                   type="datetime-local"
                   value={tripForm.departureDate ?? ""}

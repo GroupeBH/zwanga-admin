@@ -48,6 +48,33 @@ const downloadBlob = (blob: Blob, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
+const formatRegistrationDay = (value: string) => {
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+};
+
+const registrationPeriodLabel = (from: string, to: string) => {
+  if (from && to) {
+    return `enregistrés du ${formatRegistrationDay(from)} au ${formatRegistrationDay(to)}`;
+  }
+  if (from) return `enregistrés à partir du ${formatRegistrationDay(from)}`;
+  if (to) return `enregistrés jusqu'au ${formatRegistrationDay(to)}`;
+  return "";
+};
+
+const formatRecordedAt = (value?: string | null) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("fr-CD", {
+    timeZone: "Africa/Kinshasa",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+};
+
 const matchesUserSegment = (
   user: User,
   roleFilter: AdminUserRoleFilter | "all"
@@ -67,28 +94,40 @@ function UsersPageContent() {
 }
 
 function UsersList() {
-  /* La recherche de la barre superieure arrive par ?q=. La page est souvent
-     deja ouverte quand ce parametre change: il faut le suivre, sinon la
+  /* La recherche de la barre supérieure arrive par ?q=. La page est souvent
+     déjà ouverte quand ce paramètre change : il faut le suivre, sinon la
      recherche resterait sans effet. */
   const urlSearch = useSearchParams().get("q") ?? "";
   const [search, setSearch] = useState(urlSearch);
   const [roleFilter, setRoleFilter] = useState<AdminUserRoleFilter | "all">("all");
+  const [registeredFrom, setRegisteredFrom] = useState("");
+  const [registeredTo, setRegisteredTo] = useState("");
   const [page, setPage] = useState(1);
   const [exportError, setExportError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const limit = 10;
   const role = roleFilter === "all" ? undefined : roleFilter;
+  const registrationRangeInvalid = Boolean(
+    registeredFrom && registeredTo && registeredFrom > registeredTo
+  );
+  const periodLabel = registrationPeriodLabel(registeredFrom, registeredTo);
 
   useEffect(() => {
     setSearch(urlSearch);
     setPage(1);
   }, [urlSearch]);
   const { data, isFetching } = useGetUsersQuery(
-    { page, limit, role },
-    { refetchOnMountOrArgChange: true }
+    {
+      page,
+      limit,
+      role,
+      registeredFrom: registeredFrom || undefined,
+      registeredTo: registeredTo || undefined,
+    },
+    { skip: registrationRangeInvalid, refetchOnMountOrArgChange: true }
   );
-  const users = data?.users ?? [];
-  const total = data?.total ?? 0;
+  const users = registrationRangeInvalid ? [] : (data?.users ?? []);
+  const total = registrationRangeInvalid ? 0 : (data?.total ?? 0);
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const [suspendUser, { isLoading: isSuspending }] = useSuspendUserMutation();
   const [activateUser, { isLoading: isActivating }] = useActivateUserMutation();
@@ -100,11 +139,13 @@ function UsersList() {
         return false;
       }
       const term = search.toLowerCase();
+      const includesTerm = (value?: string | null) =>
+        (value ?? "").toLowerCase().includes(term);
       return (
-        user.firstName.toLowerCase().includes(term) ||
-        user.lastName.toLowerCase().includes(term) ||
-        (user.email ?? "").toLowerCase().includes(term) ||
-        user.phone.includes(term)
+        includesTerm(user.firstName) ||
+        includesTerm(user.lastName) ||
+        includesTerm(user.email) ||
+        includesTerm(user.phone)
       );
     });
   }, [users, search, roleFilter]);
@@ -116,7 +157,7 @@ function UsersList() {
   };
 
   // Suspendre coupe l'acces au compte: l'action demande une confirmation
-  // explicite et rapporte son echec au lieu d'echouer en silence.
+  // explicite et rapporte son échec au lieu d'échouer en silence.
   const handleSuspend = async (user: User) => {
     setActionError(null);
     const confirmed = window.confirm(
@@ -154,7 +195,11 @@ function UsersList() {
   const handleExport = async () => {
     setExportError(null);
     try {
-      const blob = await exportUsersXls({ role }).unwrap();
+      const blob = await exportUsersXls({
+        role,
+        registeredFrom: registeredFrom || undefined,
+        registeredTo: registeredTo || undefined,
+      }).unwrap();
       const suffix =
         roleFilter === "driver"
           ? "conducteurs"
@@ -182,6 +227,7 @@ function UsersList() {
             <h2>Gestion utilisateurs</h2>
             <p className={shared.filterSummary}>
               {total} compte{total > 1 ? "s" : ""} · {segmentLabel[roleFilter]}
+              {periodLabel ? ` · ${periodLabel}` : ""}
             </p>
           </div>
           <div className={shared.toolbar}>
@@ -216,12 +262,44 @@ function UsersList() {
                 </option>
               </select>
             </div>
-            {search || roleFilter !== "all" ? (
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="users-registered-from">
+                Enregistré du
+              </label>
+              <input
+                id="users-registered-from"
+                type="date"
+                value={registeredFrom}
+                max={registeredTo || undefined}
+                onChange={(event) => {
+                  setRegisteredFrom(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="users-registered-to">
+                au
+              </label>
+              <input
+                id="users-registered-to"
+                type="date"
+                value={registeredTo}
+                min={registeredFrom || undefined}
+                onChange={(event) => {
+                  setRegisteredTo(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            {search || roleFilter !== "all" || registeredFrom || registeredTo ? (
               <button
                 type="button"
                 className={shared.secondaryButton}
                 onClick={() => {
                   setSearch("");
+                  setRegisteredFrom("");
+                  setRegisteredTo("");
                   handleRoleFilterChange("all");
                 }}
               >
@@ -233,7 +311,7 @@ function UsersList() {
               type="button"
               className={shared.primaryButton}
               onClick={handleExport}
-              disabled={isExporting}
+              disabled={isExporting || registrationRangeInvalid}
             >
               <Download size={16} style={{ marginRight: 8 }} />
               {isExporting ? "Export..." : "Exporter XLS"}
@@ -246,10 +324,17 @@ function UsersList() {
           <span>
             Un compte est « conducteur » seulement si son KYC est validé et
             qu’un véhicule actif est enregistré. « Suspendre » bloque la
-            connexion, « Réactiver » la rétablit. L’export reprend exactement le
-            filtre choisi ci-dessus.
+            connexion, « Réactiver » la rétablit. Les dates portent sur le jour
+            d’enregistrement du compte, à Kinshasa. L’export reprend exactement
+            le filtre choisi ci-dessus.
           </span>
         </p>
+
+        {registrationRangeInvalid ? (
+          <p className={shared.errorText} role="alert">
+            La date de début doit être antérieure ou égale à la date de fin.
+          </p>
+        ) : null}
 
         {exportError ? (
           <p className={shared.errorText} role="alert">
@@ -271,18 +356,23 @@ function UsersList() {
                 <th>Contact</th>
                 <th>Conducteur</th>
                 <th>Statut</th>
-                <th>Dernier login</th>
+                <th>Enregistré le</th>
+                <th>Dernière connexion</th>
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody key={`${roleFilter}-${page}`}>
+            <tbody key={`${roleFilter}-${registeredFrom}-${registeredTo}-${page}`}>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <p className={shared.emptyState}>
                       {isFetching
                         ? "Chargement des utilisateurs..."
-                        : "Aucun utilisateur ne correspond à cette recherche. Effacez le texte saisi ou repassez sur « Tous les utilisateurs »."}
+                        : registrationRangeInvalid
+                          ? "Corrigez la période d’enregistrement pour afficher les comptes."
+                          : registeredFrom || registeredTo
+                            ? "Aucun utilisateur enregistré sur cette période."
+                            : "Aucun utilisateur ne correspond à cette recherche. Effacez le texte saisi ou repassez sur « Tous les utilisateurs »."}
                     </p>
                   </td>
                 </tr>
@@ -329,6 +419,7 @@ function UsersList() {
                       {statusLabel[user.status] ?? user.status}
                     </span>
                   </td>
+                  <td>{formatRecordedAt(user.createdAt)}</td>
                   <td>
                     {user.lastLoginAt
                       ? new Intl.DateTimeFormat("fr-CD", {
@@ -383,6 +474,7 @@ function UsersList() {
           <p className={shared.paginationInfo}>
             Page {page} sur {totalPages} · {total} résultat
             {total > 1 ? "s" : ""} pour « {segmentLabel[roleFilter]} »
+            {periodLabel ? ` · ${periodLabel}` : ""}
           </p>
           <div className={shared.paginationButtons}>
             <button

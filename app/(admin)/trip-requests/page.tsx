@@ -19,7 +19,7 @@ import shared from "../styles/page.module.css";
 
 const statusLabel: Record<TripRequestStatus, string> = {
   pending: "En attente",
-  offers_received: "Offres recues",
+  offers_received: "Offres reçues",
   driver_selected: "Conducteur choisi",
   cancelled: "Annulee",
   expired: "Expiree",
@@ -151,17 +151,17 @@ export default function TripRequestsPage() {
   };
 
   const handleDeactivate = async (request: TripRequest) => {
-    if (!confirm("Desactiver cette demande de trajet ?")) return;
+    if (!confirm("Désactiver cette demande de trajet ?")) return;
     try {
       await deactivateTripRequest(request.id).unwrap();
     } catch (error) {
       console.error("Failed to deactivate trip request:", error);
-      alert("Impossible de desactiver cette demande.");
+      alert("Impossible de désactiver cette demande.");
     }
   };
 
   const handleDelete = async (request: TripRequest) => {
-    if (!confirm("Supprimer definitivement cette demande de trajet ?")) return;
+    if (!confirm("Supprimer définitivement cette demande de trajet ?")) return;
     try {
       await deleteTripRequest(request.id).unwrap();
     } catch (error) {
@@ -223,7 +223,7 @@ export default function TripRequestsPage() {
               >
                 <option value="all">Tous les statuts</option>
                 <option value="pending">En attente</option>
-                <option value="offers_received">Offres recues</option>
+                <option value="offers_received">Offres reçues</option>
                 <option value="driver_selected">Conducteur choisi</option>
                 <option value="cancelled">Annulees</option>
                 <option value="expired">Expirees</option>
@@ -265,7 +265,7 @@ export default function TripRequestsPage() {
                 <tr>
                   <th>Passager</th>
                   <th>Demande</th>
-                  <th>Fenetre depart</th>
+                  <th>Fenêtre de départ</th>
                   <th>Places</th>
                   <th>Prix max</th>
                   <th>Offres</th>
@@ -277,7 +277,7 @@ export default function TripRequestsPage() {
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={8} style={{ textAlign: "center" }}>
-                      Aucune demande trouvee
+                      Aucune demande trouvée
                     </td>
                   </tr>
                 ) : (
@@ -337,7 +337,7 @@ export default function TripRequestsPage() {
                                 color: "var(--color-warning)",
                               }}
                             >
-                              Desactiver
+                              Désactiver
                             </button>
                           ) : null}
                           <button

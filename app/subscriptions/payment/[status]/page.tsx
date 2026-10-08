@@ -7,21 +7,21 @@ const PAYMENT_STATUS_COPY: Record<
   { title: string; message: string; tone: string }
 > = {
   success: {
-    title: "Paiement recu",
+    title: "Paiement reçu",
     message:
       "Retournez dans l'application Zwanga pour confirmer le paiement et activer votre abonnement conducteur.",
     tone: "#0f8b57",
   },
   cancel: {
-    title: "Paiement annule",
+    title: "Paiement annulé",
     message:
       "Vous pouvez revenir dans l'application Zwanga pour relancer le paiement ou choisir un autre moyen.",
     tone: "#946200",
   },
   decline: {
-    title: "Paiement refuse",
+    title: "Paiement refusé",
     message:
-      "Votre paiement carte n'a pas abouti. Revenez dans l'application Zwanga pour essayer a nouveau.",
+      "Votre paiement carte n'a pas abouti. Revenez dans l'application Zwanga pour essayer à nouveau.",
     tone: "#b42318",
   },
 };

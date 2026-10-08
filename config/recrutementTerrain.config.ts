@@ -18,7 +18,7 @@ export const ZONES_DEPLOIEMENT = [
   { id: "lemba-terminus", label: "Lemba Terminus" },
   { id: "matete", label: "Matete" },
   { id: "bon-marche", label: "Bon Marché" },
-  { id: "gare-central", label: "Gare Central" },
+  { id: "gare-central", label: "Gare centrale" },
   { id: "rond-point-huilerie", label: "Rond-point Huilerie" },
   { id: "assanef", label: "Assanef" },
   { id: "bandal-moulaert", label: "Bandal Moulaert" },

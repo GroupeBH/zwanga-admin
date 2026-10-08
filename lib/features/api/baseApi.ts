@@ -76,6 +76,7 @@ export const baseApi = createApi({
   reducerPath: "adminApi",
   baseQuery: baseQueryWithAuth,
   tagTypes: [
+    "AppUpdates",
     "Dashboard",
     "Users",
     "KYC",

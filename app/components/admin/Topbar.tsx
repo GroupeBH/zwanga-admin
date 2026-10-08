@@ -62,7 +62,7 @@ export const Topbar = () => {
   const dispatch = useAppDispatch();
   const theme = useAppSelector((state) => state.ui.theme);
   const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
-  /* La cloche doit refleter l'etat reel sans recharger la page: on interroge
+  /* La cloche doit refléter l'état réel sans recharger la page : on interroge
      le serveur a intervalle regulier tant qu'un onglet admin est ouvert. */
   const { data: notificationsData, isLoading: isLoadingNotifications } =
     useGetNotificationsQuery(
@@ -78,10 +78,10 @@ export const Topbar = () => {
   const panelRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-  /* Le champ reflete la recherche active de la liste des utilisateurs. La
+  /* Le champ reflète la recherche active de la liste des utilisateurs. La
      lecture passe par l'URL du navigateur et non par useSearchParams: ce
-     composant vit dans la mise en page, ou le hook ne recoit pas les
-     parametres et ne se rejoue pas a la navigation. */
+     composant vit dans la mise en page, où le hook ne reçoit pas les
+     paramètres et ne se rejoue pas à la navigation. */
   useEffect(() => {
     const syncFromUrl = () => {
       setSearchDraft(

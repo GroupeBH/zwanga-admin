@@ -37,7 +37,7 @@ export default function ProfilePage() {
             </p>
           </div>
           {/* Le bouton precedent n'ouvrait rien: il renvoie desormais vers
-              l'ecran ou le compte se modifie reellement. */}
+              l'écran où le compte se modifie réellement. */}
           <Link href="/settings" className={shared.secondaryButton}>
             <Settings size={16} aria-hidden="true" />
             Gérer mon compte

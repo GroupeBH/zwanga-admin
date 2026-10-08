@@ -18,17 +18,17 @@ const TRIP_EXPIRATION_GRACE_MS = 2 * 60 * 60 * 1000;
 const lifecycleLabels: Record<TripLifecycleStatus, string> = {
   upcoming: "A venir",
   ongoing: "En cours",
-  completed: "Termines",
-  cancelled: "Annules",
-  expired: "Expires",
+  completed: "Terminés",
+  cancelled: "Annulés",
+  expired: "Expirés",
 };
 
 const lifecycleHelpers: Record<TripLifecycleStatus, string> = {
-  upcoming: "depart programme",
-  ongoing: "suivi temps reel",
-  completed: "trajets clotures",
-  cancelled: "publication annulee",
-  expired: "depart depasse de plus de 2h",
+  upcoming: "départ programmé",
+  ongoing: "suivi en temps réel",
+  completed: "trajets clôturés",
+  cancelled: "publication annulée",
+  expired: "départ dépassé de plus de 2h",
 };
 
 const paymentMethodLabels: Record<SubscriptionPaymentMethod, string> = {

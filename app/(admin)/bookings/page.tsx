@@ -83,10 +83,10 @@ export default function BookingsPage() {
   const handleAccept = async (bookingId: string) => {
     try {
       await acceptBooking(bookingId).unwrap();
-      alert("Reservation acceptee avec succes");
+      alert("Réservation acceptée avec succès");
     } catch (error) {
       console.error("Failed to accept booking:", error);
-      alert("Echec de l'acceptation de la reservation");
+      alert("Échec de l'acceptation de la réservation");
     }
   };
 
@@ -100,24 +100,24 @@ export default function BookingsPage() {
       await rejectBooking({ bookingId, reason: rejectReason }).unwrap();
       setRejectReason("");
       setSelectedBookingId(null);
-      alert("Reservation rejetee avec succes");
+      alert("Réservation rejetée avec succès");
     } catch (error) {
       console.error("Failed to reject booking:", error);
-      alert("Echec du rejet de la reservation");
+      alert("Échec du rejet de la réservation");
     }
   };
 
   const handleCancel = async (bookingId: string) => {
-    if (!confirm("Etes-vous sur de vouloir annuler cette reservation ?")) {
+    if (!confirm("Êtes-vous sûr de vouloir annuler cette réservation ?")) {
       return;
     }
 
     try {
       await cancelBooking(bookingId).unwrap();
-      alert("Reservation annulee avec succes");
+      alert("Réservation annulée avec succès");
     } catch (error) {
       console.error("Failed to cancel booking:", error);
-      alert("Echec de l'annulation de la reservation");
+      alert("Échec de l'annulation de la réservation");
     }
   };
 
@@ -131,7 +131,7 @@ export default function BookingsPage() {
       downloadBlob(blob, datedExportName("reservations-zwanga"));
     } catch (error) {
       setExportError(
-        getApiErrorMessage(error, "Impossible d'exporter les reservations.")
+        getApiErrorMessage(error, "Impossible d'exporter les réservations.")
       );
     }
   };
@@ -149,9 +149,9 @@ export default function BookingsPage() {
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h2>Gestion des reservations</h2>
+            <h2>Gestion des réservations</h2>
             <p className={shared.filterSummary}>
-              {allBookings.length} reservation(s) au total •{" "}
+              {allBookings.length} réservation(s) au total •{" "}
               {allBookings.filter((booking) => booking.status === "pending").length} en attente
             </p>
           </div>
@@ -217,7 +217,7 @@ export default function BookingsPage() {
         ) : null}
 
         {isFetching ? (
-          <p>Chargement des reservations...</p>
+          <p>Chargement des réservations...</p>
         ) : (
           <>
             <div className={shared.tableWrapper}>
@@ -228,7 +228,7 @@ export default function BookingsPage() {
                     <th>Trajet</th>
                     <th>Places</th>
                     <th>Paiement</th>
-                    <th>Date reservation</th>
+                    <th>Date de réservation</th>
                     <th>Statut</th>
                     <th>Actions</th>
                   </tr>
@@ -237,7 +237,7 @@ export default function BookingsPage() {
                   {filtered.length === 0 ? (
                     <tr>
                       <td colSpan={7} style={{ textAlign: "center" }}>
-                        Aucune reservation trouvee
+                        Aucune réservation trouvée
                       </td>
                     </tr>
                   ) : (
@@ -355,7 +355,7 @@ export default function BookingsPage() {
                 Page precedente
               </button>
               <span>
-                Page {page} • {bookingsData?.total ?? 0} reservation(s)
+                Page {page} • {bookingsData?.total ?? 0} réservation(s)
               </span>
               <button
                 type="button"

@@ -134,8 +134,8 @@ export default function DashboardPage() {
           <h1>{data.greeting}</h1>
           <span>{data.dateRange}</span>
         </div>
-        {/* Le bouton precedent n'etait relie a aucune action: il mene
-            maintenant a l'ecran qui contient reellement les signalements. */}
+        {/* Le bouton précédent n'était relié à aucune action : il mène
+            maintenant à l'écran qui contient réellement les signalements. */}
         <Link href="/reports" className={styles.stateButton}>
           <FileText size={16} aria-hidden="true" />
           Voir les signalements
@@ -159,7 +159,7 @@ export default function DashboardPage() {
           <div className={styles.panelHeader}>
             <div>
               <strong>Flux de publication</strong>
-              <p className={styles.panelHint}>Publies vs termines sur les 7 derniers jours</p>
+              <p className={styles.panelHint}>Publies vs terminés sur les 7 derniers jours</p>
             </div>
           </div>
           <svg
@@ -186,15 +186,15 @@ export default function DashboardPage() {
             />
           </svg>
           <div className={styles.legend}>
-            <span className={styles.pill}>Publies</span>
-            <span className={`${styles.pill} ${styles.statusStable}`}>Termines</span>
+            <span className={styles.pill}>Publiés</span>
+            <span className={`${styles.pill} ${styles.statusStable}`}>Terminés</span>
           </div>
           <div className={styles.timeline}>
             {data.tripTrends.map((point) => (
               <div key={point.label} className={styles.timelineItem}>
                 <strong>{point.label}</strong>
                 <span>
-                  {point.published} publies - {point.completed} termines
+                  {point.published} publiés - {point.completed} terminés
                 </span>
               </div>
             ))}
@@ -204,7 +204,7 @@ export default function DashboardPage() {
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <strong>Trajets publies</strong>
+              <strong>Trajets publiés</strong>
               <p className={styles.panelHint}>
                 Où en sont les trajets publiés, du départ à venir jusqu’à la
                 clôture
@@ -347,8 +347,8 @@ export default function DashboardPage() {
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <strong>Routes les plus publiees</strong>
-              <p className={styles.panelHint}>Volume total et etat de diffusion</p>
+              <strong>Routes les plus publiées</strong>
+              <p className={styles.panelHint}>Volume total et état de diffusion</p>
             </div>
           </div>
           <div className={styles.routeList}>
@@ -358,12 +358,12 @@ export default function DashboardPage() {
                   <strong>{route.route}</strong>
                   <p className={styles.panelHint}>
                     {route.total} publication(s) - {route.live} en cours - {route.completed}{" "}
-                    terminees
+                    terminées
                   </p>
                 </div>
                 {route.expired > 0 ? (
                   <span className={`${styles.pill} ${styles.statusWatch}`}>
-                    {route.expired} expire(s)
+                    {route.expired} expiré(s)
                   </span>
                 ) : (
                   <span className={`${styles.pill} ${styles.statusStable}`}>stable</span>
@@ -413,7 +413,7 @@ export default function DashboardPage() {
           <div className={styles.panelHeader}>
             <div>
               <strong>Alertes en cours</strong>
-              <p className={styles.panelHint}>Priorites a traiter par l'equipe admin</p>
+              <p className={styles.panelHint}>Priorités à traiter par l'équipe admin</p>
             </div>
           </div>
           <div className={styles.alertsList}>

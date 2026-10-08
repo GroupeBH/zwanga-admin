@@ -7,7 +7,7 @@ interface Props {
 
 export const metadata: Metadata = {
   title: "Connexion Admin",
-  description: "Acces reserve a l'equipe d'administration Zwanga.",
+  description: "Accès réservé à l'équipe d'administration Zwanga.",
   robots: {
     index: false,
     follow: false,

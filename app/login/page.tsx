@@ -73,8 +73,8 @@ export default function LoginPage() {
     <div className={styles.page}>
       <div className={styles.card}>
         <span>ZWANGA Admin</span>
-        <h1>Connexion securisee</h1>
-        <p>Authentification par numero de telephone + mot de passe admin</p>
+        <h1>Connexion sécurisée</h1>
+        <p>Authentification par numéro de téléphone + mot de passe admin</p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <input
@@ -114,7 +114,7 @@ export default function LoginPage() {
         </form>
 
         <small>
-          Besoin d&apos;un compte ? <Link href="/support">Contacter l&apos;equipe</Link>
+          Besoin d&apos;un compte ? <Link href="/support">Contacter l&apos;équipe</Link>
         </small>
       </div>
     </div>

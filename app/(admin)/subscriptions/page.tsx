@@ -149,11 +149,11 @@ export default function SubscriptionsPage() {
               <small style={{ color: "var(--color-text-muted)" }}>
                 Financement documentaire{" "}
                 {plan.documentFundingEnabled
-                  ? `jusqu'a ${formatAmount(
+                  ? `jusqu'à ${formatAmount(
                       plan.documentFundingLimit ?? 0,
                       plan.documentFundingCurrency
                     )}`
-                  : "desactive"}
+                  : "désactivé"}
               </small>
               <div style={{ marginTop: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {formatSubscriptionFeatureList(plan).map((feature) => (
@@ -270,7 +270,7 @@ export default function SubscriptionsPage() {
                         </strong>
                         <br />
                         <small style={{ color: "var(--color-text-muted)" }}>
-                          {request.driver?.phone ?? "Telephone indisponible"}
+                          {request.driver?.phone ?? "Téléphone indisponible"}
                         </small>
                       </td>
                       <td>

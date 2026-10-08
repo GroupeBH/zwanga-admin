@@ -102,7 +102,7 @@ export default function SettingsPage() {
     const confirmPassword = passwordForm.confirmPassword.trim();
 
     if (newPassword.length < 8) {
-      setPasswordError("Le nouveau mot de passe doit contenir au moins 8 caracteres.");
+      setPasswordError("Le nouveau mot de passe doit contenir au moins 8 caractères.");
       return;
     }
 
@@ -116,7 +116,7 @@ export default function SettingsPage() {
         currentPassword,
         newPassword,
       }).unwrap();
-      setPasswordMessage(response.message || "Mot de passe modifie avec succes.");
+      setPasswordMessage(response.message || "Mot de passe modifié avec succès.");
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
@@ -143,14 +143,14 @@ export default function SettingsPage() {
     };
 
     if (payload.defaultPassword.length < 8) {
-      setAdminError("Le mot de passe temporaire doit contenir au moins 8 caracteres.");
+      setAdminError("Le mot de passe temporaire doit contenir au moins 8 caractères.");
       return;
     }
 
     try {
       const createdAdmin = await createAdminAccount(payload).unwrap();
       setAdminMessage(
-        `Compte admin cree ou promu pour ${createdAdmin.firstName} ${createdAdmin.lastName}. Il devra changer son mot de passe a la premiere connexion.`
+        `Compte admin créé ou promu pour ${createdAdmin.firstName} ${createdAdmin.lastName}. Il devra changer son mot de passe à la première connexion.`
       );
       setAdminForm({
         phone: "",
@@ -349,7 +349,7 @@ export default function SettingsPage() {
 
             {/* Cette carte affichait des preferences de canal inventees, que le
                 backend ne stocke pas. Elle rend compte a la place des
-                notifications reellement recues par ce compte. */}
+                notifications réellement reçues par ce compte. */}
             <article className={shared.card}>
               <strong>Mes notifications</strong>
               <p className={shared.mutedText}>
@@ -708,7 +708,7 @@ export default function SettingsPage() {
             rel="noopener noreferrer"
           >
             <Shield size={16} />
-            <span>Politique de confidentialite</span>
+            <span>Politique de confidentialité</span>
           </Link>
           <Link
             className={shared.legalLink}

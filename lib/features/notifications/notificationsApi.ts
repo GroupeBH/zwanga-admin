@@ -34,7 +34,7 @@ export interface ListNotificationsQuery {
 }
 
 /* Le backend renvoie un objet enveloppe, mais une version plus ancienne
-   renvoyait un tableau nu: les deux formes sont acceptees pour eviter un
+   renvoyait un tableau nu : les deux formes sont acceptées pour éviter un
    ecran vide en cas de decalage de deploiement. */
 const normalizeNotifications = (
   response: NotificationsResponse | AdminNotification[]

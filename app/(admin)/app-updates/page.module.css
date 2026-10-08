@@ -1,0 +1,19 @@
+.section { border-top: 1px solid var(--color-border); padding-top: 24px; display: grid; gap: 16px; }
+.form { max-width: 900px; }
+.fields { border: 0; padding: 0; margin: 0; display: grid; gap: 18px; min-width: 0; }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.fields label { display: grid; gap: 8px; color: var(--color-text-muted); }
+.fields input:not([type="checkbox"]), .fields select, .fields textarea {
+  width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; font: inherit;
+  background: var(--color-field); color: var(--color-text); border: 1px solid var(--color-border-strong); border-radius: 12px;
+  transition: border-color 150ms ease;
+}
+.fields textarea { resize: vertical; }
+.fields :focus-visible, .storeLink:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.fields .confirm { display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; cursor: pointer; }
+.confirm input { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; accent-color: var(--color-primary); }
+.storeLink { color: var(--color-primary); width: fit-content; text-underline-offset: 4px; transition: opacity 150ms ease; }
+.storeLink:hover { opacity: .8; }
+.fields button { justify-self: start; }
+@media (max-width: 700px) { .grid { grid-template-columns: 1fr; } .fields button { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .fields input, .fields select, .fields textarea, .storeLink { transition: none; } }

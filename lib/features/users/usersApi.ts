@@ -17,6 +17,10 @@ export interface UsersQueryParams {
   page?: number;
   limit?: number;
   role?: AdminUserRoleFilter;
+  /** Jour calendaire AAAA-MM-JJ, inclus, fuseau de Kinshasa. */
+  registeredFrom?: string;
+  /** Jour calendaire AAAA-MM-JJ, inclus, fuseau de Kinshasa. */
+  registeredTo?: string;
 }
 
 export interface CreateAdminAccountPayload {
@@ -34,19 +38,33 @@ export interface ResetAdminAccountPasswordPayload {
 export const usersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getUsers: builder.query<PaginatedUsersResponse, UsersQueryParams | void>({
-      query: ({ page = 1, limit = 10, role } = {}) => ({
+      query: ({
+        page = 1,
+        limit = 10,
+        role,
+        registeredFrom,
+        registeredTo,
+      } = {}) => ({
         url: "/admin/users",
-        params: { page, limit, ...(role ? { role } : {}) },
+        params: {
+          page,
+          limit,
+          ...(role ? { role } : {}),
+          ...(registeredFrom ? { registeredFrom } : {}),
+          ...(registeredTo ? { registeredTo } : {}),
+        },
       }),
       serializeQueryArgs: ({ queryArgs }) => {
         const args = queryArgs ?? {};
-        return `users-${args.page ?? 1}-${args.limit ?? 10}-${args.role ?? "all"}`;
+        return `users-${args.page ?? 1}-${args.limit ?? 10}-${args.role ?? "all"}-${args.registeredFrom ?? ""}-${args.registeredTo ?? ""}`;
       },
       forceRefetch({ currentArg, previousArg }) {
         return (
           currentArg?.role !== previousArg?.role ||
           currentArg?.page !== previousArg?.page ||
-          currentArg?.limit !== previousArg?.limit
+          currentArg?.limit !== previousArg?.limit ||
+          currentArg?.registeredFrom !== previousArg?.registeredFrom ||
+          currentArg?.registeredTo !== previousArg?.registeredTo
         );
       },
       transformResponse: (response: unknown): PaginatedUsersResponse => {
@@ -62,10 +80,17 @@ export const usersApi = baseApi.injectEndpoints({
       },
       providesTags: (result) => listProvidesTags("Users", result?.users),
     }),
-    exportUsersXls: builder.mutation<Blob, Pick<UsersQueryParams, "role"> | void>({
-      query: ({ role } = {}) => ({
+    exportUsersXls: builder.mutation<
+      Blob,
+      Pick<UsersQueryParams, "role" | "registeredFrom" | "registeredTo"> | void
+    >({
+      query: ({ role, registeredFrom, registeredTo } = {}) => ({
         url: "/admin/users/export",
-        params: role ? { role } : {},
+        params: {
+          ...(role ? { role } : {}),
+          ...(registeredFrom ? { registeredFrom } : {}),
+          ...(registeredTo ? { registeredTo } : {}),
+        },
         responseHandler: async (response) => {
           if (!response.ok) {
             const payload = (await response.json().catch(() => null)) as

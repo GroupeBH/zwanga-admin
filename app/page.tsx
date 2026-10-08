@@ -42,7 +42,7 @@ type SupportTag = {
   value: string;
 };
 
-type PreviewFlow = "Demande" | "Publication" | "Reservation";
+type PreviewFlow = "Demande" | "Publication" | "Réservation";
 
 type PreviewImage = {
   src: string;
@@ -59,14 +59,14 @@ const passengerBenefits: Benefit[] = [
       "Trouvez un covoiturage Kinshasa disponible selon votre zone, votre heure et votre besoin.",
   },
   {
-    title: "Reservation en quelques clics",
+    title: "Réservation en quelques clics",
     description:
       "Choisissez votre conducteur, confirmez votre place et suivez la course depuis l'application de transport.",
   },
   {
     title: "Plus de confiance au quotidien",
     description:
-      "Messagerie, suivi en direct, avis et signalement pour un trajet securise de bout en bout.",
+      "Messagerie, suivi en direct, avis et signalement pour un trajet sécurisé de bout en bout.",
   },
 ];
 
@@ -74,61 +74,61 @@ const driverBenefits: Benefit[] = [
   {
     title: "Publiez vos trajets quotidiens",
     description:
-      "Proposez vos places libres et organisez vos departs simplement depuis votre mobile.",
+      "Proposez vos places libres et organisez vos départs simplement depuis votre mobile.",
   },
   {
-    title: "Gerez les demandes facilement",
+    title: "Gérez les demandes facilement",
     description:
-      "Acceptez ou refusez les reservations en gardant le controle sur vos horaires.",
+      "Acceptez ou refusez les réservations en gardant le contrôle sur vos horaires.",
   },
   {
     title: "Conduisez avec les bons outils",
     description:
-      "Navigation GPS, suivi en temps reel, notation des passagers et signalement en cas de souci.",
+      "Navigation GPS, suivi en temps réel, notation des passagers et signalement en cas de souci.",
   },
 ];
 
 const passengerSteps = [
-  "Creez votre compte passager en quelques minutes.",
+  "Créez votre compte passager en quelques minutes.",
   "Recherchez un trajet selon votre destination.",
-  "Reservez votre place et echangez avec le conducteur.",
+  "Réservez votre place et échangez avec le conducteur.",
   "Suivez la course, arrivez, puis notez le trajet.",
 ];
 
 const driverSteps = [
-  "Creez votre profil conducteur.",
-  "Passez la verification d'identite (KYC).",
-  "Publiez vos trajets et gerez les reservations.",
+  "Créez votre profil conducteur.",
+  "Passez la vérification d'identité (KYC).",
+  "Publiez vos trajets et gérez les réservations.",
   "Lancez la navigation, terminez la course et notez le passager.",
 ];
 
 const securityPoints = [
   {
     icon: UserCheck,
-    title: "Verification d'identite",
+    title: "Vérification d'identité",
     description: "KYC pour renforcer la confiance entre passager et conducteur.",
   },
   {
     icon: Navigation,
-    title: "Suivi en temps reel",
+    title: "Suivi en temps réel",
     description: "Visualisez le trajet en direct pendant toute la course.",
   },
   {
     icon: BellRing,
     title: "Alertes et notifications",
-    description: "Recevez les infos importantes de securite et de trajet.",
+    description: "Recevez les infos importantes de sécurité et de trajet.",
   },
   {
     icon: PhoneCall,
     title: "Contacts d'urgence",
-    description: "Acces rapide depuis l'application en cas de besoin.",
+    description: "Accès rapide depuis l'application en cas de besoin.",
   },
 ];
 
 const supportFlow = [
-  "1. Le passager ou conducteur cree un ticket avec sujet, categorie, priorite et premier message.",
+  "1. Le passager ou conducteur crée un ticket avec sujet, catégorie, priorité et premier message.",
   "2. Le ticket passe par les statuts open, in_progress, waiting_user, resolved, closed.",
-  "3. Chaque message met a jour lastMessageAt et le premier retour support enregistre firstResponseAt.",
+  "3. Chaque message met à jour lastMessageAt et le premier retour support enregistre firstResponseAt.",
   "4. Les admins peuvent assigner, ajouter une note interne et une resolutionSummary.",
   "5. L'utilisateur peut fermer ou rouvrir un ticket selon l'avancement.",
 ];
@@ -139,13 +139,13 @@ const supportTags: { title: string; items: SupportTag[] }[] = [
     items: [
       { label: "Ouvert", value: "open" },
       { label: "En cours", value: "in_progress" },
-      { label: "En attente user", value: "waiting_user" },
-      { label: "Resolue", value: "resolved" },
-      { label: "Ferme", value: "closed" },
+      { label: "En attente de l'utilisateur", value: "waiting_user" },
+      { label: "Résolue", value: "resolved" },
+      { label: "Fermé", value: "closed" },
     ],
   },
   {
-    title: "Priorites",
+    title: "Priorités",
     items: [
       { label: "Basse", value: "low" },
       { label: "Moyenne", value: "medium" },
@@ -154,24 +154,24 @@ const supportTags: { title: string; items: SupportTag[] }[] = [
     ],
   },
   {
-    title: "Categories",
+    title: "Catégories",
     items: [
-      { label: "General", value: "general" },
+      { label: "Général", value: "general" },
       { label: "Compte", value: "account" },
       { label: "Paiement", value: "payment" },
-      { label: "Reservation", value: "booking" },
-      { label: "Securite", value: "safety" },
+      { label: "Réservation", value: "booking" },
+      { label: "Sécurité", value: "safety" },
       { label: "Technique", value: "technical" },
     ],
   },
 ];
 
 const supportCategoryOptions: { label: string; value: SupportTicketCategory }[] = [
-  { label: "Information generale", value: "general" },
+  { label: "Information générale", value: "general" },
   { label: "Compte", value: "account" },
   { label: "Paiement", value: "payment" },
-  { label: "Reservation", value: "booking" },
-  { label: "Securite", value: "safety" },
+  { label: "Réservation", value: "booking" },
+  { label: "Sécurité", value: "safety" },
   { label: "Technique", value: "technical" },
   { label: "Autre", value: "other" },
 ];
@@ -190,42 +190,42 @@ const faqs: Faq[] = [
       "Zwanga est une application de transport de covoiturage Kinshasa. Elle relie passagers et conducteurs pour les trajets urbains du quotidien.",
   },
   {
-    question: "Comment reserver un trajet ?",
+    question: "Comment réserver un trajet ?",
     answer:
       "Vous recherchez une offre, choisissez un conducteur et confirmez votre place en quelques clics.",
   },
   {
     question: "Comment devenir conducteur sur Zwanga ?",
     answer:
-      "Inscrivez-vous, completez la verification d'identite, puis publiez vos trajets.",
+      "Inscrivez-vous, complétez la vérification d'identité, puis publiez vos trajets.",
   },
   {
-    question: "Comment savoir si mon trajet est securise ?",
+    question: "Comment savoir si mon trajet est sécurisé ?",
     answer:
-      "Vous avez le profil verifie, les avis, le suivi en direct, les alertes et le systeme de signalement.",
+      "Vous avez le profil vérifié, les avis, le suivi en direct, les alertes et le système de signalement.",
   },
   {
-    question: "Puis-je parler avec le conducteur avant le depart ?",
-    answer: "Oui. La messagerie integree permet d'ecrire avant et pendant la course.",
+    question: "Puis-je parler avec le conducteur avant le départ ?",
+    answer: "Oui. La messagerie intégrée permet d'écrire avant et pendant la course.",
   },
   {
     question: "Que faire en cas d'incident ?",
     answer:
-      "Signalez immediatement depuis l'ecran de course ou ouvrez un ticket support. Notre equipe suit le dossier jusqu'a resolution.",
+      "Signalez immédiatement depuis l'écran de course ou ouvrez un ticket support. Notre équipe suit le dossier jusqu'à résolution.",
   },
   {
     question: "Quels statuts existent pour un ticket support ?",
     answer:
-      "Votre ticket evolue entre open, in_progress, waiting_user, resolved et closed pour un suivi clair.",
+      "Votre ticket évolue entre open, in_progress, waiting_user, resolved et closed pour un suivi clair.",
   },
   {
-    question: "Puis-je reouvrir un ticket ferme ou resolu ?",
+    question: "Puis-je rouvrir un ticket fermé ou résolu ?",
     answer:
-      "Oui. Vous pouvez rouvrir votre ticket depuis l'application si le probleme continue.",
+      "Oui. Vous pouvez rouvrir votre ticket depuis l'application si le problème continue.",
   },
   {
-    question: "Zwanga est disponible ou ?",
-    answer: "Zwanga est centre sur Kinshasa pour offrir un service local adapte a la ville.",
+    question: "Zwanga est disponible où ?",
+    answer: "Zwanga est centré sur Kinshasa pour offrir un service local adapté à la ville.",
   },
 ];
 
@@ -240,21 +240,21 @@ const previewImages: PreviewImage[] = [
   {
     src: "/app-home-trips.png",
     alt: "Accueil Zwanga affichant les trajets publiés",
-    flow: "Reservation",
+    flow: "Réservation",
     step: "02",
     title: "Parcourir les trajets publiés",
   },
   {
     src: "/app-search-results.png",
     alt: "Résultats de recherche d'un trajet dans Zwanga",
-    flow: "Reservation",
+    flow: "Réservation",
     step: "03",
     title: "Comparer les trajets disponibles",
   },
   {
     src: "/app-trip-details.png",
     alt: "Détails d'un trajet et bouton de réservation",
-    flow: "Reservation",
+    flow: "Réservation",
     step: "04",
     title: "Consulter puis réserver un trajet",
   },
@@ -303,14 +303,14 @@ const previewImages: PreviewImage[] = [
   {
     src: "/app-profile.png",
     alt: "Profil conducteur et tableau de bord Zwanga",
-    flow: "Reservation",
+    flow: "Réservation",
     step: "11",
     title: "Piloter son profil conducteur",
   },
   {
     src: "/app-login.png",
     alt: "Connexion et inscription à l'application Zwanga",
-    flow: "Reservation",
+    flow: "Réservation",
     step: "12",
     title: "Commencer en quelques instants",
   },
@@ -382,7 +382,7 @@ export default function HomePage() {
         operatingSystem: "Android, iOS",
         applicationCategory: "TravelApplication",
         description:
-          "Application de transport de covoiturage Kinshasa pour passager et conducteur avec trajet securise.",
+          "Application de transport de covoiturage Kinshasa pour passager et conducteur avec trajet sécurisé.",
         offers: {
           "@type": "Offer",
           price: "0",
@@ -526,7 +526,7 @@ export default function HomePage() {
           ? backendMessage.join(", ")
           : typeof backendMessage === "string"
             ? backendMessage
-            : "Impossible de creer le ticket pour le moment.";
+            : "Impossible de créer le ticket pour le moment.";
 
       if (status === 401 || status === 403) {
         setIsSupportAuthenticated(false);
@@ -551,7 +551,7 @@ export default function HomePage() {
       <a
         href={androidAppUrl}
         className={styles.appBtn}
-        aria-label="Telecharger sur Google Play"
+        aria-label="Télécharger sur Google Play"
         target="_blank"
         rel="noreferrer"
       >
@@ -571,7 +571,7 @@ export default function HomePage() {
       <a
         href={appStoreUrl}
         className={styles.appBtn}
-        aria-label="Telecharger sur App Store"
+        aria-label="Télécharger sur App Store"
         target="_blank"
         rel="noreferrer"
       >
@@ -584,7 +584,7 @@ export default function HomePage() {
           aria-hidden="true"
         />
         <span className={styles.appBtnLabel}>
-          <span className={styles.appBtnLabelHint}>Telecharger dans l&apos;</span>
+          <span className={styles.appBtnLabelHint}>Télécharger dans l&apos;</span>
           <span className={styles.appBtnLabelName}>App Store</span>
         </span>
       </a>
@@ -698,7 +698,7 @@ export default function HomePage() {
               <article className={styles.personaCard}>
                 <div className={styles.personaHead}>
                   <Users className={styles.personaIcon} />
-                  <h3>Benefices cles passager</h3>
+                  <h3>Bénéfices clés passager</h3>
                 </div>
                 <ul className={styles.featureList}>
                   {passengerBenefits.map((benefit) => (
@@ -719,7 +719,7 @@ export default function HomePage() {
               <article className={styles.personaCard}>
                 <div className={styles.personaHead}>
                   <Car className={styles.personaIcon} />
-                  <h3>Benefices cles conducteur</h3>
+                  <h3>Bénéfices clés conducteur</h3>
                 </div>
                 <ul className={styles.featureList}>
                   {driverBenefits.map((benefit) => (
@@ -742,9 +742,9 @@ export default function HomePage() {
 
         <section id="how-it-works" className={`${styles.section} ${styles.sectionAlt}`}>
           <div className={styles.container}>
-            <h2 className={styles.sectionTitle}>Comment ca marche</h2>
+            <h2 className={styles.sectionTitle}>Comment ça marche</h2>
             <p className={styles.sectionSubtitle}>
-              4 etapes pour le passager, 4 etapes pour le conducteur.
+              4 étapes pour le passager, 4 étapes pour le conducteur.
             </p>
             <div className={styles.howGrid}>
               <article className={styles.stepCard}>
@@ -826,13 +826,13 @@ export default function HomePage() {
           <div className={styles.container}>
             <div className={styles.securityLayout}>
               <div className={styles.securityText}>
-                <h2 className={styles.sectionTitleLeft}>Securite & confiance</h2>
+                <h2 className={styles.sectionTitleLeft}>Sécurité & confiance</h2>
                 <p className={styles.sectionSubtitleLeft}>
-                  Zwanga met la confiance au centre: verification d&apos;identite, suivi en direct,
-                  alertes et contacts d&apos;urgence pour un trajet securise.
+                  Zwanga met la confiance au centre: vérification d&apos;identité, suivi en direct,
+                  alertes et contacts d&apos;urgence pour un trajet sécurisé.
                 </p>
                 <a href="#download-apps" className={styles.miniCta}>
-                  Voir nos mesures de securite
+                  Voir nos mesures de sécurité
                 </a>
               </div>
               <div className={styles.securityGrid}>
@@ -854,9 +854,9 @@ export default function HomePage() {
               <div>
                 <h2 className={styles.sectionTitleLeft}>Signalement & assistance</h2>
                 <p className={styles.sectionSubtitleLeft}>
-                  En cas de probleme, passager et conducteur peuvent signaler depuis
-                  l&apos;application ou ouvrir un ticket support. Le suivi est structure du premier
-                  message jusqu&apos;a la resolution.
+                  En cas de problème, passager et conducteur peuvent signaler depuis
+                  l&apos;application ou ouvrir un ticket support. Le suivi est structuré du premier
+                  message jusqu&apos;à la résolution.
                 </p>
                 <div className={styles.supportMeta}>
                   {supportTags.map((group) => (
@@ -890,13 +890,13 @@ export default function HomePage() {
                   <p>
                     Ouvrez le formulaire en modal pour poser votre question.
                     <br />
-                    Ticket suivi via l'application. Depuis le site, nous vous guidons vers le telechargement.
+                    Ticket suivi via l'application. Depuis le site, nous vous guidons vers le téléchargement.
                   </p>
                   <button type="button" className={styles.supportSubmit} onClick={openSupportCenter}>
                     Ouvrir le formulaire d'aide
                   </button>
                   <div className={styles.supportQuickLinks}>
-                    <a href="#download-apps">Telecharger l'application</a>
+                    <a href="#download-apps">Télécharger l'application</a>
                     <a href="#faq">Voir la FAQ</a>
                   </div>
                 </div>
@@ -909,7 +909,7 @@ export default function HomePage() {
           <div className={styles.container}>
             <h2 className={styles.sectionTitle}>FAQ</h2>
             <p className={styles.sectionSubtitle}>
-              Les reponses claires avant d&apos;installer Zwanga.
+              Les réponses claires avant d&apos;installer Zwanga.
             </p>
             <div className={styles.faqList}>
               {faqItems.map((faq, index) => (
@@ -928,7 +928,7 @@ export default function HomePage() {
               ))}
             </div>
             <a href="#download-apps" className={styles.miniCta}>
-              Consulter plus de reponses
+              Consulter plus de réponses
             </a>
           </div>
         </section>
@@ -986,9 +986,9 @@ export default function HomePage() {
 
               <h3>Demander de l'aide</h3>
               <p>
-                Decrivez votre besoin. Nous vous guidons rapidement.
+                Décrivez votre besoin. Nous vous guidons rapidement.
                 <br />
-                Ticket suivi via l'application Zwanga. Sans session, ce bouton ouvre le telechargement.
+                Ticket suivi via l'application Zwanga. Sans session, ce bouton ouvre le téléchargement.
               </p>
 
               <form className={styles.supportForm} onSubmit={handleSupportRequest}>
@@ -1020,7 +1020,7 @@ export default function HomePage() {
                   >
                     {supportPriorityOptions.map((option) => (
                       <option key={option.value} value={option.value}>
-                        Priorite {option.label}
+                        Priorité {option.label}
                       </option>
                     ))}
                   </select>
@@ -1029,7 +1029,7 @@ export default function HomePage() {
                 <textarea
                   value={supportMessage}
                   onChange={(event) => setSupportMessage(event.target.value)}
-                  placeholder="Decrivez votre probleme ou votre question"
+                  placeholder="Décrivez votre problème ou votre question"
                   rows={4}
                   required={isSupportAuthenticated}
                 />
@@ -1055,7 +1055,7 @@ export default function HomePage() {
                     ? "Envoi en cours..."
                     : isSupportAuthenticated
                       ? "Soumettre ma demande"
-                      : "Telecharger l'application"}
+                      : "Télécharger l'application"}
                 </button>
               </form>
             </div>
@@ -1077,11 +1077,11 @@ export default function HomePage() {
               <div className={styles.successIconWrap}>
                 <CheckCircle2 size={26} />
               </div>
-              <h3>Demande envoyee avec succes</h3>
+              <h3>Demande envoyée avec succès</h3>
               <p>
-                Ticket cree: <strong>{supportSuccessTicketId}</strong>
+                Ticket créé : <strong>{supportSuccessTicketId}</strong>
                 <br />
-                Notre equipe vous repondra dans les plus brefs delais.
+                Notre équipe vous répondra dans les plus brefs délais.
               </p>
               <div className={styles.successActions}>
                 <button type="button" className={styles.supportSubmit} onClick={closeSupportSuccessModal}>
@@ -1171,12 +1171,12 @@ export default function HomePage() {
               <Link href="/">Accueil</Link>
               <Link href="/enquiry">Zwanga Services</Link>
               <Link href="#benefits">Avantages</Link>
-              <Link href="#how-it-works">Comment ca marche</Link>
-              <Link href="/privacy">Politique de confidentialite</Link>
+              <Link href="#how-it-works">Comment ça marche</Link>
+              <Link href="/privacy">Politique de confidentialité</Link>
             </div>
             <div className={styles.footerSection}>
-              <h4 className={styles.footerTitle}>A propos</h4>
-              <Link href="#security">Securite & confiance</Link>
+              <h4 className={styles.footerTitle}>À propos</h4>
+              <Link href="#security">Sécurité & confiance</Link>
               <Link href="/terms">Conditions d'utilisation</Link>
               <Link href="/sales-policy">Politique de vente</Link>
             </div>
@@ -1186,11 +1186,11 @@ export default function HomePage() {
                 Email:{" "}
                 <a href="mailto:contact@biso-tech.org">contact@biso-tech.org</a>
               </p>
-              <p className={styles.footerText}>Telephone: +243999403012</p>
+              <p className={styles.footerText}>Téléphone : +243999403012</p>
             </div>
           </div>
           <div className={styles.footerBottom}>
-            <p>Copyright (c) {new Date().getFullYear()} ZWANGA. Tous droits reserves.</p>
+            <p>Copyright (c) {new Date().getFullYear()} ZWANGA. Tous droits réservés.</p>
           </div>
         </div>
       </footer>

@@ -28,17 +28,17 @@ const siteUrl =
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Zwanga | Covoiturage Kinshasa et trajet securise",
+    default: "Zwanga | Covoiturage Kinshasa et trajet sécurisé",
     template: "%s | Zwanga",
   },
   description:
-    "Zwanga est une application de transport de covoiturage Kinshasa. Trouvez un conducteur ou proposez un trajet securise au quotidien.",
+    "Zwanga est une application de transport de covoiturage Kinshasa. Trouvez un conducteur ou proposez un trajet sécurisé au quotidien.",
   applicationName: "Zwanga",
   manifest: "/manifest.webmanifest",
   keywords: [
     "Zwanga",
     "covoiturage Kinshasa",
-    "trajet securise",
+    "trajet sécurisé",
     "application de transport",
     "conducteur",
     "passager",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Zwanga | Covoiturage Kinshasa",
     description:
-      "Application de transport locale a Kinshasa pour passagers et conducteurs avec suivi en direct et outils de securite.",
+      "Application de transport locale à Kinshasa pour passagers et conducteurs avec suivi en direct et outils de sécurité.",
     url: siteUrl,
     siteName: "Zwanga",
     locale: "fr_CD",
@@ -73,7 +73,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Zwanga | Covoiturage Kinshasa",
     description:
-      "Covoiturage urbain a Kinshasa: passager et conducteur sur la meme application, avec trajet securise.",
+      "Covoiturage urbain à Kinshasa: passager et conducteur sur la même application, avec trajet sécurisé.",
     images: ["/zwanga.png"],
   },
   robots: {

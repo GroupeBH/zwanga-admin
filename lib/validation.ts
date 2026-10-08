@@ -13,7 +13,7 @@ const textField = (label: string, min = 2, max = 200) =>
     .trim()
     .min(min, `Le champ ${label} est obligatoire.`)
     .max(max, `Le champ ${label} est trop long.`)
-    .refine(noHtml, "Les balises HTML ne sont pas autorisees.");
+    .refine(noHtml, "Les balises HTML ne sont pas autorisées.");
 
 export const identiteSchema = z.object({
   nomComplet: textField("nom complet", 3, 180),
@@ -23,18 +23,18 @@ export const contactSchema = z.object({
   telephone: z
     .string()
     .trim()
-    .regex(/^[0-9+().\s-]{8,20}$/, "Numero de telephone invalide."),
+    .regex(/^[0-9+().\s-]{8,20}$/, "Numéro de téléphone invalide."),
 });
 
 export const vehiculeSchema = z.object({
-  marqueComplete: textField("marque complete du vehicule", 2, 180),
-  plaqueImmatriculation: textField("numero de plaque d'immatriculation", 2, 80),
+  marqueComplete: textField("marque complète du véhicule", 2, 180),
+  plaqueImmatriculation: textField("numéro de plaque d'immatriculation", 2, 80),
 });
 
 export const servicesSchema = z
   .array(z.string().trim())
-  .min(1, "Selectionnez au moins un document/service.")
-  .max(SERVICES.length, "Trop de services selectionnes.")
+  .min(1, "Sélectionnez au moins un document/service.")
+  .max(SERVICES.length, "Trop de services sélectionnés.")
   .refine((services) => services.every((service) => SERVICE_IDS.has(service)), {
     message: "Un ou plusieurs services sont invalides.",
   });

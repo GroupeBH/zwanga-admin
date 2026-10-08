@@ -11,7 +11,7 @@ export type ReportReason =
 export type ReportStatus = "pending" | "under_review" | "resolved" | "dismissed";
 
 /** Statuts que le back-office peut appliquer: un signalement ne revient
-    jamais a l'etat initial « pending ». */
+    jamais à l'état initial « pending ». */
 export type ReportStatusDecision = Exclude<ReportStatus, "pending">;
 
 export interface UserReportParty {

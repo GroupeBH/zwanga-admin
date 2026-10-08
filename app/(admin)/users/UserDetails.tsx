@@ -163,7 +163,7 @@ export default function UserDetailsPage({ userId }: { userId: string }) {
   const [activateUser, { isLoading: isActivating }] = useActivateUserMutation();
 
   const handleDeactivate = async () => {
-    if (!data?.user || !confirm("Desactiver ce compte utilisateur ?")) return;
+    if (!data?.user || !confirm("Désactiver ce compte utilisateur ?")) return;
     await deactivateUser(data.user.id).unwrap();
   };
 
@@ -185,7 +185,7 @@ export default function UserDetailsPage({ userId }: { userId: string }) {
       <div className={shared.page}>
         <section className={shared.section}>
           <h2>Dossier utilisateur</h2>
-          <p>Impossible de charger les details de cet utilisateur.</p>
+          <p>Impossible de charger les détails de cet utilisateur.</p>
           <a href="/users" className={shared.primaryButton}>
             Retour utilisateurs
           </a>
@@ -252,16 +252,16 @@ export default function UserDetailsPage({ userId }: { userId: string }) {
                   color: "var(--color-danger)",
                 }}
               >
-                Desactiver
+                Désactiver
               </button>
             )}
           </div>
         </div>
 
         <div className={shared.grid}>
-          <Metric label="Trajets publies" value={stats.trips} />
-          <Metric label="Reservations faites" value={stats.bookingsAsPassenger} />
-          <Metric label="Reservations recues" value={stats.bookingsAsDriver} />
+          <Metric label="Trajets publiés" value={stats.trips} />
+          <Metric label="Réservations faites" value={stats.bookingsAsPassenger} />
+          <Metric label="Réservations reçues" value={stats.bookingsAsDriver} />
           <Metric label="Paiements effectues" value={stats.payments} />
           <Metric
             label="Montant reussi"
@@ -287,11 +287,11 @@ export default function UserDetailsPage({ userId }: { userId: string }) {
 
       <TripsSection trips={data.trips ?? []} />
       <BookingsSection
-        title="Reservations comme passager"
+        title="Réservations comme passager"
         bookings={data.bookingsAsPassenger ?? []}
       />
       <BookingsSection
-        title="Reservations recues comme conducteur"
+        title="Réservations reçues comme conducteur"
         bookings={data.bookingsAsDriver ?? []}
       />
       <PaymentsSection payments={data.payments ?? []} />
@@ -346,7 +346,7 @@ function TripsSection({ trips }: { trips: Trip[] }) {
         <h2>Trajets</h2>
         <span style={{ color: "var(--color-text-muted)" }}>{trips.length} element(s)</span>
       </div>
-      <TableEmpty empty={trips.length === 0} message="Aucun trajet publie.">
+      <TableEmpty empty={trips.length === 0} message="Aucun trajet publié.">
         <table className={shared.table}>
           <thead>
             <tr>
@@ -393,7 +393,7 @@ function BookingsSection({ title, bookings }: { title: string; bookings: Booking
         <h2>{title}</h2>
         <span style={{ color: "var(--color-text-muted)" }}>{bookings.length} element(s)</span>
       </div>
-      <TableEmpty empty={bookings.length === 0} message="Aucune reservation.">
+      <TableEmpty empty={bookings.length === 0} message="Aucune réservation.">
         <table className={shared.table}>
           <thead>
             <tr>
@@ -502,7 +502,7 @@ function TripRequestsSection({ tripRequests }: { tripRequests: TripRequest[] }) 
           <thead>
             <tr>
               <th>Demande</th>
-              <th>Fenetre depart</th>
+              <th>Fenêtre de départ</th>
               <th>Places</th>
               <th>Prix max</th>
               <th>Offres</th>

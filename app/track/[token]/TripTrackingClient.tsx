@@ -87,19 +87,19 @@ const POLL_INTERVAL_MS = 8000;
 const TERMINAL_TRIP_STATUSES = new Set(["completed", "cancelled"]);
 
 const tripStatusLabels: Record<string, string> = {
-  upcoming: "A venir",
+  upcoming: "À venir",
   ongoing: "En cours",
-  completed: "Termine",
-  cancelled: "Annule",
+  completed: "Terminé",
+  cancelled: "Annulé",
 };
 
 const bookingStatusLabels: Record<string, string> = {
-  pending: "Reservation en attente",
-  accepted: "Reservation acceptee",
-  completed: "Reservation terminee",
-  cancelled: "Reservation annulee",
-  rejected: "Reservation refusee",
-  expired: "Reservation expiree",
+  pending: "Réservation en attente",
+  accepted: "Réservation acceptée",
+  completed: "Réservation terminée",
+  cancelled: "Réservation annulée",
+  rejected: "Réservation refusée",
+  expired: "Réservation expirée",
 };
 
 interface Props {
@@ -235,7 +235,7 @@ export function TripTrackingClient({ token }: Props) {
         <section className={styles.errorShell}>
           <AlertTriangle size={34} />
           <h1>Lien indisponible</h1>
-          <p>{errorMessage || "Ce lien est introuvable, expire ou revoque."}</p>
+          <p>{errorMessage || "Ce lien est introuvable, expiré ou révoqué."}</p>
         </section>
       </main>
     );
@@ -249,8 +249,8 @@ export function TripTrackingClient({ token }: Props) {
   const isLive = tracking.freshness.isLive;
   const isTrackingFinished = isTerminalTripStatus(trip.status);
   const updateLabel = trip.lastLocationUpdateAt
-    ? `${isTrackingFinished ? "Derniere position : " : ""}${formatDateTime(trip.lastLocationUpdateAt)}`
-    : "Position non encore recue";
+    ? `${isTrackingFinished ? "Dernière position : " : ""}${formatDateTime(trip.lastLocationUpdateAt)}`
+    : "Position non encore reçue";
 
   return (
     <main className={styles.page}>
@@ -285,7 +285,7 @@ export function TripTrackingClient({ token }: Props) {
           ) : (
             <RefreshCw size={17} className={isRefreshing ? styles.spinIcon : undefined} />
           )}
-          {isTrackingFinished ? "Suivi termine" : "Actualiser"}
+          {isTrackingFinished ? "Suivi terminé" : "Actualiser"}
         </button>
       </section>
 
@@ -293,7 +293,7 @@ export function TripTrackingClient({ token }: Props) {
         <div className={styles.mapHeader}>
           <div>
             <p className={styles.sectionKicker}>
-              {isTrackingFinished ? "Derniere position connue" : "Position actuelle"}
+              {isTrackingFinished ? "Dernière position connue" : "Position actuelle"}
             </p>
             <h2>{updateLabel}</h2>
           </div>
@@ -331,11 +331,11 @@ export function TripTrackingClient({ token }: Props) {
         <article className={styles.panel}>
           <div className={styles.panelHeader}>
             <Route size={20} />
-            <h2>Itineraire</h2>
+            <h2>Itinéraire</h2>
           </div>
           <div className={styles.routeList}>
-            <RoutePoint tone="start" label="Depart" location={departure} />
-            <RoutePoint tone="end" label="Arrivee" location={arrival} />
+            <RoutePoint tone="start" label="Départ" location={departure} />
+            <RoutePoint tone="end" label="Arrivée" location={arrival} />
           </div>
         </article>
 
@@ -349,7 +349,7 @@ export function TripTrackingClient({ token }: Props) {
             {trip.vehicle ? (
               <small>{trip.vehicle.color} {trip.vehicle.brand} {trip.vehicle.model}</small>
             ) : (
-              <small>Vehicule non renseigne</small>
+              <small>Véhicule non renseigné</small>
             )}
           </div>
           {trip.vehicle ? (
@@ -359,7 +359,7 @@ export function TripTrackingClient({ token }: Props) {
                 <dd>{trip.vehicle.licensePlate}</dd>
               </div>
               <div>
-                <dt>Depart prevu</dt>
+                <dt>Départ prévu</dt>
                 <dd>{formatDateTime(trip.departureDate)}</dd>
               </div>
             </dl>
@@ -372,17 +372,17 @@ export function TripTrackingClient({ token }: Props) {
             <h2>Statut</h2>
           </div>
           <ol className={styles.timeline}>
-            <TimelineItem done label="Trajet partage" />
-            <TimelineItem done={trip.status === "ongoing" || trip.status === "completed"} label="Trajet demarre" />
-            <TimelineItem done={Boolean(booking?.pickedUp || booking?.pickedUpConfirmedByPassenger)} label="Passager embarque" />
-            <TimelineItem done={Boolean(booking?.droppedOff || trip.status === "completed")} label="Arrivee confirmee" />
+            <TimelineItem done label="Trajet partagé" />
+            <TimelineItem done={trip.status === "ongoing" || trip.status === "completed"} label="Trajet démarré" />
+            <TimelineItem done={Boolean(booking?.pickedUp || booking?.pickedUpConfirmedByPassenger)} label="Passager embarqué" />
+            <TimelineItem done={Boolean(booking?.droppedOff || trip.status === "completed")} label="Arrivée confirmée" />
           </ol>
         </article>
 
         <article className={styles.panel}>
           <div className={styles.panelHeader}>
             <Clock3 size={20} />
-            <h2>Acces</h2>
+            <h2>Accès</h2>
           </div>
           <dl className={styles.metaList}>
             <div>
@@ -390,12 +390,12 @@ export function TripTrackingClient({ token }: Props) {
               <dd>{formatDateTime(tracking.share.expiresAt)}</dd>
             </div>
             <div>
-              <dt>Derniere lecture</dt>
+              <dt>Dernière lecture</dt>
               <dd>{lastRefreshAt ? formatDateTime(lastRefreshAt.toISOString()) : "--"}</dd>
             </div>
             {booking ? (
               <div>
-                <dt>Reservation</dt>
+                <dt>Réservation</dt>
                 <dd>{bookingStatusLabels[booking.status] || booking.status}</dd>
               </div>
             ) : null}

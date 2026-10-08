@@ -137,7 +137,7 @@ const buildMetricCards = (
     },
     {
       id: "published",
-      label: "Trajets publies",
+      label: "Trajets publiés",
       value: formatInteger(trips.length),
       helper: `${formatInteger(lifecycle.ongoing + lifecycle.upcoming)} encore ouverts`,
       tone: "neutral",
@@ -151,16 +151,16 @@ const buildMetricCards = (
     },
     {
       id: "upcoming",
-      label: "A venir",
+      label: "À venir",
       value: formatInteger(lifecycle.upcoming),
-      helper: "publications programmees",
+      helper: "publications programmées",
       tone: lifecycle.upcoming > 0 ? "neutral" : "success",
     },
     {
       id: "expired",
-      label: "Expires",
+      label: "Expirés",
       value: formatInteger(lifecycle.expired),
-      helper: "depart depasse de plus de 2h",
+      helper: "départ dépassé de plus de 2h",
       tone: lifecycle.expired > 0 ? "warning" : "success",
     },
     {
@@ -260,7 +260,7 @@ const buildAlerts = (
     alerts.push({
       id: "alert-expired-trips",
       type: "safety" as const,
-      message: `${lifecycle.expired} trajet(s) publies sont maintenant expires`,
+      message: `${lifecycle.expired} trajet(s) publiés sont maintenant expirés`,
       severity: lifecycle.expired >= 3 ? ("high" as const) : ("medium" as const),
       timestamp: new Date().toISOString(),
     });

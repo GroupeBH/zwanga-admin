@@ -8,7 +8,7 @@ interface Props {
 export const metadata: Metadata = {
   title: "Conditions d'utilisation",
   description:
-    "Conditions d'utilisation de Zwanga, application de transport et covoiturage a Kinshasa.",
+    "Conditions d'utilisation de Zwanga, application de transport et covoiturage à Kinshasa.",
 };
 
 export default function TermsLayout({ children }: Props) {
