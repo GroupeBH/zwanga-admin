@@ -14,6 +14,7 @@ import type {
 
 import shared from "../styles/page.module.css";
 import UserFinancialActions from "./UserFinancialActions";
+import UserKycDecision from "./UserKycDecision";
 
 const formatDate = (dateString?: string | null) => {
   if (!dateString) return "—";
@@ -269,6 +270,8 @@ export default function UserDetailsPage({ userId }: { userId: string }) {
           />
         </div>
       </section>
+
+      <UserKycDecision documents={data.kycDocuments ?? []} />
 
       <UserFinancialActions key={user.id} user={user} />
 

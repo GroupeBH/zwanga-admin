@@ -25,3 +25,23 @@ pnpm create next-app --example with-redux with-redux-app
 ```
 
 Deploy it to the cloud with [Vercel](https://vercel.com/new?utm_source=github&utm_medium=readme&utm_campaign=next-example) ([Documentation](https://nextjs.org/docs/deployment)).
+# Modification et reprogrammation des demandes — 8 octobre 2026
+
+La page `/trip-requests` permet de modifier les demandes en attente et de
+reprogrammer les demandes expirées avec un créneau futur. Les demandes annulées
+ou déjà prises en charge sont protégées. Les anciennes offres en attente sont
+invalidées par le backend ; une recherche immédiate reprogrammée hors de son
+horizon devient classique.
+
+`lib/features/tripRequests/requestEdit.ts` construit uniquement les champs modifiés
+et ajoute `expectedUpdatedAt` depuis l'ouverture du formulaire. La saisie utilise
+les heures locales du navigateur ; les heures inchangées gardent leurs secondes
+et leur valeur UTC originale. Les erreurs métier/conflits sont affichées.
+L'endpoint admin existant `PUT /admin/trip-requests/:id` est conservé.
+
+Vérification : TypeScript sans émission et
+`node --test lib/features/tripRequests/requestEdit.test.cjs` (3 tests réussis).
+Pas de déploiement ni d'essai navigateur connecté à la production. Déployer le
+backend associé avant cette interface. Les historiques financiers ne sont pas
+modifiés par cette action.
+

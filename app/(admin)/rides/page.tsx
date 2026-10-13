@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Download, Info } from "lucide-react";
 
 import {
@@ -20,6 +21,7 @@ import {
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/utils/apiErrors";
 import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
 
+import TripStatement from "../trips/TripStatement";
 import shared from "../styles/page.module.css";
 
 const backendStatusLabelMap: Record<TripStatus, string> = {
@@ -29,7 +31,7 @@ const backendStatusLabelMap: Record<TripStatus, string> = {
   cancelled: "API: cancelled",
 };
 
-export default function RidesPage() {
+export function RidesPage() {
   const { data: trips = [], isFetching, error } = useGetAllTripsQuery({ page: 1, limit: 100 });
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -323,6 +325,13 @@ export default function RidesPage() {
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <a
+                            className={shared.secondaryButton}
+                            href={`/trips?fiche=${encodeURIComponent(trip.id)}`}
+                            style={{ fontSize: "0.85rem", padding: "6px 12px" }}
+                          >
+                            Voir le détail
+                          </a>
                           <button
                             type="button"
                             className={shared.primaryButton}
@@ -521,5 +530,19 @@ export default function RidesPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function RidesRoute() {
+  const fiche = useSearchParams().get("fiche");
+  if (fiche) return <TripStatement tripId={fiche} />;
+  return <RidesPage />;
+}
+
+export default function RidesPageRoute() {
+  return (
+    <Suspense fallback={null}>
+      <RidesRoute />
+    </Suspense>
   );
 }

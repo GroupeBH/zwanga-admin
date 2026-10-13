@@ -232,7 +232,7 @@ export interface KycDocument {
   cniBackUrl?: string | null;
   selfieUrl?: string | null;
   status: KycStatus;
-  provider?: "legacy" | "didit";
+  provider?: "legacy" | "didit" | "aws";
   rejectionReason?: string | null;
   reviewedBy?: string;
   reviewedAt?: string;
@@ -404,6 +404,7 @@ export interface DriverOffer {
 }
 
 export interface TripRequest {
+  selectedDriverId?: string | null;
   id: string;
   passenger: SanitizedUser;
   departureLocation: string;
@@ -436,6 +437,7 @@ export interface AdminUserDetailsResponse {
   bookingsAsDriver: Booking[];
   payments: PaymentTransaction[];
   tripRequests: TripRequest[];
+  kycDocuments?: KycDocument[];
   stats: {
     trips: number;
     bookingsAsPassenger: number;

@@ -81,9 +81,12 @@ export const kycApi = baseApi.injectEndpoints({
         method: "PUT",
         body: { approved, reason },
       }),
-      invalidatesTags: (_result, _error, { kycId }) => [
+      invalidatesTags: (result, _error, { kycId }) => [
         { type: "KYC", id: kycId },
         { type: "KYC", id: "LIST" },
+        { type: "Users", id: "LIST" },
+        "Dashboard",
+        ...(result?.userId ? [{ type: "Users" as const, id: result.userId }] : []),
       ],
     }),
   }),

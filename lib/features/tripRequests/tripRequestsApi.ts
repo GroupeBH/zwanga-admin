@@ -14,6 +14,7 @@ export interface TripRequestsQueryParams {
 }
 
 export interface UpdateTripRequestPayload {
+  expectedUpdatedAt?: string;
   departureLocation?: string;
   departureReference?: string;
   arrivalLocation?: string;

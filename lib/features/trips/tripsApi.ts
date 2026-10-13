@@ -7,6 +7,74 @@ export interface TripsQueryParams {
   limit?: number;
 }
 
+export interface StatementPerson {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+}
+
+export interface TripStatement {
+  trip: {
+    id: string;
+    departureLocation: string;
+    arrivalLocation: string;
+    departureDate: string;
+    status: string;
+    totalSeats: number | null;
+    availableSeats: number;
+    pricePerSeat: number;
+    isFree: boolean;
+    isPrivate: boolean;
+    description: string | null;
+    acceptedPaymentModes: string[];
+    createdAt: string;
+    startedAt: string | null;
+    completedAt: string | null;
+    driver: StatementPerson | null;
+    vehicle: {
+      brand: string;
+      model: string;
+      color: string;
+      licensePlate: string;
+      type: string;
+    } | null;
+  };
+  rates: { commissionRate: number; referralRate: number; retainedRate: number };
+  booked: {
+    fare: number;
+    paid: number;
+    subsidy: number;
+    commission: number;
+    referral: number;
+    driver: number;
+    zwanga: number;
+    tokenDebt: number;
+    seats: number;
+  };
+  openSeats: { seats: number; fare: number; driver: number; zwanga: number; note: string | null };
+  bookings: Array<{
+    id: string;
+    status: string;
+    paymentMode: string;
+    paymentStatus: string;
+    seats: number;
+    passenger: StatementPerson | null;
+    fare: number;
+    paid: number;
+    subsidy: number;
+    commission: number;
+    referral: number;
+    referralState: "none" | "potential" | "recorded" | "reversed";
+    referrer: StatementPerson | null;
+    driver: number;
+    zwanga: number;
+    tokenDebt: number;
+    currency: string;
+    earning: { status: string; netAmount: number; commissionAmount: number } | null;
+  }>;
+}
+
 export interface UpdateTripPayload {
   departureLocation?: string;
   arrivalLocation?: string;
@@ -35,6 +103,11 @@ export const tripsApi = baseApi.injectEndpoints({
     // Get single trip details
     getTripById: builder.query<Trip, string>({
       query: (tripId) => `/trips/${tripId}`,
+      providesTags: (_result, _error, id) => [{ type: "Rides", id }],
+    }),
+
+    getTripStatement: builder.query<TripStatement, string>({
+      query: (tripId) => `/admin/trips/${tripId}/statement`,
       providesTags: (_result, _error, id) => [{ type: "Rides", id }],
     }),
 
@@ -90,6 +163,7 @@ export const tripsApi = baseApi.injectEndpoints({
 export const {
   useGetAllTripsQuery,
   useGetTripByIdQuery,
+  useGetTripStatementQuery,
   useGetAvailableTripsQuery,
   useUpdateAdminTripMutation,
   useDeactivateAdminTripMutation,

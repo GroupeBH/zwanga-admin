@@ -12,6 +12,7 @@ import {
   type UpdateTripRequestPayload,
 } from "@/lib/features/tripRequests/tripRequestsApi";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
+import { toDateInput, canEditRequest, buildRequestPatch } from "@/lib/features/tripRequests/requestEdit";
 import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
 import { Download, Info } from "lucide-react";
 
@@ -50,12 +51,6 @@ const formatAmount = (amount?: number | null) =>
         currency: "CDF",
         maximumFractionDigits: 0,
       }).format(Number(amount));
-
-const toDateInput = (dateString: string) => {
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString().slice(0, 16);
-};
 
 export default function TripRequestsPage() {
   const [statusFilter, setStatusFilter] = useState<TripRequestStatus | "all">("all");
@@ -97,6 +92,7 @@ export default function TripRequestsPage() {
   }, [tripRequests, search]);
 
   const openEditModal = (request: TripRequest) => {
+    if (!canEditRequest(request)) return;
     setSelectedRequest(request);
     setRequestForm({
       departureLocation: request.departureLocation,
@@ -119,34 +115,17 @@ export default function TripRequestsPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedRequest) return;
+    if (!selectedRequest || isUpdating) return;
 
     try {
       await updateTripRequest({
         tripRequestId: selectedRequest.id,
-        payload: {
-          ...requestForm,
-          departureDateMin: requestForm.departureDateMin
-            ? new Date(requestForm.departureDateMin).toISOString()
-            : undefined,
-          departureDateMax: requestForm.departureDateMax
-            ? new Date(requestForm.departureDateMax).toISOString()
-            : undefined,
-          numberOfSeats:
-            requestForm.numberOfSeats === undefined
-              ? undefined
-              : Number(requestForm.numberOfSeats),
-          maxPricePerSeat:
-            requestForm.maxPricePerSeat === null ||
-            requestForm.maxPricePerSeat === undefined
-              ? null
-              : Number(requestForm.maxPricePerSeat),
-        },
+        payload: buildRequestPatch(selectedRequest, requestForm),
       }).unwrap();
       closeEditModal();
     } catch (error) {
       console.error("Failed to update trip request:", error);
-      alert("Impossible de modifier cette demande de trajet.");
+      alert(error instanceof Error ? error.message : getApiErrorMessage(error, "Impossible de modifier cette demande de trajet."));
     }
   };
 
@@ -320,9 +299,10 @@ export default function TripRequestsPage() {
                             type="button"
                             className={shared.primaryButton}
                             onClick={() => openEditModal(request)}
+                            disabled={!canEditRequest(request)}
                             style={{ fontSize: "0.85rem", padding: "6px 12px" }}
                           >
-                            Modifier
+                            {request.status === 'expired' ? 'Reprogrammer' : 'Modifier'}
                           </button>
                           {request.status !== "cancelled" ? (
                             <button
@@ -402,6 +382,7 @@ export default function TripRequestsPage() {
             aria-labelledby="edit-request-title"
           >
             <h3 id="edit-request-title">Modifier la demande</h3>
+            <p>Les anciennes offres en attente seront retirées. Une demande expirée exige un nouveau créneau futur. Une recherche immédiate reprogrammée devient une demande classique.</p>
             <div className={shared.grid}>
               <label>
                 Depart
@@ -458,7 +439,7 @@ export default function TripRequestsPage() {
                 <input
                   type="number"
                   min={1}
-                  max={2}
+                  step={1}
                   value={requestForm.numberOfSeats ?? ""}
                   onChange={(event) =>
                     setRequestForm((prev) => ({

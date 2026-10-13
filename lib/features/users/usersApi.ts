@@ -107,12 +107,16 @@ export const usersApi = baseApi.injectEndpoints({
     }),
     getUserDetails: builder.query<AdminUserDetailsResponse, string>({
       query: (userId) => `/admin/users/${userId}/details`,
-      providesTags: (_result, _error, userId) => [
+      providesTags: (result, _error, userId) => [
         { type: "Users", id: userId },
         { type: "Rides", id: "LIST" },
         { type: "Bookings", id: "LIST" },
         { type: "TripRequests", id: "LIST" },
         { type: "Payments", id: "LIST" },
+        ...(result?.kycDocuments ?? []).map((document) => ({
+          type: "KYC" as const,
+          id: document.id,
+        })),
       ],
     }),
     getAdminAccounts: builder.query<AdminAccountsResponse, UsersQueryParams | void>({
