@@ -271,7 +271,7 @@ export default function UserDetailsPage({ userId }: { userId: string }) {
         </div>
       </section>
 
-      <UserKycDecision documents={data.kycDocuments ?? []} />
+      <UserKycDecision userId={user.id} documents={data.kycDocuments ?? []} />
 
       <UserFinancialActions key={user.id} user={user} />
 

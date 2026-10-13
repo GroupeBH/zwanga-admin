@@ -89,6 +89,22 @@ export const kycApi = baseApi.injectEndpoints({
         ...(result?.userId ? [{ type: "Users" as const, id: result.userId }] : []),
       ],
     }),
+    recordOfficeKyc: builder.mutation<
+      KycDocument,
+      { userId: string; approved: boolean; reason: string }
+    >({
+      query: ({ userId, approved, reason }) => ({
+        url: `/admin/users/${userId}/office-kyc`,
+        method: "PUT",
+        body: { approved, reason },
+      }),
+      invalidatesTags: (_result, _error, { userId }) => [
+        { type: "Users", id: userId },
+        { type: "Users", id: "LIST" },
+        { type: "KYC", id: "LIST" },
+        "Dashboard",
+      ],
+    }),
   }),
   overrideExisting: true,
 });
@@ -98,4 +114,5 @@ export const {
   useGetKycDocumentsQuery,
   useGetKycDocumentQuery,
   useVerifyKycMutation,
+  useRecordOfficeKycMutation,
 } = kycApi;

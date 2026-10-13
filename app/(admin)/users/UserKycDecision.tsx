@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { useVerifyKycMutation } from "@/lib/features/kyc/kycApi";
+import { useVerifyKycMutation, useRecordOfficeKycMutation } from "@/lib/features/kyc/kycApi";
 import type { KycDocument, KycStatus } from "@/lib/features/admin/types";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 
@@ -39,9 +39,17 @@ const statusClass = (status: KycStatus) => {
   return `${shared.badge} ${shared.badgeWarning}`;
 };
 
+const sourceLabel = (document: KycDocument) => {
+  const channel = document.providerMetadata?.channel;
+  if (channel === "bureau") return "Vérification au bureau";
+  return providerLabel[document.provider ?? ""] ?? document.provider ?? "Dossier";
+};
+
 export default function UserKycDecision({
+  userId,
   documents,
 }: {
+  userId: string;
   documents: KycDocument[];
 }) {
   const latest = documents[0] ?? null;
@@ -49,6 +57,8 @@ export default function UserKycDecision({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [verifyKyc, { isLoading }] = useVerifyKycMutation();
+  const [recordOfficeKyc, { isLoading: isRecordingOffice }] = useRecordOfficeKycMutation();
+  const busy = isLoading || isRecordingOffice;
   const awsApproval = latest?.provider === "aws" && latest.status !== "approved";
 
   const decide = async (approved: boolean) => {
@@ -81,13 +91,34 @@ export default function UserKycDecision({
     }
   };
 
+  const decideAtOffice = async (approved: boolean) => {
+    setError("");
+    setMessage("");
+    const reason = note.trim();
+    if (reason.length < 10) {
+      setError("Décrivez la vérification faite au bureau (10 caractères minimum).");
+      return;
+    }
+    try {
+      await recordOfficeKyc({ userId, approved, reason }).unwrap();
+      setNote("");
+      setMessage(approved ? "KYC validé au bureau." : "KYC rejeté au bureau.");
+    } catch (reasonError) {
+      setError(
+        getApiErrorMessage(reasonError, "Impossible d’enregistrer cette décision."),
+      );
+    }
+  };
+
   return (
     <section className={shared.section} aria-labelledby="user-kyc-title">
       <div className={shared.sectionHeader}>
         <div>
           <h2 id="user-kyc-title">Vérification d’identité</h2>
           <p className={shared.mutedText}>
-            La décision porte sur le dossier le plus récent.
+            {latest
+              ? "La décision porte sur le dossier le plus récent."
+              : "Aucun envoi depuis l’application. Un contrôle au bureau peut quand même valider ou rejeter l’identité."}
           </p>
         </div>
         {latest ? (
@@ -98,17 +129,69 @@ export default function UserKycDecision({
       </div>
 
       {!latest ? (
-        <p className={shared.emptyState}>Aucun dossier KYC pour ce compte.</p>
+        <>
+          <label className={shared.filterLabel} htmlFor="user-kyc-note">
+            Compte rendu du contrôle au bureau
+          </label>
+          <textarea
+            id="user-kyc-note"
+            value={note}
+            maxLength={1000}
+            rows={3}
+            disabled={busy}
+            placeholder="Pièce présentée, validité et concordance des noms…"
+            onChange={(event) => {
+              setNote(event.target.value);
+              setError("");
+              setMessage("");
+            }}
+            style={{
+              width: "100%",
+              borderRadius: 16,
+              border: "1px solid var(--color-border-strong)",
+              background: "var(--color-field)",
+              color: "var(--color-text)",
+              padding: "12px 14px",
+            }}
+          />
+          {error ? <p className={shared.errorText} role="alert">{error}</p> : null}
+          {message ? <p className={shared.successText} role="status">{message}</p> : null}
+          <div className={shared.rowActions}>
+            <button
+              type="button"
+              className={shared.primaryButton}
+              disabled={busy}
+              onClick={() => void decideAtOffice(true)}
+            >
+              {busy ? "Enregistrement…" : "Valider le KYC"}
+            </button>
+            <button
+              type="button"
+              className={shared.dangerButton}
+              disabled={busy}
+              onClick={() => void decideAtOffice(false)}
+            >
+              Rejeter le KYC
+            </button>
+          </div>
+        </>
       ) : (
         <>
           <p className={shared.mutedText}>
-            {providerLabel[latest.provider ?? ""] ?? latest.provider ?? "Dossier"}
+            {sourceLabel(latest)}
             {" · déposé le "}
             {formatDate(latest.createdAt)}
             {latest.reviewedAt ? ` · revu le ${formatDate(latest.reviewedAt)}` : ""}
           </p>
           {latest.rejectionReason ? (
             <p className={shared.mutedText}>Motif : {latest.rejectionReason}</p>
+          ) : null}
+          {latest.providerMetadata?.channel === "bureau" &&
+          typeof latest.providerMetadata.note === "string" &&
+          latest.providerMetadata.note !== latest.rejectionReason ? (
+            <p className={shared.mutedText}>
+              Compte rendu du bureau : {latest.providerMetadata.note}
+            </p>
           ) : null}
 
           <Proofs document={latest} />
@@ -128,7 +211,7 @@ export default function UserKycDecision({
             value={note}
             maxLength={1000}
             rows={3}
-            disabled={isLoading}
+            disabled={busy}
             placeholder={
               awsApproval
                 ? "Pièce RDC, validité et noms concordants…"
@@ -164,15 +247,15 @@ export default function UserKycDecision({
             <button
               type="button"
               className={shared.primaryButton}
-              disabled={isLoading || latest.status === "approved"}
+              disabled={busy || latest.status === "approved"}
               onClick={() => void decide(true)}
             >
-              {isLoading ? "Enregistrement…" : "Valider le KYC"}
+              {busy ? "Enregistrement…" : "Valider le KYC"}
             </button>
             <button
               type="button"
               className={shared.dangerButton}
-              disabled={isLoading || latest.status === "rejected"}
+              disabled={busy || latest.status === "rejected"}
               onClick={() => void decide(false)}
             >
               Rejeter le KYC
