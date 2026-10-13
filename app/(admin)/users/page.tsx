@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Download, Info, RotateCcw } from "lucide-react";
 
 import {
@@ -75,6 +75,12 @@ const formatRecordedAt = (value?: string | null) => {
   }).format(date);
 };
 
+const foldSearch = (value?: string | null) =>
+  (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
 const matchesUserSegment = (
   user: User,
   roleFilter: AdminUserRoleFilter | "all"
@@ -99,6 +105,8 @@ function UsersList() {
      recherche resterait sans effet. */
   const urlSearch = useSearchParams().get("q") ?? "";
   const [search, setSearch] = useState(urlSearch);
+  const [appliedSearch, setAppliedSearch] = useState(urlSearch.trim());
+  const appliedSearchRef = useRef(urlSearch.trim());
   const [roleFilter, setRoleFilter] = useState<AdminUserRoleFilter | "all">("all");
   const [registeredFrom, setRegisteredFrom] = useState("");
   const [registeredTo, setRegisteredTo] = useState("");
@@ -113,9 +121,22 @@ function UsersList() {
   const periodLabel = registrationPeriodLabel(registeredFrom, registeredTo);
 
   useEffect(() => {
+    const next = urlSearch.trim();
+    appliedSearchRef.current = next;
     setSearch(urlSearch);
+    setAppliedSearch(next);
     setPage(1);
   }, [urlSearch]);
+  useEffect(() => {
+    const next = search.trim();
+    const timeout = window.setTimeout(() => {
+      if (appliedSearchRef.current === next) return;
+      appliedSearchRef.current = next;
+      setAppliedSearch(next);
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
   const { data, isFetching } = useGetUsersQuery(
     {
       page,
@@ -123,6 +144,7 @@ function UsersList() {
       role,
       registeredFrom: registeredFrom || undefined,
       registeredTo: registeredTo || undefined,
+      search: appliedSearch || undefined,
     },
     { skip: registrationRangeInvalid, refetchOnMountOrArgChange: true }
   );
@@ -138,12 +160,14 @@ function UsersList() {
       if (!matchesUserSegment(user, roleFilter)) {
         return false;
       }
-      const term = search.toLowerCase();
-      const includesTerm = (value?: string | null) =>
-        (value ?? "").toLowerCase().includes(term);
+      const term = foldSearch(search).trim();
+      if (!term) return true;
+      const includesTerm = (value?: string | null) => foldSearch(value).includes(term);
       return (
         includesTerm(user.firstName) ||
         includesTerm(user.lastName) ||
+        includesTerm(`${user.firstName ?? ""} ${user.lastName ?? ""}`) ||
+        includesTerm(`${user.lastName ?? ""} ${user.firstName ?? ""}`) ||
         includesTerm(user.email) ||
         includesTerm(user.phone)
       );
@@ -199,6 +223,7 @@ function UsersList() {
         role,
         registeredFrom: registeredFrom || undefined,
         registeredTo: registeredTo || undefined,
+        search: appliedSearch || undefined,
       }).unwrap();
       const suffix =
         roleFilter === "driver"

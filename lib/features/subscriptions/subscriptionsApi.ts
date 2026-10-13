@@ -3,11 +3,39 @@ import type {
   DocumentFundingRequest,
   DocumentFundingRequestStatus,
   SubscriptionOffering,
+  SubscriptionPlanCode,
+  SubscriptionStatus,
 } from "../admin/types";
 import { listProvidesTags, unwrapList } from "@/lib/utils/toList";
 
 export interface DocumentFundingRequestsQueryParams {
   status?: DocumentFundingRequestStatus | "all";
+}
+
+export interface ActiveProSubscription {
+  id: string;
+  userId: string;
+  plan: SubscriptionPlanCode;
+  status: SubscriptionStatus;
+  startDate: string;
+  endDate: string;
+  amount: number;
+  currency: string;
+  isTrial: boolean;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+    email: string | null;
+  } | null;
+}
+
+export interface ActiveProSubscriptionsQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  month?: "current" | "other";
 }
 
 export const subscriptionsApi = baseApi.injectEndpoints({
@@ -16,6 +44,22 @@ export const subscriptionsApi = baseApi.injectEndpoints({
       query: () => "/subscriptions/plans",
       transformResponse: (response: unknown) =>
         unwrapList<SubscriptionOffering>(response, "plans"),
+      providesTags: ["Subscriptions"],
+    }),
+
+    getActiveProSubscriptions: builder.query<
+      { subscriptions: ActiveProSubscription[]; total: number; page: number; limit: number },
+      ActiveProSubscriptionsQuery | void
+    >({
+      query: ({ page = 1, limit = 25, search, month } = {}) => ({
+        url: "/subscriptions/admin/active",
+        params: {
+          page,
+          limit,
+          ...(search ? { search } : {}),
+          ...(month ? { month } : {}),
+        },
+      }),
       providesTags: ["Subscriptions"],
     }),
 
@@ -38,5 +82,6 @@ export const subscriptionsApi = baseApi.injectEndpoints({
 
 export const {
   useGetSubscriptionPlansQuery,
+  useGetActiveProSubscriptionsQuery,
   useGetDocumentFundingRequestsQuery,
 } = subscriptionsApi;

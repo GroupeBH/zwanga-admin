@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Info } from "lucide-react";
 
 import {
@@ -13,9 +13,12 @@ import {
 } from "@/lib/features/admin/insights";
 import type { DocumentFundingRequest } from "@/lib/features/admin/types";
 import {
+  useGetActiveProSubscriptionsQuery,
   useGetDocumentFundingRequestsQuery,
   useGetSubscriptionPlansQuery,
+  type ActiveProSubscription,
 } from "@/lib/features/subscriptions/subscriptionsApi";
+import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 
 import shared from "../styles/page.module.css";
 
@@ -29,6 +32,20 @@ const formatDate = (value: string) =>
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+
+const formatDay = (value: string) =>
+  new Intl.DateTimeFormat("fr-CD", {
+    timeZone: "Africa/Kinshasa",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+
+const daysRemaining = (endDate: string) => {
+  const days = Math.ceil((new Date(endDate).getTime() - Date.now()) / 86_400_000);
+  if (days <= 1) return "Dernier jour";
+  return `${days} jours restants`;
+};
 
 const fundingBadgeClass = (status: DocumentFundingRequest["status"]) => {
   if (status === "approved" || status === "funded") {
@@ -181,6 +198,8 @@ export default function SubscriptionsPage() {
         </div>
       </section>
 
+      <ActiveProSubscriptions />
+
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
@@ -314,5 +333,194 @@ export default function SubscriptionsPage() {
         )}
       </section>
     </div>
+  );
+}
+
+const currentMonthLabel = () =>
+  new Intl.DateTimeFormat("fr-CD", {
+    timeZone: "Africa/Kinshasa",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+
+function ActiveProSubscriptions() {
+  const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [month, setMonth] = useState<"all" | "current" | "other">("all");
+  const [page, setPage] = useState(1);
+  const limit = 25;
+  const monthLabel = currentMonthLabel();
+
+  useEffect(() => {
+    const next = search.trim();
+    const timeout = window.setTimeout(() => {
+      setAppliedSearch((current) => {
+        if (current !== next) setPage(1);
+        return next;
+      });
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
+  const { data, isFetching, error } = useGetActiveProSubscriptionsQuery({
+    page,
+    limit,
+    search: appliedSearch || undefined,
+    month: month === "all" ? undefined : month,
+  });
+  const subscriptions = data?.subscriptions ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  return (
+    <section className={shared.section} aria-labelledby="active-pro-title">
+      <div className={shared.sectionHeader}>
+        <div>
+          <h2 id="active-pro-title">Abonnements pro en cours</h2>
+          <p className={shared.filterSummary}>
+            {total} abonnement{total > 1 ? "s" : ""} encore valide{total > 1 ? "s" : ""}
+            {month === "current" ? ` · commencés en ${monthLabel}` : ""}
+            {month === "other" ? ` · commencés avant ${monthLabel}` : ""}
+          </p>
+        </div>
+        <div className={shared.toolbar}>
+          <div className={shared.filterField}>
+            <label className={shared.filterLabel} htmlFor="pro-subscription-search">
+              Rechercher un abonné
+            </label>
+            <input
+              id="pro-subscription-search"
+              className={shared.filterSearch}
+              placeholder="Nom, téléphone ou e-mail"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+          <div className={shared.filterField}>
+            <label className={shared.filterLabel} htmlFor="pro-subscription-month">
+              Mois de début
+            </label>
+            <select
+              id="pro-subscription-month"
+              value={month}
+              onChange={(event) => {
+                setMonth(event.target.value as "all" | "current" | "other");
+                setPage(1);
+              }}
+            >
+              <option value="all">Tous les mois</option>
+              <option value="current">Mois en cours</option>
+              <option value="other">Autres mois</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {error ? (
+        <p className={shared.errorText} role="alert">
+          {getApiErrorMessage(error, "Impossible de charger les abonnements pro.")}
+        </p>
+      ) : null}
+
+      {isFetching && subscriptions.length === 0 ? (
+        <p className={shared.emptyState}>Chargement des abonnements...</p>
+      ) : (
+        <div className={shared.tableWrapper}>
+          <table className={shared.table}>
+            <thead>
+              <tr>
+                <th>Conducteur</th>
+                <th>Début</th>
+                <th>Fin</th>
+                <th>Reste</th>
+                <th>Montant</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subscriptions.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <p className={shared.emptyState}>
+                      {month === "current"
+                        ? `Aucun abonnement pro en cours commencé en ${monthLabel}.`
+                        : month === "other"
+                          ? `Aucun abonnement pro en cours commencé avant ${monthLabel}.`
+                          : appliedSearch
+                            ? "Aucun abonnement pro en cours ne correspond à cette recherche."
+                            : "Aucun abonnement pro en cours."}
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                subscriptions.map((subscription) => (
+                  <ActiveProRow key={subscription.id} subscription={subscription} />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {totalPages > 1 ? (
+        <div className={shared.pagination}>
+          <p className={shared.paginationInfo}>
+            Page {page} sur {totalPages}
+          </p>
+          <div className={shared.paginationButtons}>
+            <button
+              type="button"
+              className={shared.secondaryButton}
+              onClick={() => setPage((current) => Math.max(current - 1, 1))}
+              disabled={page === 1 || isFetching}
+            >
+              Page précédente
+            </button>
+            <button
+              type="button"
+              className={shared.secondaryButton}
+              onClick={() => setPage((current) => current + 1)}
+              disabled={isFetching || page >= totalPages}
+            >
+              Page suivante
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ActiveProRow({ subscription }: { subscription: ActiveProSubscription }) {
+  const user = subscription.user;
+  const name = user
+    ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || "Conducteur"
+    : "Conducteur inconnu";
+
+  return (
+    <tr>
+      <td>
+        {user ? (
+          <a href={`/users?fiche=${encodeURIComponent(user.id)}`}>
+            <strong>{name}</strong>
+          </a>
+        ) : (
+          <strong>{name}</strong>
+        )}
+        <br />
+        <small style={{ color: "var(--color-text-muted)" }}>
+          {user?.phone ?? user?.email ?? "Contact indisponible"}
+        </small>
+      </td>
+      <td>{formatDay(subscription.startDate)}</td>
+      <td>{formatDay(subscription.endDate)}</td>
+      <td>{daysRemaining(subscription.endDate)}</td>
+      <td>{formatAmount(Number(subscription.amount ?? 0), subscription.currency)}</td>
+      <td>
+        <span className={subscription.isTrial ? shared.badge : `${shared.badge} ${shared.badgeSuccess}`}>
+          {subscription.isTrial ? "Essai" : "Payé"}
+        </span>
+      </td>
+    </tr>
   );
 }

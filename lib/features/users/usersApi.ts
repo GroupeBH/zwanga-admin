@@ -21,6 +21,7 @@ export interface UsersQueryParams {
   registeredFrom?: string;
   /** Jour calendaire AAAA-MM-JJ, inclus, fuseau de Kinshasa. */
   registeredTo?: string;
+  search?: string;
 }
 
 export interface CreateAdminAccountPayload {
@@ -44,6 +45,7 @@ export const usersApi = baseApi.injectEndpoints({
         role,
         registeredFrom,
         registeredTo,
+        search,
       } = {}) => ({
         url: "/admin/users",
         params: {
@@ -52,11 +54,12 @@ export const usersApi = baseApi.injectEndpoints({
           ...(role ? { role } : {}),
           ...(registeredFrom ? { registeredFrom } : {}),
           ...(registeredTo ? { registeredTo } : {}),
+          ...(search ? { search } : {}),
         },
       }),
       serializeQueryArgs: ({ queryArgs }) => {
         const args = queryArgs ?? {};
-        return `users-${args.page ?? 1}-${args.limit ?? 10}-${args.role ?? "all"}-${args.registeredFrom ?? ""}-${args.registeredTo ?? ""}`;
+        return `users-${args.page ?? 1}-${args.limit ?? 10}-${args.role ?? "all"}-${args.registeredFrom ?? ""}-${args.registeredTo ?? ""}-${args.search ?? ""}`;
       },
       forceRefetch({ currentArg, previousArg }) {
         return (
@@ -64,7 +67,8 @@ export const usersApi = baseApi.injectEndpoints({
           currentArg?.page !== previousArg?.page ||
           currentArg?.limit !== previousArg?.limit ||
           currentArg?.registeredFrom !== previousArg?.registeredFrom ||
-          currentArg?.registeredTo !== previousArg?.registeredTo
+          currentArg?.registeredTo !== previousArg?.registeredTo ||
+          currentArg?.search !== previousArg?.search
         );
       },
       transformResponse: (response: unknown): PaginatedUsersResponse => {
@@ -82,14 +86,15 @@ export const usersApi = baseApi.injectEndpoints({
     }),
     exportUsersXls: builder.mutation<
       Blob,
-      Pick<UsersQueryParams, "role" | "registeredFrom" | "registeredTo"> | void
+      Pick<UsersQueryParams, "role" | "registeredFrom" | "registeredTo" | "search"> | void
     >({
-      query: ({ role, registeredFrom, registeredTo } = {}) => ({
+      query: ({ role, registeredFrom, registeredTo, search } = {}) => ({
         url: "/admin/users/export",
         params: {
           ...(role ? { role } : {}),
           ...(registeredFrom ? { registeredFrom } : {}),
           ...(registeredTo ? { registeredTo } : {}),
+          ...(search ? { search } : {}),
         },
         responseHandler: async (response) => {
           if (!response.ok) {
