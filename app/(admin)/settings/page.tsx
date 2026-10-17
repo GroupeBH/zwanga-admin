@@ -4,7 +4,11 @@ import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { FileText, KeyRound, Shield, ShoppingBag, UserPlus, UsersRound } from "lucide-react";
 
-import { getAdminRoleLabel, isSuperAdminRole } from "@/lib/features/auth/adminRoles";
+import {
+  getAdminRoleLabel,
+  isAdminRole,
+  isSuperAdminRole,
+} from "@/lib/features/auth/adminRoles";
 import { useChangeAdminPasswordMutation } from "@/lib/features/auth/authApi";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import { useGetNotificationsQuery } from "@/lib/features/notifications/notificationsApi";
@@ -43,6 +47,8 @@ const formatDate = (value?: string | null) => {
 export default function SettingsPage() {
   const { data: profile, refetch: refetchProfile } = useGetCurrentUserProfileQuery();
   const isSuperAdmin = isSuperAdminRole(profile?.user.role);
+  const isAdmin = isAdminRole(profile?.user.role);
+  const canCreateAccount = isAdmin && !profile?.user.passwordChangeRequired;
   const canManageAdminAccounts =
     isSuperAdmin && !profile?.user.passwordChangeRequired;
   const { data: adminAccounts, error: adminAccountsError, isFetching: isFetchingAdmins } =
@@ -76,6 +82,7 @@ export default function SettingsPage() {
     firstName: "",
     lastName: "",
     defaultPassword: "",
+    role: "admin" as "admin" | "marketer",
   });
   const [adminMessage, setAdminMessage] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
@@ -140,6 +147,7 @@ export default function SettingsPage() {
       firstName: adminForm.firstName.trim(),
       lastName: adminForm.lastName.trim(),
       defaultPassword: adminForm.defaultPassword.trim(),
+      role: isSuperAdmin ? adminForm.role : ("marketer" as const),
     };
 
     if (payload.defaultPassword.length < 8) {
@@ -149,14 +157,17 @@ export default function SettingsPage() {
 
     try {
       const createdAdmin = await createAdminAccount(payload).unwrap();
+      const createdRole =
+        createdAdmin.role === "marketer" ? "marketeur" : "administrateur";
       setAdminMessage(
-        `Compte admin créé ou promu pour ${createdAdmin.firstName} ${createdAdmin.lastName}. Il devra changer son mot de passe à la première connexion.`
+        `Compte ${createdRole} créé ou promu pour ${createdAdmin.firstName} ${createdAdmin.lastName}. Il devra changer son mot de passe à la première connexion.`
       );
       setAdminForm({
         phone: "",
         firstName: "",
         lastName: "",
         defaultPassword: "",
+        role: isSuperAdmin ? "admin" : "marketer",
       });
     } catch (error) {
       setAdminError(getApiErrorMessage(error, "Creation du compte admin impossible."));
@@ -164,7 +175,8 @@ export default function SettingsPage() {
   };
 
   const canManageAccount = (account: AdminAccount) =>
-    account.id !== profile?.user.id && account.role === "admin";
+    account.id !== profile?.user.id &&
+    (account.role === "admin" || account.role === "marketer");
 
   const handleToggleAdminAccount = async (account: AdminAccount) => {
     setAdminError(null);
@@ -387,27 +399,30 @@ export default function SettingsPage() {
         ) : null}
       </section>
 
-      {isSuperAdmin ? (
+      {isAdmin ? (
         <section className={shared.section}>
           <div className={shared.sectionHeader}>
             <div>
-              <h2>Comptes administrateurs</h2>
+              <h2>Comptes du back-office</h2>
               <p className={shared.mutedText}>
-                Créez un administrateur, désactivez-le ou donnez-lui un nouveau
-                mot de passe temporaire.
+                {isSuperAdmin
+                  ? "Créez un administrateur ou un marketeur, désactivez-le ou donnez-lui un nouveau mot de passe temporaire."
+                  : "Créez un compte marketeur. Il n’aura accès qu’aux statistiques."}
               </p>
             </div>
             <span className={`${shared.badge} ${shared.badgeWarning}`}>
-              Réservé au super admin
+              {isSuperAdmin ? "Admin et super admin" : "Création de marketeurs"}
             </span>
           </div>
 
-          {canManageAdminAccounts ? (
+          {canCreateAccount ? (
           <div className={shared.grid}>
             <article className={shared.card}>
               <strong className={shared.cardTitle}>
                 <UserPlus size={18} />
-                Créer ou promouvoir un admin
+                {isSuperAdmin
+                  ? "Créer ou promouvoir un compte"
+                  : "Créer un marketeur"}
               </strong>
               <form className={shared.form} onSubmit={handleCreateAdminSubmit}>
                 <label>
@@ -457,6 +472,29 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
+                {isSuperAdmin ? (
+                <label>
+                  Rôle
+                  <select
+                    value={adminForm.role}
+                    onChange={(event) =>
+                      setAdminForm((prev) => ({
+                        ...prev,
+                        role: event.target.value === "marketer" ? "marketer" : "admin",
+                      }))
+                    }
+                  >
+                    <option value="admin">Administrateur</option>
+                    <option value="marketer">Marketeur</option>
+                  </select>
+                </label>
+                ) : (
+                  <p className={shared.mutedText}>
+                    Ce compte aura le rôle marketeur : tableau de bord des
+                    statistiques, paramètres et profil.
+                  </p>
+                )}
+
                 <label>
                   Mot de passe temporaire (8 caractères minimum)
                   <input
@@ -494,10 +532,11 @@ export default function SettingsPage() {
               </form>
             </article>
 
+            {isSuperAdmin ? (
             <article className={`${shared.card} ${shared.wideCard}`}>
               <strong className={shared.cardTitle}>
                 <UsersRound size={18} />
-                Administrateurs existants
+                Comptes existants
               </strong>
 
               {adminAccountsErrorMessage ? (
@@ -608,11 +647,13 @@ export default function SettingsPage() {
                 </p>
               ) : null}
             </article>
+            ) : null}
           </div>
           ) : (
             <p className={`${shared.notice} ${shared.noticeWarning}`}>
-              Changez d’abord votre mot de passe temporaire ci-dessus. La gestion
-              des administrateurs se débloquera juste après.
+              {isSuperAdmin
+                ? "Changez d’abord votre mot de passe temporaire ci-dessus. La gestion des administrateurs se débloquera juste après."
+                : "Changez d’abord votre mot de passe temporaire ci-dessus. La création de marketeurs se débloquera juste après."}
             </p>
           )}
         </section>

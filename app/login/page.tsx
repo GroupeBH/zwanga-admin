@@ -7,7 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 import { useLoginWithPhoneMutation } from "@/lib/features/auth/authApi";
 import { setAuthenticated } from "@/lib/features/auth/authSlice";
-import { isAdminRole } from "@/lib/features/auth/adminRoles";
+import { isBackOfficeRole } from "@/lib/features/auth/adminRoles";
 import { useAppDispatch } from "@/lib/hooks";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 import { beginNavigation } from "@/app/components/navigation/NavigationLoader";
@@ -50,7 +50,7 @@ export default function LoginPage() {
         };
       }
 
-      if (!isAdminRole(profilePayload?.user?.role)) {
+      if (!isBackOfficeRole(profilePayload?.user?.role)) {
         clearAuthTokens();
         dispatch(setAuthenticated(false));
         setError("Ce compte n'a pas acces a l'interface admin.");

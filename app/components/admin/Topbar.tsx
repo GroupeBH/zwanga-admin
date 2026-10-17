@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
+  Command,
   LogOut,
   Menu,
   Moon,
@@ -22,7 +23,7 @@ import {
   type AdminNotification,
 } from "@/lib/features/notifications/notificationsApi";
 import { useLogoutMutation } from "@/lib/features/auth/authApi";
-import { getAdminRoleLabel } from "@/lib/features/auth/adminRoles";
+import { getAdminRoleLabel, isMarketerRole } from "@/lib/features/auth/adminRoles";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { beginNavigation } from "@/app/components/navigation/NavigationLoader";
@@ -64,6 +65,8 @@ export const Topbar = () => {
   const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
   /* La cloche doit refléter l'état réel sans recharger la page : on interroge
      le serveur a intervalle regulier tant qu'un onglet admin est ouvert. */
+  const { data: profile } = useGetCurrentUserProfileQuery();
+  const marketer = isMarketerRole(profile?.user.role);
   const { data: notificationsData, isLoading: isLoadingNotifications } =
     useGetNotificationsQuery(
       { limit: 20 },
@@ -72,7 +75,6 @@ export const Topbar = () => {
   const [markNotificationsAsRead] = useMarkNotificationsAsReadMutation();
   const [markAllNotificationsAsRead, { isLoading: isMarkingAll }] =
     useMarkAllNotificationsAsReadMutation();
-  const { data: profile } = useGetCurrentUserProfileQuery();
   const [panelOpen, setPanelOpen] = useState(false);
   const [searchDraft, setSearchDraft] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
@@ -226,6 +228,7 @@ export const Topbar = () => {
           <span suppressHydrationWarning>{dateLabel}</span>
         </div>
 
+        {marketer ? null : (
         <form className={styles.search} onSubmit={handleSearchSubmit}>
           <button
             type="submit"
@@ -253,13 +256,30 @@ export const Topbar = () => {
             </button>
           ) : null}
         </form>
+        )}
       </div>
 
       <div className={styles.right}>
+        {marketer ? null : (
         <Link href="/trips" className={styles.cta}>
           <Route size={16} aria-hidden="true" />
           <span>Gérer les trajets</span>
         </Link>
+        )}
+
+        <button
+          type="button"
+          className={styles.ghostButton}
+          aria-label="Aller à une page (Ctrl K)"
+          title="Aller à une page (Ctrl K)"
+          onClick={() =>
+            window.dispatchEvent(
+              new KeyboardEvent("keydown", { key: "k", ctrlKey: true })
+            )
+          }
+        >
+          <Command size={18} aria-hidden="true" />
+        </button>
 
         <button
           type="button"
@@ -309,7 +329,9 @@ export const Topbar = () => {
                 <p className={styles.emptyPanel}>Chargement des notifications...</p>
               ) : notifications.length > 0 ? (
                 notifications.map((notification) => {
-                  const target = resolveNotificationTarget(notification);
+                  const target = marketer
+                    ? null
+                    : resolveNotificationTarget(notification);
                   return (
                     <button
                       type="button"

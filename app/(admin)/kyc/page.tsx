@@ -1,8 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import { Info } from "lucide-react";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  CheckCircle2,
+  Clock,
+  Info,
+  ListChecks,
+  Maximize2,
+  XCircle,
+} from "lucide-react";
 
 import {
   useGetKycDocumentsQuery,
@@ -10,42 +18,83 @@ import {
   type KycStatusFilter,
 } from "@/lib/features/kyc/kycApi";
 import type { KycDocument, KycStatus } from "@/lib/features/admin/types";
+import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 
-import shared from "../styles/page.module.css";
 import styles from "./kyc.module.css";
 
-const KYC_STATUS_LABEL: Record<KycStatus, string> = {
-  pending: "En attente",
-  approved: "Validé",
-  rejected: "Rejeté",
+const TABS: Array<{ value: KycStatusFilter; label: string }> = [
+  { value: "pending", label: "À traiter" },
+  { value: "approved", label: "Validés" },
+  { value: "rejected", label: "Refusés" },
+  { value: "all", label: "Tous" },
+];
+
+const REJECT_REASONS = [
+  "Photo de la pièce illisible",
+  "Pièce d’identité expirée",
+  "Le selfie ne correspond pas à la pièce",
+  "Nom différent de celui du compte",
+  "Pièces manquantes",
+];
+
+const STATUS_TEXT: Record<KycStatus, string> = {
+  pending: "En attente de décision",
+  approved: "Identité validée",
+  rejected: "Identité refusée",
 };
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
   return new Intl.DateTimeFormat("fr-CD", {
     day: "2-digit",
-    month: "short",
+    month: "long",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
 };
 
-const statusClass = (status: KycDocument["status"]) => {
-  if (status === "approved") return `${shared.badge} ${shared.badgeSuccess}`;
-  if (status === "rejected") return `${shared.badge} ${shared.badgeDanger}`;
-  return `${shared.badge} ${shared.badgeWarning}`;
+const timeAgo = (value?: string | null) => {
+  if (!value) return "";
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000));
+  if (minutes < 60) return `il y a ${Math.max(minutes, 1)} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `il y a ${hours} h`;
+  const days = Math.round(hours / 24);
+  return `il y a ${days} jour${days > 1 ? "s" : ""}`;
 };
 
-const providerLabel = (provider?: KycDocument["provider"]) =>
-  provider === "didit" ? "Didit" : "Legacy Zwanga";
+const fullName = (document: KycDocument) =>
+  `${document.user?.firstName ?? ""} ${document.user?.lastName ?? ""}`.trim() ||
+  "Utilisateur sans nom";
+
+const initials = (document: KycDocument) =>
+  `${document.user?.firstName?.[0] ?? ""}${document.user?.lastName?.[0] ?? ""}`.toUpperCase() || "?";
+
+const dotClass = (status: KycStatus) =>
+  status === "approved"
+    ? styles.dotApproved
+    : status === "rejected"
+      ? styles.dotRejected
+      : styles.dotPending;
+
+const useStatusTotal = (status: KycStatus) =>
+  useGetKycDocumentsQuery({ page: 1, limit: 1, status }).data?.total;
+
+type DecisionMode = "idle" | "approve" | "reject";
 
 export default function KycPage() {
-  const [statusFilter, setStatusFilter] = useState<KycStatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<KycStatusFilter>("pending");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
+  const [mobileDetail, setMobileDetail] = useState(false);
+  const [mode, setMode] = useState<DecisionMode>("idle");
+  const [chosenReasons, setChosenReasons] = useState<string[]>([]);
+  const [reasonNote, setReasonNote] = useState("");
+  const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const limit = 20;
 
   useEffect(() => {
@@ -53,15 +102,27 @@ export default function KycPage() {
     return () => clearTimeout(timeout);
   }, [search]);
 
-  const { data, isFetching, refetch } = useGetKycDocumentsQuery({
+  const { data, isFetching, isError, refetch } = useGetKycDocumentsQuery({
     page,
     limit,
     status: statusFilter,
     search: debouncedSearch || undefined,
   });
-  const [verifyKyc, { isLoading }] = useVerifyKycMutation();
+  const [verifyKyc, { isLoading: isDeciding }] = useVerifyKycMutation();
+  const pendingTotal = useStatusTotal("pending");
+  const approvedTotal = useStatusTotal("approved");
+  const rejectedTotal = useStatusTotal("rejected");
+  const tabCounts: Partial<Record<KycStatusFilter, number | undefined>> = {
+    pending: pendingTotal,
+    approved: approvedTotal,
+    rejected: rejectedTotal,
+    all:
+      pendingTotal !== undefined && approvedTotal !== undefined && rejectedTotal !== undefined
+        ? pendingTotal + approvedTotal + rejectedTotal
+        : undefined,
+  };
 
-  const documents = data?.documents ?? [];
+  const documents = useMemo(() => data?.documents ?? [], [data]);
   const total = data?.total ?? 0;
 
   useEffect(() => {
@@ -74,88 +135,146 @@ export default function KycPage() {
     }
   }, [documents, selectedId]);
 
-  const selected = useMemo(
-    () => documents.find((document) => document.id === selectedId) ?? documents[0],
-    [documents, selectedId]
-  );
+  const selected = documents.find((document) => document.id === selectedId);
 
-  const handleStatusChange = (value: KycStatusFilter) => {
+  useEffect(() => {
+    setMode("idle");
+    setChosenReasons([]);
+    setReasonNote("");
+  }, [selectedId]);
+
+  const selectDocument = (id: string) => {
+    setSelectedId(id);
+    setMobileDetail(true);
+    setFeedback(null);
+  };
+
+  const changeTab = (value: KycStatusFilter) => {
     setStatusFilter(value);
     setPage(1);
     setSelectedId(null);
+    setMobileDetail(false);
+    setFeedback(null);
   };
 
+  const rejectionText = [...chosenReasons, reasonNote.trim()].filter(Boolean).join(" — ");
+
+  const goToNext = (current: KycDocument) => {
+    const index = documents.findIndex((document) => document.id === current.id);
+    const next = documents[index + 1] ?? documents[index - 1];
+    setSelectedId(next?.id ?? null);
+    if (!next) setMobileDetail(false);
+  };
+
+  const decide = async (approved: boolean) => {
+    if (!selected) return;
+    setFeedback(null);
+    try {
+      await verifyKyc({
+        kycId: selected.id,
+        approved,
+        ...(approved ? {} : { reason: rejectionText }),
+      }).unwrap();
+      setFeedback({
+        ok: true,
+        text: approved
+          ? `${fullName(selected)} est maintenant vérifié. Le dossier suivant est affiché.`
+          : `Le dossier de ${fullName(selected)} est refusé. Le motif a été transmis.`,
+      });
+      goToNext(selected);
+    } catch (error) {
+      setFeedback({
+        ok: false,
+        text: getApiErrorMessage(
+          error,
+          "La décision n’a pas pu être enregistrée. Rien n’a été modifié, réessayez."
+        ),
+      });
+    }
+  };
+
+  const frontUrl = selected?.cniFrontUrl ?? selected?.cniFrontUrls?.[0] ?? null;
+  const pieces = selected
+    ? [
+        { label: "Pièce d’identité — recto", url: frontUrl },
+        { label: "Pièce d’identité — verso", url: selected.cniBackUrl ?? null },
+        { label: "Selfie de la personne", url: selected.selfieUrl ?? null },
+      ]
+    : [];
+  const noImages = pieces.every((piece) => !piece.url);
+  const decided = selected && selected.status !== "pending";
+
   return (
-    <div className={shared.page}>
-      <section className={shared.section}>
-        <div className={shared.sectionHeader}>
-          <div>
-            <h2>Historique KYC</h2>
-            <p className={shared.filterSummary}>
-              {total} dossier{total > 1 ? "s" : ""} — validés, rejetés et en attente
-            </p>
-          </div>
-          <div className={shared.toolbar}>
-            <div className={shared.filterField}>
-              <label className={shared.filterLabel} htmlFor="kyc-search">
-                Rechercher un dossier
-              </label>
-              <input
-                id="kyc-search"
-                className={shared.filterSearch}
-                placeholder="Nom, email ou téléphone"
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
-                }}
-              />
-            </div>
-            <div className={shared.filterField}>
-              <label className={shared.filterLabel} htmlFor="kyc-status">
-                Filtrer par statut
-              </label>
-              <select
-                id="kyc-status"
-                value={statusFilter}
-                onChange={(event) =>
-                  handleStatusChange(event.target.value as KycStatusFilter)
-                }
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="pending">En attente</option>
-                <option value="approved">Validés</option>
-                <option value="rejected">Rejetés</option>
-              </select>
-            </div>
-            <button
-              type="button"
-              className={shared.secondaryButton}
-              onClick={() => refetch()}
-              disabled={isFetching}
-            >
-              {isFetching ? "Actualisation..." : "Actualiser"}
-            </button>
-          </div>
-        </div>
-
-        <p className={shared.helpText}>
-          <Info size={16} aria-hidden="true" />
-          <span>
-            Sélectionnez un dossier à gauche pour afficher les pièces
-            d’identité à droite, puis validez ou rejetez. Un rejet demande un
-            motif, qui est transmis à l’utilisateur.
-          </span>
+    <div className={styles.page}>
+      <header className={styles.hero}>
+        <h1>Vérification d’identité</h1>
+        <p>
+          Chaque personne qui souhaite conduire envoie une pièce d’identité et un
+          selfie. Comparez-les, puis validez ou refusez le dossier.
         </p>
+      </header>
 
-        <div className={styles.split}>
-          <div className={styles.queue}>
+      <div className={styles.tabs} role="tablist" aria-label="Statut des dossiers">
+        {TABS.map((tab) => {
+          const count = tabCounts[tab.value];
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === tab.value}
+              className={`${styles.tab} ${statusFilter === tab.value ? styles.tabActive : ""} ${
+                tab.value === "pending" && count ? styles.tabAlert : ""
+              }`}
+              onClick={() => changeTab(tab.value)}
+            >
+              {tab.label}
+              {count !== undefined ? <span className={styles.count}>{count}</span> : null}
+            </button>
+          );
+        })}
+      </div>
+
+      {isError ? (
+        <p className={`${styles.feedback} ${styles.feedbackError}`} role="alert">
+          Impossible de charger les dossiers.{" "}
+          <button type="button" className={styles.ghost} onClick={() => refetch()}>
+            Réessayer
+          </button>
+        </p>
+      ) : null}
+
+      <div
+        className={`${styles.layout} ${
+          mobileDetail && selected ? styles.layoutDetailOpen : styles.layoutDetailClosed
+        }`}
+      >
+        <aside className={styles.queue} aria-label="Liste des dossiers">
+          <input
+            className={styles.search}
+            type="search"
+            aria-label="Rechercher un dossier"
+            placeholder="Rechercher par nom, téléphone ou e-mail"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+          />
+          <div className={styles.queueList}>
             {isFetching && documents.length === 0 ? (
-              <p className={shared.emptyState}>Chargement de l’historique KYC...</p>
+              <div className={styles.empty}>Chargement des dossiers…</div>
             ) : documents.length === 0 ? (
-              <p className={shared.emptyState}>
-                Aucun dossier KYC ne correspond à ce filtre.
-              </p>
+              <div className={styles.empty}>
+                <strong>
+                  {statusFilter === "pending" && !debouncedSearch
+                    ? "Tout est à jour"
+                    : "Aucun dossier"}
+                </strong>
+                {statusFilter === "pending" && !debouncedSearch
+                  ? "Aucune identité n’attend de décision."
+                  : "Aucun dossier ne correspond à votre recherche."}
+              </div>
             ) : (
               documents.map((document) => (
                 <button
@@ -164,224 +283,336 @@ export default function KycPage() {
                   className={`${styles.queueItem} ${
                     selected?.id === document.id ? styles.active : ""
                   }`}
-                  onClick={() => setSelectedId(document.id)}
+                  onClick={() => selectDocument(document.id)}
+                  aria-current={selected?.id === document.id}
                 >
-                  <div className={styles.queueHeader}>
-                    <strong>
-                      {document.user?.firstName} {document.user?.lastName}
-                    </strong>
-                    <span className={statusClass(document.status)}>
-                      {KYC_STATUS_LABEL[document.status] ?? document.status}
-                    </span>
-                  </div>
-                  <div className={styles.queueMeta}>
-                    <span>{document.user?.email ?? document.user?.phone}</span>
-                    <span>Créé {formatDate(document.createdAt)}</span>
-                    <span>{providerLabel(document.provider)}</span>
-                  </div>
+                  <span className={styles.avatar} aria-hidden="true">
+                    {initials(document)}
+                  </span>
+                  <span className={styles.queueText}>
+                    <strong>{fullName(document)}</strong>
+                    <small>
+                      {document.user?.phone ?? document.user?.email ?? "—"} ·{" "}
+                      {timeAgo(document.createdAt)}
+                    </small>
+                  </span>
+                  <span
+                    className={`${styles.dot} ${dotClass(document.status)}`}
+                    title={STATUS_TEXT[document.status]}
+                    aria-label={STATUS_TEXT[document.status]}
+                  />
                 </button>
               ))
             )}
           </div>
+          <div className={styles.pager}>
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.max(value - 1, 1))}
+              disabled={page === 1 || isFetching}
+            >
+              ‹ Précédent
+            </button>
+            <span>
+              Page {page} · {total} dossier{total > 1 ? "s" : ""}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((value) => value + 1)}
+              disabled={isFetching || documents.length < limit}
+            >
+              Suivant ›
+            </button>
+          </div>
+        </aside>
 
-          {selected ? (
-            <div className={styles.detail}>
-              <div className={shared.card}>
-                <h3>Dossier #{selected.id}</h3>
-                <p className={styles.meta}>
-                  {selected.user?.firstName} {selected.user?.lastName} •{" "}
-                  {selected.user?.phone}
-                </p>
-                <div className={shared.timeline}>
-                  <div className={shared.timelineItem}>
-                    <strong>Soumis</strong>
-                    <span>{formatDate(selected.createdAt)}</span>
-                  </div>
-                  <div className={shared.timelineItem}>
-                    <strong>Mise à jour</strong>
-                    <span>{formatDate(selected.updatedAt)}</span>
-                  </div>
-                  <div className={shared.timelineItem}>
-                    <strong>Fournisseur</strong>
-                    <span>{providerLabel(selected.provider)}</span>
-                  </div>
-                  <div className={shared.timelineItem}>
-                    <strong>
-                      {selected.reviewedBy
-                        ? `Revu par ${selected.reviewedBy}`
-                        : "En attente de revue"}
-                    </strong>
-                    <span>{formatDate(selected.reviewedAt)}</span>
-                  </div>
+        {selected ? (
+          <section className={styles.detail} aria-label="Dossier sélectionné">
+            <button
+              type="button"
+              className={`${styles.ghost} ${styles.back}`}
+              onClick={() => setMobileDetail(false)}
+            >
+              <ArrowLeft size={16} aria-hidden="true" /> Retour à la liste
+            </button>
+
+            <div className={styles.card}>
+              <div className={styles.identity}>
+                <span className={styles.avatar} aria-hidden="true">
+                  {initials(selected)}
+                </span>
+                <div className={styles.identityText}>
+                  <h2>{fullName(selected)}</h2>
+                  <p>
+                    {selected.user?.phone ?? "Téléphone inconnu"}
+                    {selected.user?.email ? ` · ${selected.user.email}` : ""}
+                  </p>
+                  <p>Dossier envoyé le {formatDate(selected.createdAt)}</p>
                 </div>
-                {selected.rejectionReason ? (
-                  <div className={styles.rejection}>
-                    Motif de rejet : {selected.rejectionReason}
-                  </div>
-                ) : null}
               </div>
+              <div
+                className={`${styles.statusBanner} ${
+                  selected.status === "approved"
+                    ? styles.statusApproved
+                    : selected.status === "rejected"
+                      ? styles.statusRejected
+                      : styles.statusPending
+                }`}
+              >
+                {selected.status === "approved" ? (
+                  <BadgeCheck size={18} aria-hidden="true" />
+                ) : selected.status === "rejected" ? (
+                  <XCircle size={18} aria-hidden="true" />
+                ) : (
+                  <Clock size={18} aria-hidden="true" />
+                )}
+                <div>
+                  <strong>{STATUS_TEXT[selected.status]}</strong>
+                  {selected.reviewedBy ? (
+                    <div>
+                      Par {selected.reviewedBy} le {formatDate(selected.reviewedAt)}
+                    </div>
+                  ) : null}
+                  {selected.rejectionReason ? (
+                    <div>Motif : {selected.rejectionReason}</div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
 
-              {selected.provider === "didit" ? (
-                <div className={shared.card}>
-                  <h3>Vérification Didit</h3>
-                  <dl className={styles.providerFacts}>
-                    <div>
-                      <dt>Session</dt>
-                      <dd>{selected.diditSessionId ?? "Non renseignée"}</dd>
+            <div className={styles.card}>
+              <h3>Pièces envoyées</h3>
+              <p className={styles.cardHint}>Cliquez sur une image pour l’agrandir.</p>
+              {noImages && selected.provider === "didit" ? (
+                <p className={styles.providerNote}>
+                  <Info size={16} aria-hidden="true" />
+                  <span>
+                    Les photos de ce dossier sont stockées chez Didit, le service de
+                    vérification, et ne s’affichent pas ici. Le statut ci-dessus est
+                    celui rendu par Didit.
+                  </span>
+                </p>
+              ) : (
+                <div className={styles.documentGrid}>
+                  {pieces.map((piece) => (
+                    <div key={piece.label} className={styles.document}>
+                      <div className={styles.documentLabel}>
+                        {piece.label}
+                        <span className={piece.url ? styles.present : styles.missing}>
+                          {piece.url ? "Reçu" : "Manquant"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className={styles.documentPreview}
+                        disabled={!piece.url}
+                        onClick={() =>
+                          piece.url && setZoom({ src: piece.url, label: piece.label })
+                        }
+                        aria-label={piece.url ? `Agrandir : ${piece.label}` : `${piece.label} non fourni`}
+                      >
+                        {piece.url ? (
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={piece.url} alt={piece.label} />
+                            <span className={styles.zoomHint}>
+                              <Maximize2 size={11} aria-hidden="true" /> Agrandir
+                            </span>
+                          </>
+                        ) : (
+                          "Non fourni"
+                        )}
+                      </button>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {!decided ? (
+              <div className={styles.card}>
+                <h3>
+                  <ListChecks size={16} aria-hidden="true" style={{ verticalAlign: -3 }} /> Ce qu’il
+                  faut vérifier
+                </h3>
+                <ul className={styles.checklist}>
+                  <li>
+                    <CheckCircle2 size={16} aria-hidden="true" />
+                    La pièce est lisible et n’est pas expirée.
+                  </li>
+                  <li>
+                    <CheckCircle2 size={16} aria-hidden="true" />
+                    Le nom sur la pièce correspond à « {fullName(selected)} ».
+                  </li>
+                  <li>
+                    <CheckCircle2 size={16} aria-hidden="true" />
+                    Le visage du selfie est celui de la photo de la pièce.
+                  </li>
+                </ul>
+              </div>
+            ) : null}
+
+            <details className={`${styles.card} ${styles.tech}`}>
+              <summary>Détails techniques (facultatif)</summary>
+              <dl>
+                <div>
+                  <dt>Service de vérification</dt>
+                  <dd>{selected.provider === "didit" ? "Didit" : "Zwanga (ancien système)"}</dd>
+                </div>
+                <div>
+                  <dt>Dernière mise à jour</dt>
+                  <dd>{formatDate(selected.updatedAt)}</dd>
+                </div>
+                {selected.provider === "didit" ? (
+                  <>
                     <div>
-                      <dt>Numéro</dt>
-                      <dd>{selected.diditSessionNumber ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt>Workflow</dt>
-                      <dd>{selected.diditWorkflowId ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt>Statut Didit</dt>
-                      <dd>{selected.diditSessionStatus ?? selected.status}</dd>
+                      <dt>Statut côté Didit</dt>
+                      <dd>{selected.diditSessionStatus ?? "—"}</dd>
                     </div>
                     <div>
                       <dt>Dernière synchronisation</dt>
                       <dd>{formatDate(selected.diditLastSyncedAt)}</dd>
                     </div>
-                  </dl>
-                  <p className={styles.providerHint}>
-                    Les images et données sensibles restent hébergées par Didit.
-                    Zwanga conserve uniquement le statut, les identifiants de
-                    session et un résumé technique minimal.
-                  </p>
+                    <div>
+                      <dt>Référence de session</dt>
+                      <dd>{selected.diditSessionId ?? "—"}</dd>
+                    </div>
+                  </>
+                ) : null}
+                <div>
+                  <dt>Référence du dossier</dt>
+                  <dd>{selected.id}</dd>
                 </div>
-              ) : null}
+              </dl>
+            </details>
 
-              <div className={styles.documentGrid}>
-                <div className={styles.documentPreview}>
-                  {selected.cniFrontUrl ? (
-                    <Image
-                      src={selected.cniFrontUrl}
-                      alt="Carte nationale - Recto"
-                      width={400}
-                      height={300}
-                      style={{ objectFit: "contain" }}
-                      unoptimized
-                    />
-                  ) : (
-                    "Recto CNI non fourni"
-                  )}
-                </div>
-                <div className={styles.documentPreview}>
-                  {selected.cniBackUrl ? (
-                    <Image
-                      src={selected.cniBackUrl}
-                      alt="Carte nationale - Verso"
-                      width={400}
-                      height={300}
-                      style={{ objectFit: "contain" }}
-                      unoptimized
-                    />
-                  ) : (
-                    "Verso CNI non fourni"
-                  )}
-                </div>
-                <div className={styles.documentPreview}>
-                  {selected.selfieUrl ? (
-                    <Image
-                      src={selected.selfieUrl}
-                      alt="Selfie contrôle"
-                      width={400}
-                      height={300}
-                      style={{ objectFit: "contain" }}
-                      unoptimized
-                    />
-                  ) : (
-                    "Selfie non fourni"
-                  )}
-                </div>
-              </div>
+            {feedback ? (
+              <p
+                className={`${styles.feedback} ${feedback.ok ? styles.feedbackOk : styles.feedbackError}`}
+                role={feedback.ok ? "status" : "alert"}
+              >
+                {feedback.text}
+              </p>
+            ) : null}
 
-              {selected.status === "pending" ? (
-                <div className={shared.card}>
-                  <strong>Actions</strong>
-                  <div className={shared.toolbar}>
-                    <button
-                      type="button"
-                      className={shared.primaryButton}
-                      disabled={isLoading}
-                      onClick={() =>
-                        verifyKyc({ kycId: selected.id, approved: true }).unwrap()
-                      }
-                    >
-                      Valider
-                    </button>
-                    <button
-                      type="button"
-                      className={shared.primaryButton}
-                      style={{
-                        background: "rgba(255, 75, 85, 0.15)",
-                        color: "var(--color-danger)",
-                      }}
-                      disabled={isLoading}
-                      onClick={() =>
-                        verifyKyc({
-                          kycId: selected.id,
-                          approved: false,
-                          reason: rejectReason || "Motif non précisé",
-                        }).unwrap()
-                      }
-                    >
-                      Rejeter
-                    </button>
+            {!decided ? (
+              <div className={styles.decision}>
+                {mode === "idle" ? (
+                  <div className={styles.decisionRow}>
+                    <p>
+                      Votre décision
+                      <small>Elle est enregistrée à votre nom.</small>
+                    </p>
+                    <div className={styles.buttons}>
+                      <button type="button" className={styles.reject} onClick={() => setMode("reject")}>
+                        <XCircle size={16} aria-hidden="true" /> Refuser
+                      </button>
+                      <button type="button" className={styles.approve} onClick={() => setMode("approve")}>
+                        <CheckCircle2 size={16} aria-hidden="true" /> Valider l’identité
+                      </button>
+                    </div>
                   </div>
-                  <textarea
-                    placeholder="Motif du rejet (ex: Document illisible, informations manquantes...)"
-                    style={{
-                      borderRadius: 16,
-                      border: "1px solid var(--color-border)",
-                      background: "transparent",
-                      color: "var(--color-text)",
-                      padding: "12px 14px",
-                      minHeight: 80,
-                    }}
-                    value={rejectReason}
-                    onChange={(event) => setRejectReason(event.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
-              ) : (
-                <div className={shared.card}>
-                  <strong>Dossier consultable</strong>
-                  <p className={styles.meta}>
-                    Ce KYC a déjà été traité. Les pièces restent disponibles en
-                    lecture dans l’historique.
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : null}
-        </div>
+                ) : null}
 
-        <div className={shared.toolbar} style={{ justifyContent: "flex-end" }}>
-          <button
-            type="button"
-            className={shared.primaryButton}
-            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-            disabled={page === 1 || isFetching}
-          >
-            Page précédente
+                {mode === "approve" ? (
+                  <div className={styles.decisionRow}>
+                    <p>
+                      Confirmer la validation de {fullName(selected)} ?
+                      <small>La personne pourra utiliser Zwanga comme conducteur vérifié.</small>
+                    </p>
+                    <div className={styles.buttons}>
+                      <button type="button" className={styles.ghost} onClick={() => setMode("idle")} disabled={isDeciding}>
+                        Annuler
+                      </button>
+                      <button type="button" className={styles.approve} onClick={() => decide(true)} disabled={isDeciding}>
+                        {isDeciding ? "Enregistrement…" : "Oui, valider"}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {mode === "reject" ? (
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600 }}>
+                      Pourquoi refusez-vous ce dossier ?
+                    </p>
+                    <small style={{ color: "var(--color-text-muted)" }}>
+                      Ce motif sera envoyé à la personne pour qu’elle puisse renvoyer de bons documents.
+                    </small>
+                    <div className={styles.reasons}>
+                      {REJECT_REASONS.map((reason) => {
+                        const on = chosenReasons.includes(reason);
+                        return (
+                          <button
+                            key={reason}
+                            type="button"
+                            aria-pressed={on}
+                            className={`${styles.reasonChip} ${on ? styles.reasonChipOn : ""}`}
+                            onClick={() =>
+                              setChosenReasons((current) =>
+                                on ? current.filter((item) => item !== reason) : [...current, reason]
+                              )
+                            }
+                          >
+                            {reason}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <textarea
+                      className={styles.reasonText}
+                      aria-label="Précision pour la personne (facultatif)"
+                      placeholder="Ajouter une précision (facultatif)"
+                      value={reasonNote}
+                      onChange={(event) => setReasonNote(event.target.value)}
+                      disabled={isDeciding}
+                    />
+                    <div className={styles.decisionRow} style={{ marginTop: 12 }}>
+                      <small>
+                        {rejectionText ? "" : "Choisissez au moins un motif ou écrivez-en un."}
+                      </small>
+                      <div className={styles.buttons}>
+                        <button type="button" className={styles.ghost} onClick={() => setMode("idle")} disabled={isDeciding}>
+                          Annuler
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.reject}
+                          onClick={() => decide(false)}
+                          disabled={isDeciding || !rejectionText}
+                        >
+                          {isDeciding ? "Enregistrement…" : "Confirmer le refus"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
+        ) : (
+          <section className={`${styles.card} ${styles.empty}`} style={{ border: 0 }}>
+            <strong>Sélectionnez un dossier</strong>
+            Choisissez une personne dans la liste pour voir ses pièces.
+          </section>
+        )}
+      </div>
+
+      {zoom ? (
+        <div
+          className={styles.lightbox}
+          role="dialog"
+          aria-modal="true"
+          aria-label={zoom.label}
+          onClick={() => setZoom(null)}
+        >
+          <button type="button" className={styles.lightboxClose} onClick={() => setZoom(null)}>
+            Fermer
           </button>
-          <span>
-            Page {page} • {total} dossier{total > 1 ? "s" : ""}
-          </span>
-          <button
-            type="button"
-            className={shared.primaryButton}
-            onClick={() => setPage((prev) => prev + 1)}
-            disabled={isFetching || documents.length < limit}
-          >
-            Page suivante
-          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={zoom.src} alt={zoom.label} />
         </div>
-      </section>
+      ) : null}
     </div>
   );
 }

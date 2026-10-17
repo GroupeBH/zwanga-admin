@@ -36,19 +36,10 @@
 
 .shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
-  gap: 24px;
-  padding: 28px;
-  background: radial-gradient(
-      circle at top left,
-      rgba(255, 122, 0, 0.12),
-      transparent 55%
-    ),
-    radial-gradient(
-      circle at 20% 80%,
-      rgba(0, 212, 255, 0.08),
-      transparent 45%
-    ),
+  background:
+    radial-gradient(900px 420px at 85% -10%, rgba(255, 122, 0, 0.07), transparent 70%),
     var(--color-bg);
   isolation: isolate;
 }
@@ -58,67 +49,58 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  border-radius: 32px;
-  border: 1px solid var(--color-border);
-  background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.04),
-      rgba(255, 255, 255, 0)
-    ),
-    var(--color-surface-soft);
-  box-shadow: var(--shadow-panel);
-  padding: 24px 28px 24px 28px;
+}
+
+.workbench > :first-child {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 10px clamp(16px, 2.4vw, 32px);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-soft);
   backdrop-filter: var(--backdrop-blur);
-  min-height: calc(100vh - 56px);
 }
 
 .content {
   flex: 1;
   min-width: 0;
-  margin-top: 24px;
-  overflow-x: hidden;
-  padding-bottom: 48px;
+  width: 100%;
+  max-width: 1480px;
+  margin-inline: auto;
+  padding: clamp(18px, 2.4vw, 32px) clamp(16px, 2.4vw, 32px) 64px;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  animation: pageIn 0.28s ease-out;
 }
 
 .sidebarCollapsed {
-  gap: 16px;
+  gap: 0;
 }
 
 .navigationBackdrop {
   display: none;
 }
 
-@media (max-width: 1200px) {
-  .shell {
-    padding: 20px;
-    gap: 16px;
-  }
-
-  .workbench {
-    padding: 16px;
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
 }
 
 @media (max-width: 1024px) {
   .shell {
     display: block;
-    padding: 12px;
-    background: var(--color-bg);
   }
 
   .workbench {
     width: 100%;
-    min-height: calc(100dvh - 24px);
-    padding: 16px 18px 20px;
-    border-radius: 24px;
+    min-height: 100dvh;
   }
 
   .content {
-    margin-top: 18px;
-    padding-bottom: max(32px, env(safe-area-inset-bottom));
+    padding-bottom: max(40px, env(safe-area-inset-bottom));
   }
 
   .navigationBackdrop {
@@ -131,24 +113,20 @@
     padding: 0;
     border: 0;
     border-radius: 0;
-    background: rgba(2, 9, 16, 0.62);
-    backdrop-filter: blur(5px);
+    background: rgba(2, 6, 12, 0.6);
+    backdrop-filter: blur(4px);
     cursor: default;
     animation: backdropIn 0.18s ease-out;
   }
 }
 
 @media (max-width: 640px) {
-  .shell {
-    padding: 0;
+  .workbench > :first-child {
+    padding: 8px 14px;
   }
 
-  .workbench {
-    min-height: 100dvh;
-    padding: 14px 14px 20px;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
+  .content {
+    padding: 16px 14px 40px;
   }
 }
 
@@ -156,14 +134,11 @@
   from {
     opacity: 0;
   }
-  to {
-    opacity: 1;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .navigationBackdrop {
+  .navigationBackdrop,
+  .content {
     animation: none;
   }
 }
-

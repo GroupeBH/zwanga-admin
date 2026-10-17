@@ -326,22 +326,16 @@ export default function TokensPage() {
                         <button
                           type="button"
                           className={styles.dangerButton}
-                          disabled={
-                            !canAdjustWallets ||
-                            account.balance <= 0 ||
-                            account.withdrawalsBlocked
-                          }
+                          disabled={!canAdjustWallets || account.balance <= 0}
                           title={
                             !canAdjustWallets
                               ? "Action réservée aux administrateurs"
-                              : account.withdrawalsBlocked
-                                ? "Les débits sont bloqués sur ce portefeuille"
-                                : account.balance <= 0
-                                  ? "Aucun jeton à retirer"
-                                  : "Retirer des jetons du solde disponible"
+                              : account.balance <= 0
+                                ? "Aucun jeton à retirer"
+                                : "Retirer des jetons du solde"
                           }
                           onClick={() => {
-                            if (!canAdjustWallets || account.balance <= 0 || account.withdrawalsBlocked) return;
+                            if (!canAdjustWallets || account.balance <= 0) return;
                             setAdjustmentDirection("debit");
                             setAdjustedAccount(account);
                           }}
@@ -561,7 +555,7 @@ function AdjustmentModal({
           {formatUser(account.user)} dispose actuellement de {formatTokens(account.balance)}.
           {direction === "credit"
             ? " Les jetons ajoutés ici sont utilisables dans l’application, mais ne sont pas retirables en argent."
-            : " Le retrait ne peut pas dépasser le solde actuel."}
+            : " Le retrait ne peut pas dépasser le solde actuel. Il reste possible même si l’utilisateur ne peut plus convertir ses jetons en argent."}
         </p>
         <div className={styles.formGrid}>
           <label className={styles.field}>

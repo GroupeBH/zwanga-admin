@@ -2,27 +2,28 @@
 
 import Link from "next/link";
 import {
-  CreditCard,
-  FileText,
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
   RefreshCw,
-  Route,
   ShieldCheck,
   Wallet,
 } from "lucide-react";
 
 import {
-  formatDocumentType,
-  formatFundingStatus,
-  formatPaymentMethod,
-  formatSubscriptionFeatureList,
-  formatSubscriptionPlanLabel,
-} from "@/lib/features/admin/insights";
-import type {
-  DocumentFundingRequest,
-  KycDocument,
-  MetricCard,
-} from "@/lib/features/admin/types";
-import { useGetDashboardQuery } from "@/lib/features/dashboard/dashboardApi";
+  BarList,
+  CHART_COLORS,
+  DonutChart,
+  TrendChart,
+} from "@/app/components/charts/Charts";
+import type { MetricCard } from "@/lib/features/admin/types";
+import { isMarketerRole } from "@/lib/features/auth/adminRoles";
+import {
+  useGetDashboardQuery,
+  useGetMarketingStatsQuery,
+} from "@/lib/features/dashboard/dashboardApi";
+import { useGetPendingKycsQuery } from "@/lib/features/kyc/kycApi";
+import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/utils/apiErrors";
 
 import styles from "./dashboard.module.css";
@@ -35,33 +36,11 @@ const formatDateTime = (value: string) =>
     minute: "2-digit",
   }).format(new Date(value));
 
-const formatCurrency = (value: number, currency: string) =>
-  `${new Intl.NumberFormat("fr-CD", { maximumFractionDigits: 0 }).format(value)} ${currency}`;
-
 const metricToneClass = (tone: MetricCard["tone"]) => {
   if (tone === "success") return styles.statusStable;
   if (tone === "warning") return styles.statusWatch;
   if (tone === "danger") return styles.statusCritical;
   return styles.statusNeutral;
-};
-
-const fundingStatusClass = (status: DocumentFundingRequest["status"]) => {
-  if (status === "funded" || status === "approved") return styles.statusStable;
-  if (status === "rejected" || status === "cancelled") return styles.statusCritical;
-  return styles.statusWatch;
-};
-
-const kycStatusClass = (status: KycDocument["status"]) => {
-  if (status === "approved") return styles.statusStable;
-  if (status === "rejected") return styles.statusCritical;
-  return styles.statusWatch;
-};
-
-// Les codes techniques du backend etaient affiches tels quels dans les pastilles.
-const KYC_STATUS_LABEL: Record<KycDocument["status"], string> = {
-  pending: "En attente",
-  approved: "Validé",
-  rejected: "Rejeté",
 };
 
 const ALERT_SEVERITY_LABEL: Record<string, string> = {
@@ -70,8 +49,108 @@ const ALERT_SEVERITY_LABEL: Record<string, string> = {
   low: "Priorité basse",
 };
 
+const formatCount = (value: number) =>
+  new Intl.NumberFormat("fr-CD").format(Number.isFinite(value) ? value : 0);
+
 export default function DashboardPage() {
-  const { data, isLoading, error, refetch, isFetching } = useGetDashboardQuery();
+  const { data: profile, isLoading: isProfileLoading } = useGetCurrentUserProfileQuery();
+  const marketer = isMarketerRole(profile?.user.role);
+  const roleReady = Boolean(profile?.user.role);
+  const marketing = useGetMarketingStatsQuery(undefined, { skip: !marketer });
+  const { data, isLoading, error, refetch, isFetching } = useGetDashboardQuery(undefined, {
+    skip: !roleReady || marketer,
+  });
+
+  const { data: pendingKycList } = useGetPendingKycsQuery(undefined, {
+    skip: !roleReady || marketer,
+  });
+
+  if (!roleReady || isProfileLoading) {
+    return (
+      <div className={styles.stateCard} aria-busy="true">
+        <h2>Chargement du tableau de bord</h2>
+        <p>Les chiffres arrivent, cela prend quelques secondes.</p>
+      </div>
+    );
+  }
+
+  if (marketer) {
+    if (marketing.error) {
+      return (
+        <div className={`${styles.stateCard} ${styles.stateError}`} role="alert">
+          <h2>Les statistiques n’ont pas pu s’afficher</h2>
+          <p>{getApiErrorMessage(marketing.error, "Impossible de charger les statistiques.")}</p>
+          <button
+            type="button"
+            className={styles.stateButton}
+            onClick={() => marketing.refetch()}
+            disabled={marketing.isFetching}
+          >
+            <RefreshCw size={16} aria-hidden="true" />
+            {marketing.isFetching ? "Nouvelle tentative..." : "Réessayer"}
+          </button>
+        </div>
+      );
+    }
+
+    if (marketing.isLoading || !marketing.data) {
+      return (
+        <div className={styles.stateCard} aria-busy="true">
+          <h2>Chargement des statistiques</h2>
+          <p>Les chiffres arrivent, cela prend quelques secondes.</p>
+        </div>
+      );
+    }
+
+    const figures = [
+      {
+        id: "users",
+        label: "Utilisateurs",
+        value: marketing.data.users,
+        helper: "Passagers et conducteurs",
+      },
+      {
+        id: "trips",
+        label: "Trajets",
+        value: marketing.data.trips,
+        helper: "Tous les trajets",
+      },
+      {
+        id: "subscriptions",
+        label: "Abonnements",
+        value: marketing.data.subscriptions,
+        helper: "Abonnements pro encore valides",
+      },
+      {
+        id: "tripRequests",
+        label: "Demandes de trajet",
+        value: marketing.data.tripRequests,
+        helper: "Toutes les demandes",
+      },
+    ];
+
+    return (
+      <div className={styles.page}>
+        <div className={styles.hero}>
+          <div>
+            <h1>Statistiques</h1>
+            <span>Vue d’ensemble de la plateforme</span>
+          </div>
+        </div>
+        <section className={styles.metrics}>
+          {figures.map((figure) => (
+            <article key={figure.id} className={styles.metric}>
+              <span>{figure.label}</span>
+              <div className={styles.metricValue}>{formatCount(figure.value)}</div>
+              <div className={`${styles.metricMeta} ${styles.statusNeutral}`}>
+                <strong>{figure.helper}</strong>
+              </div>
+            </article>
+          ))}
+        </section>
+      </div>
+    );
+  }
 
   if (error) {
     const errorStatus = getApiErrorStatus(error);
@@ -113,19 +192,50 @@ export default function DashboardPage() {
     );
   }
 
-  const maxTripTrendValue = Math.max(
-    1,
-    ...data.tripTrends.map((point) => Math.max(point.published, point.completed))
-  );
+  const lifecycleColor: Record<string, string> = {
+    upcoming: CHART_COLORS.blue,
+    ongoing: CHART_COLORS.orange,
+    completed: CHART_COLORS.green,
+    cancelled: CHART_COLORS.red,
+    expired: CHART_COLORS.grey,
+  };
 
-  const toPoints = (key: "published" | "completed") =>
-    data.tripTrends
-      .map((point, index, array) => {
-        const x = array.length === 1 ? 50 : (index / (array.length - 1)) * 100;
-        const y = 100 - (point[key] / maxTripTrendValue) * 100;
-        return `${x},${y}`;
-      })
-      .join(" ");
+  const pendingKyc = (Array.isArray(pendingKycList) ? pendingKycList : []).filter(
+    (request) => request.status === "pending"
+  ).length;
+  const urgentAlerts = data.alerts.filter((alert) => alert.severity === "high");
+  const pendingFunding = data.paymentOverview.pendingFundingRequests;
+
+  /* Ce que l'admin doit faire maintenant: un chiffre, un verbe, un lien. */
+  const todo = [
+    {
+      id: "kyc",
+      icon: ShieldCheck,
+      count: pendingKyc,
+      title: "Identités à vérifier",
+      hint: "Dossiers KYC en attente de décision",
+      href: "/kyc",
+      cta: "Vérifier",
+    },
+    {
+      id: "funding",
+      icon: Wallet,
+      count: pendingFunding,
+      title: "Demandes de financement",
+      hint: "Documents conducteurs à approuver",
+      href: "/subscriptions",
+      cta: "Traiter",
+    },
+    {
+      id: "alerts",
+      icon: AlertTriangle,
+      count: urgentAlerts.length,
+      title: "Alertes urgentes",
+      hint: "Priorité haute à examiner",
+      href: "/reports",
+      cta: "Voir",
+    },
+  ];
 
   return (
     <div className={styles.page}>
@@ -134,16 +244,48 @@ export default function DashboardPage() {
           <h1>{data.greeting}</h1>
           <span>{data.dateRange}</span>
         </div>
-        {/* Le bouton précédent n'était relié à aucune action : il mène
-            maintenant à l'écran qui contient réellement les signalements. */}
-        <Link href="/reports" className={styles.stateButton}>
-          <FileText size={16} aria-hidden="true" />
-          Voir les signalements
-        </Link>
+        <button
+          type="button"
+          className={styles.stateButton}
+          onClick={() => refetch()}
+          disabled={isFetching}
+        >
+          <RefreshCw size={16} aria-hidden="true" />
+          {isFetching ? "Actualisation..." : "Actualiser"}
+        </button>
       </div>
 
+      <section aria-label="À traiter" className={styles.todoGrid}>
+        {todo.map((item) => {
+          const Icon = item.icon;
+          const clear = item.count === 0;
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={`${styles.todo} ${clear ? styles.todoClear : styles.todoActive}`}
+            >
+              <span className={styles.todoIcon}>
+                {clear ? <CheckCircle2 size={18} aria-hidden="true" /> : <Icon size={18} aria-hidden="true" />}
+              </span>
+              <span className={styles.todoText}>
+                <strong>
+                  {clear ? "Rien à traiter" : formatCount(item.count)} · {item.title}
+                </strong>
+                <small>{clear ? `${item.title} : tout est à jour` : item.hint}</small>
+              </span>
+              {clear ? null : (
+                <span className={styles.todoCta}>
+                  {item.cta} <ArrowRight size={14} aria-hidden="true" />
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </section>
+
       <section className={styles.metrics}>
-        {data.metrics.map((metric) => (
+        {data.metrics.slice(0, 4).map((metric) => (
           <article key={metric.id} className={styles.metric}>
             <span>{metric.label}</span>
             <div className={styles.metricValue}>{metric.value}</div>
@@ -158,266 +300,98 @@ export default function DashboardPage() {
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <strong>Flux de publication</strong>
-              <p className={styles.panelHint}>Publies vs terminés sur les 7 derniers jours</p>
+              <strong>Activité des trajets</strong>
+              <p className={styles.panelHint}>
+                Trajets publiés et trajets terminés, jour par jour
+              </p>
             </div>
           </div>
-          <svg
-            viewBox="0 0 100 100"
-            className={styles.chart}
-            role="img"
-            aria-label="Courbes des trajets publiés et terminés sur les 7 derniers jours. Les chiffres jour par jour sont listés juste en dessous."
-          >
-            <polyline
-              fill="none"
-              stroke="#ffb347"
-              strokeWidth="2"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              points={toPoints("published")}
-            />
-            <polyline
-              fill="none"
-              stroke="#3dd598"
-              strokeWidth="2"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              points={toPoints("completed")}
-            />
-          </svg>
-          <div className={styles.legend}>
-            <span className={styles.pill}>Publiés</span>
-            <span className={`${styles.pill} ${styles.statusStable}`}>Terminés</span>
-          </div>
-          <div className={styles.timeline}>
-            {data.tripTrends.map((point) => (
-              <div key={point.label} className={styles.timelineItem}>
-                <strong>{point.label}</strong>
-                <span>
-                  {point.published} publiés - {point.completed} terminés
-                </span>
-              </div>
-            ))}
-          </div>
+          <TrendChart
+            ariaLabel="Courbes des trajets publiés et terminés par jour."
+            points={data.tripTrends.map((point) => ({
+              label: point.label,
+              values: [point.published, point.completed],
+            }))}
+            series={[
+              { label: "Publiés", color: CHART_COLORS.orange },
+              { label: "Terminés", color: CHART_COLORS.green },
+            ]}
+          />
         </section>
 
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <strong>Trajets publiés</strong>
-              <p className={styles.panelHint}>
-                Où en sont les trajets publiés, du départ à venir jusqu’à la
-                clôture
-              </p>
+              <strong>Où en sont les trajets</strong>
+              <p className={styles.panelHint}>Répartition de tous les trajets publiés</p>
             </div>
-            <Route size={16} aria-hidden="true" />
           </div>
-          <div className={styles.lifecycleGrid}>
-            {data.tripLifecycle.map((bucket) => (
-              <div key={bucket.key} className={styles.lifecycleCard}>
-                <span className={styles.pill}>{bucket.label}</span>
-                <strong>{bucket.count}</strong>
-                <small>{bucket.helper}</small>
-              </div>
-            ))}
-          </div>
+          <DonutChart
+            centerLabel="trajets"
+            ariaLabel="Répartition des trajets par état."
+            slices={data.tripLifecycle.map((bucket) => ({
+              label: bucket.label,
+              value: bucket.count,
+              color: lifecycleColor[bucket.key] ?? CHART_COLORS.grey,
+              helper: bucket.helper,
+            }))}
+          />
         </section>
       </div>
 
-      <div className={styles.panels}>
+      <div className={styles.panelsEven}>
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <strong>Abonnements premium</strong>
-              <p className={styles.panelHint}>
-                Formules proposées aux conducteurs et leur tarif
-              </p>
+              <strong>Trajets les plus publiés</strong>
+              <p className={styles.panelHint}>Les 5 liaisons les plus demandées</p>
             </div>
-            <CreditCard size={16} aria-hidden="true" />
           </div>
-
-          <div className={styles.planList}>
-            {data.subscriptionPlans.length === 0 ? (
-              <p className={styles.emptyState}>Aucun plan premium n'a ete retourne.</p>
-            ) : (
-              data.subscriptionPlans.map((plan) => (
-                <article key={`${plan.plan}-${plan.currency}`} className={styles.planCard}>
-                  <div className={styles.planHeader}>
-                    <div>
-                      <span className={styles.pill}>
-                        {formatSubscriptionPlanLabel(plan.plan)}
-                      </span>
-                      <strong>{formatCurrency(plan.amount, plan.currency)}</strong>
-                    </div>
-                    <span className={styles.pill}>
-                      {plan.paymentMethods.length} moyen(x) de paiement
-                    </span>
-                  </div>
-
-                  <div className={styles.featureList}>
-                    {formatSubscriptionFeatureList(plan).map((feature) => (
-                      <span key={feature} className={styles.pill}>
-                        {feature}
-                      </span>
-                    ))}
-                    {plan.documentFundingEnabled ? (
-                      <span className={`${styles.pill} ${styles.statusWatch}`}>
-                        plafond{" "}
-                        {formatCurrency(
-                          plan.documentFundingLimit ?? 0,
-                          plan.documentFundingCurrency
-                        )}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <small className={styles.panelHint}>
-                    Paiements: {plan.paymentMethods.map(formatPaymentMethod).join(", ")}
-                  </small>
-                </article>
-              ))
-            )}
-          </div>
+          <BarList
+            emptyLabel="Aucune liaison publiée pour le moment."
+            items={data.popularRoutes.slice(0, 5).map((route) => ({
+              label: route.route,
+              value: route.total,
+              valueLabel: `${formatCount(route.total)} publication${route.total > 1 ? "s" : ""}`,
+              sub: `${route.completed} terminée${route.completed > 1 ? "s" : ""} · ${route.live} en cours${
+                route.expired > 0 ? ` · ${route.expired} expirée${route.expired > 1 ? "s" : ""}` : ""
+              }`,
+            }))}
+          />
         </section>
 
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <strong>Paiements et financement</strong>
-              <p className={styles.panelHint}>
-                Demandes de financement de documents et montants en jeu
-              </p>
-            </div>
-            <Wallet size={16} aria-hidden="true" />
-          </div>
-
-          <div className={styles.paymentStats}>
-            <div className={styles.statCard}>
-              <span>En attente</span>
-              <strong>{data.paymentOverview.pendingFundingRequests}</strong>
-            </div>
-            <div className={styles.statCard}>
-              <span>Approuvees</span>
-              <strong>{data.paymentOverview.approvedFundingRequests}</strong>
-            </div>
-            <div className={styles.statCard}>
-              <span>Financees</span>
-              <strong>{data.paymentOverview.fundedRequests}</strong>
-            </div>
-            <div className={styles.statCard}>
-              <span>Rejetees</span>
-              <strong>{data.paymentOverview.rejectedRequests}</strong>
+              <strong>Conducteurs les plus actifs</strong>
+              <p className={styles.panelHint}>Classés par nombre de trajets terminés</p>
             </div>
           </div>
-
-          <div className={styles.paymentBreakdown}>
-            <div>
-              <strong>Montant demande</strong>
-              <p>
-                {formatCurrency(
-                  data.paymentOverview.totalRequestedAmount,
-                  data.paymentOverview.supportedCurrencies[0] ?? "CDF"
-                )}
-              </p>
-            </div>
-            <div>
-              <strong>A traiter</strong>
-              <p>
-                {formatCurrency(
-                  data.paymentOverview.pendingAmount,
-                  data.paymentOverview.supportedCurrencies[0] ?? "CDF"
-                )}
-              </p>
-            </div>
-            <div>
-              <strong>Moyens actifs</strong>
-              <div className={styles.featureList}>
-                {data.paymentOverview.supportedMethods.map((method) => (
-                  <span key={method} className={styles.pill}>
-                    {formatPaymentMethod(method)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
+          <BarList
+            emptyLabel="Pas encore assez de trajets terminés."
+            items={data.topDrivers.slice(0, 5).map((driver) => ({
+              label: driver.name,
+              value: driver.completed,
+              valueLabel: `${formatCount(driver.completed)} trajet${driver.completed > 1 ? "s" : ""}`,
+              sub: `Note estimée ${driver.rating.toFixed(1)} / 5`,
+            }))}
+          />
         </section>
       </div>
 
-      <div className={styles.panels}>
+      {data.alerts.length > 0 ? (
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <strong>Routes les plus publiées</strong>
-              <p className={styles.panelHint}>Volume total et état de diffusion</p>
+              <strong>Dernières alertes</strong>
+              <p className={styles.panelHint}>Ce qui mérite l’attention de l’équipe</p>
             </div>
-          </div>
-          <div className={styles.routeList}>
-            {data.popularRoutes.map((route) => (
-              <div key={route.id} className={styles.routeItem}>
-                <div>
-                  <strong>{route.route}</strong>
-                  <p className={styles.panelHint}>
-                    {route.total} publication(s) - {route.live} en cours - {route.completed}{" "}
-                    terminées
-                  </p>
-                </div>
-                {route.expired > 0 ? (
-                  <span className={`${styles.pill} ${styles.statusWatch}`}>
-                    {route.expired} expiré(s)
-                  </span>
-                ) : (
-                  <span className={`${styles.pill} ${styles.statusStable}`}>stable</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div>
-              <strong>Demandes recentes</strong>
-              <p className={styles.panelHint}>Financement de documents conducteurs</p>
-            </div>
-          </div>
-          <div className={styles.requestList}>
-            {data.recentFundingRequests.length === 0 ? (
-              <p className={styles.emptyState}>Aucune demande recente.</p>
-            ) : (
-              data.recentFundingRequests.map((request) => (
-                <div key={request.id} className={styles.requestItem}>
-                  <strong>
-                    {request.driver
-                      ? `${request.driver.firstName} ${request.driver.lastName}`
-                      : "Conducteur inconnu"}
-                  </strong>
-                  <span>{formatDocumentType(request.documentType)}</span>
-                  <div className={styles.inlineMeta}>
-                    <span className={`${styles.pill} ${fundingStatusClass(request.status)}`}>
-                      {formatFundingStatus(request.status)}
-                    </span>
-                    <span className={styles.pill}>
-                      {formatCurrency(Number(request.amountRequested ?? 0), request.currency)}
-                    </span>
-                    <span className={styles.pill}>{formatDateTime(request.createdAt)}</span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-      </div>
-
-      <div className={styles.panels}>
-        <section className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div>
-              <strong>Alertes en cours</strong>
-              <p className={styles.panelHint}>Priorités à traiter par l'équipe admin</p>
-            </div>
+            <Link href="/reports" className={styles.panelLink}>
+              Tout voir <ArrowRight size={14} aria-hidden="true" />
+            </Link>
           </div>
           <div className={styles.alertsList}>
-            {data.alerts.map((alert) => (
+            {data.alerts.slice(0, 4).map((alert) => (
               <div key={alert.id} className={styles.alert}>
                 <div>
                   <strong>{alert.message}</strong>
@@ -438,72 +412,7 @@ export default function DashboardPage() {
             ))}
           </div>
         </section>
-
-        <section className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div>
-              <strong>Top chauffeurs</strong>
-              <p className={styles.panelHint}>Classement base sur les trajets completes</p>
-            </div>
-          </div>
-          <div className={styles.drivers}>
-            {data.topDrivers.length === 0 ? (
-              <p className={styles.emptyState}>Pas encore assez de trajets completes.</p>
-            ) : (
-              data.topDrivers.map((driver) => (
-                <div key={driver.id} className={styles.driver}>
-                  <div>
-                    <strong>{driver.name}</strong>
-                    <p className={styles.panelHint}>
-                      {driver.completed} trajets - note estimee {driver.rating.toFixed(2)}
-                    </p>
-                  </div>
-                  <span className={styles.pill}>{driver.score} pts</span>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-      </div>
-
-      <div className={styles.panels}>
-        <section className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div>
-              <strong>Queue KYC prioritaire</strong>
-              <p className={styles.panelHint}>
-                Pièces d’identité à contrôler dans l’onglet KYC
-              </p>
-            </div>
-            <ShieldCheck size={16} aria-hidden="true" />
-          </div>
-          <div className={styles.kycList}>
-            {data.kycQueueShortlist.length === 0 ? (
-              <p className={styles.emptyState}>Aucun dossier KYC prioritaire.</p>
-            ) : (
-              data.kycQueueShortlist.map((request) => (
-                <div key={request.id} className={styles.kycItem}>
-                  <strong>
-                    {request.user
-                      ? `${request.user.firstName} ${request.user.lastName}`
-                      : "Utilisateur inconnu"}
-                  </strong>
-                  <span>{request.user?.email ?? request.user?.phone ?? "—"}</span>
-                  <div className={styles.inlineMeta}>
-                    <span className={`${styles.pill} ${kycStatusClass(request.status)}`}>
-                      {KYC_STATUS_LABEL[request.status] ?? request.status}
-                    </span>
-                    <span className={styles.pill}>Cree {formatDateTime(request.createdAt)}</span>
-                    {request.reviewedBy ? (
-                      <span className={styles.pill}>Revu par {request.reviewedBy}</span>
-                    ) : null}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-      </div>
+      ) : null}
     </div>
   );
 }

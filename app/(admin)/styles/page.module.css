@@ -6,10 +6,11 @@
 }
 
 .section {
-  border-radius: 28px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  padding: 18px 22px;
-  background: rgba(255, 255, 255, 0.02);
+  padding: 20px 22px;
+  background: var(--color-panel);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -34,13 +35,6 @@
    l'admin dessine lui-meme sur chaque liste deroulante. */
 .toolbar input,
 .toolbar select {
-  min-height: 44px;
-  min-width: 0;
-  border-radius: 16px;
-  border: 1px solid var(--color-border-strong);
-  background-color: var(--color-field);
-  padding: 10px 14px;
-  color: var(--color-text);
 }
 
 .toolbar select {
@@ -61,6 +55,8 @@
 .toolbar input:focus-visible,
 .toolbar select:focus-visible {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.16);
+  outline: none;
 }
 
 /* Un filtre sans libelle visible oblige a deviner son role: chaque controle
@@ -107,20 +103,26 @@
 }
 
 .primaryButton {
-  border-radius: 16px;
+  border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #ff7a00, #ffb347);
-  color: #0b1b2b;
-  font-weight: 600;
-  padding: 10px 16px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 650;
+  font-size: 0.875rem;
+  padding: 8px 16px;
   cursor: pointer;
-  min-height: 44px;
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 4px 12px rgba(255, 122, 0, 0.22);
+  transition: filter 0.15s ease, transform 0.15s ease;
 }
 
 .tableWrapper {
+  border: 1px solid var(--color-border);
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
@@ -128,7 +130,7 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-strong) transparent;
-  border-radius: 16px;
+  border-radius: var(--radius-md);
 }
 
 .table {
@@ -140,14 +142,22 @@
 
 .table thead {
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
   color: var(--color-text-muted);
+}
+
+.table th {
+  background: var(--color-subtle);
+  border-bottom: 1px solid var(--color-border-strong);
+  white-space: nowrap;
 }
 
 .table th,
 .table td {
   padding: 12px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--color-hover);
   text-align: left;
   vertical-align: middle;
 }
@@ -157,47 +167,62 @@
 }
 
 .table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--color-hover);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .badge {
   border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 0.75rem;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.4;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
+  background: var(--color-hover);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-line);
 }
 
 .badgeSuccess {
-  background: rgba(61, 213, 152, 0.15);
+  border-color: rgba(61, 213, 152, 0.28);
+  background: rgba(61, 213, 152, 0.12);
   color: var(--color-success);
 }
 
 .badgeWarning {
-  background: rgba(255, 208, 71, 0.15);
+  border-color: rgba(245, 197, 66, 0.3);
+  background: rgba(245, 197, 66, 0.12);
   color: var(--color-warning);
 }
 
 .badgeDanger {
-  background: rgba(255, 75, 85, 0.15);
+  border-color: rgba(255, 93, 104, 0.3);
+  background: rgba(255, 93, 104, 0.12);
   color: var(--color-danger);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+  gap: 14px;
 }
 
 .card {
-  border-radius: 24px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   padding: 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: border-color 0.15s ease;
 }
 
 .wideCard {
@@ -264,6 +289,92 @@
   color: var(--color-text-muted);
 }
 
+.textLink {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.textLink:hover {
+  text-decoration: underline;
+}
+
+.relatedActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mapSplit {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(220px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.mapFrame {
+  min-height: 280px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: var(--color-subtle);
+}
+
+.mapFrame iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  border: 0;
+}
+
+.mapList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.mapItem,
+.mapItemActive {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-subtle);
+}
+
+.mapItem button,
+.mapItemActive button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mapItemActive {
+  border-color: rgba(255, 122, 0, 0.45);
+  background: rgba(255, 122, 0, 0.1);
+}
+
+.faqList {
+  display: grid;
+  gap: 12px;
+}
+
 .legalLinks {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -278,13 +389,13 @@
   text-decoration: none;
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-subtle);
   border: 1px solid var(--color-border);
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .legalLink:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-hover);
   border-color: var(--color-border-strong);
 }
 
@@ -323,6 +434,8 @@
 .card select:focus-visible,
 .card textarea:focus-visible {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.16);
+  outline: none;
 }
 
 .card textarea {
@@ -337,7 +450,7 @@
 
 .timelineItem {
   padding-left: 18px;
-  border-left: 2px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid var(--color-border-strong);
 }
 
 .timelineItem strong {
@@ -365,6 +478,8 @@
 }
 
 .modalCard {
+  border: 1px solid var(--color-border-strong);
+  border-radius: 18px;
   width: min(760px, 100%);
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
@@ -393,9 +508,11 @@
 
 .secondaryButton,
 .dangerButton {
-  min-height: 44px;
-  padding: 10px 16px;
-  border-radius: 16px;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  border-radius: 10px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
   border: 1px solid var(--color-border-strong);
   color: var(--color-text);
   background: var(--color-panel-muted);
@@ -412,6 +529,23 @@
   color: var(--color-danger);
   border-color: rgba(255, 75, 85, 0.24);
   background: rgba(255, 75, 85, 0.12);
+}
+
+.primaryButton:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.primaryButton:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: var(--color-hover);
+  border-color: var(--color-border-strong);
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: rgba(255, 93, 104, 0.2);
 }
 
 .primaryButton:disabled,
@@ -433,10 +567,10 @@
 .rowActions .secondaryButton,
 .rowActions .dangerButton,
 .rowActions .primaryButton {
-  min-height: 38px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  font-size: 0.86rem;
+  min-height: 34px;
+  padding: 6px 11px;
+  border-radius: 9px;
+  font-size: 0.82rem;
   text-decoration: none;
 }
 
@@ -489,7 +623,7 @@
   }
 
   .section {
-    border-radius: 22px;
+    border-radius: 16px;
     padding: 16px;
   }
 
@@ -514,7 +648,7 @@
 
 @media (max-width: 700px) {
   .section {
-    border-radius: 18px;
+    border-radius: 14px;
     padding: 14px;
   }
 
@@ -524,6 +658,10 @@
 
   .toolbar {
     width: 100%;
+  }
+
+  .mapSplit {
+    grid-template-columns: 1fr;
   }
 
   .toolbar input,
@@ -598,3 +736,13 @@
   }
 }
 
+
+.section h2,
+.card h3 {
+  margin: 0;
+}
+
+.sectionHeader h2 + p,
+.sectionHeader h2 + .filterSummary {
+  margin-top: 4px;
+}

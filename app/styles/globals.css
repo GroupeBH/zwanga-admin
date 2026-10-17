@@ -2,41 +2,63 @@
   color-scheme: dark;
   --font-body: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
-  --color-bg: #0b1b2b;
-  --color-surface: #0f2439;
-  --color-surface-soft: rgba(9, 20, 36, 0.8);
-  --color-panel: #182c43;
-  --color-panel-muted: rgba(24, 44, 67, 0.35);
-  --color-field: #152a40;
-  --color-field-hover: #1d3550;
-  --color-border: rgba(255, 255, 255, 0.06);
-  --color-border-strong: rgba(255, 255, 255, 0.12);
-  --color-text: #e9f0ff;
-  --color-text-muted: rgba(233, 240, 255, 0.64);
+  --color-bg: #070a10;
+  --color-surface: #0c111a;
+  --color-surface-soft: rgba(12, 17, 26, 0.82);
+  --color-panel: #101723;
+  --color-panel-muted: rgba(255, 255, 255, 0.045);
+  --color-field: #0d1420;
+  --color-field-hover: #131c2b;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+  --color-text: #eef2fa;
+  --color-text-muted: rgba(238, 242, 250, 0.62);
   --color-primary: #ff7a00;
-  --color-primary-strong: #ffba69;
-  --color-secondary: #00d4ff;
+  --color-primary-strong: #ffa24d;
+  --color-secondary: #38bdf8;
   --color-success: #3dd598;
-  --color-danger: #ff4b55;
-  --color-warning: #f8d047;
-  --shadow-panel: 0 25px 65px rgba(5, 10, 25, 0.45);
-  --backdrop-blur: blur(20px);
+  --color-danger: #ff5d68;
+  --color-warning: #f5c542;
+  --color-subtle: rgba(255, 255, 255, 0.025);
+  --color-hover: rgba(255, 255, 255, 0.055);
+  --color-line: rgba(255, 255, 255, 0.07);
+  --color-on-primary: #1a0f00;
+  --color-focus: rgba(255, 122, 0, 0.5);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 18px 48px rgba(0, 0, 0, 0.5);
+  --backdrop-blur: blur(16px) saturate(1.4);
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --color-bg: #f4f6fb;
-  --color-surface: #fdfdfd;
-  --color-surface-soft: rgba(255, 255, 255, 0.8);
+  --color-bg: #f4f5f8;
+  --color-surface: #ffffff;
+  --color-surface-soft: rgba(255, 255, 255, 0.82);
   --color-panel: #ffffff;
-  --color-panel-muted: rgba(10, 31, 68, 0.08);
+  --color-panel-muted: rgba(15, 23, 42, 0.05);
   --color-field: #ffffff;
-  --color-field-hover: #eef2f8;
-  --color-border: rgba(14, 49, 84, 0.08);
-  --color-border-strong: rgba(14, 49, 84, 0.22);
-  --color-text: #0b1b2b;
-  --color-text-muted: rgba(11, 27, 43, 0.6);
-  --shadow-panel: 0 25px 65px rgba(9, 16, 42, 0.08);
+  --color-field-hover: #f3f5f9;
+  --color-border: rgba(15, 23, 42, 0.08);
+  --color-border-strong: rgba(15, 23, 42, 0.17);
+  --color-text: #0f172a;
+  --color-text-muted: rgba(15, 23, 42, 0.62);
+  --color-subtle: rgba(15, 23, 42, 0.03);
+  --color-hover: rgba(15, 23, 42, 0.055);
+  --color-line: rgba(15, 23, 42, 0.08);
+  --color-success: #12945f;
+  --color-warning: #a67a00;
+  --color-danger: #d62839;
+  --color-primary-strong: #c95a00;
+  --color-secondary: #0284c7;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05),
+    0 1px 1px rgba(15, 23, 42, 0.03);
+  --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.06),
+    0 16px 40px rgba(15, 23, 42, 0.1);
 }
 
 :root[data-theme="dark"] {
@@ -63,6 +85,8 @@ body {
   color: var(--color-text);
   line-height: 1.5;
   letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
   transition:
     background-color 0.25s ease,
     color 0.25s ease;
@@ -163,4 +187,115 @@ body::-webkit-scrollbar-track {
 body::-webkit-scrollbar-thumb {
   background: var(--color-panel-muted);
   border-radius: 999px;
+}
+
+/* Lien d'evitement: un clavier atteint le contenu sans traverser 30 liens. */
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 200;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 700;
+  transform: translateY(-160%);
+  transition: transform 0.18s ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+main:focus {
+  outline: none;
+}
+
+:root[data-theme="light"] ::selection {
+  color: #0b1b2b;
+}
+
+/* Un tableau ou une liste en defilement horizontal garde une barre fine. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Typographie commune: titres serres et lisibles sur tous les ecrans admin. */
+main h1 {
+  font-size: clamp(1.4rem, 1.2rem + 0.7vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+main h2 {
+  font-size: 1.02rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+main h3 {
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+/* Chargement en squelette: la page garde sa forme, rien ne saute a l'arrivee. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-hover);
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.07),
+    transparent
+  );
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+:root[data-theme="light"] .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+}
+
+@keyframes skeleton-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.skeleton-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
 }

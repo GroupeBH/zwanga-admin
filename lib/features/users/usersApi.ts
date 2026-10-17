@@ -29,6 +29,7 @@ export interface CreateAdminAccountPayload {
   firstName: string;
   lastName: string;
   defaultPassword: string;
+  role?: "admin" | "marketer";
 }
 
 export interface ResetAdminAccountPasswordPayload {

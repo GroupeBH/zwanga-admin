@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { setAuthenticated, setLoading } from "@/lib/features/auth/authSlice";
-import { isAdminRole } from "@/lib/features/auth/adminRoles";
+import { isBackOfficeRole, isMarketerRole } from "@/lib/features/auth/adminRoles";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { getApiErrorStatus } from "@/lib/utils/apiErrors";
@@ -28,6 +28,8 @@ const PUBLIC_ROUTES = [
 ];
 
 const PUBLIC_ROUTE_PREFIXES = ["/track/"];
+
+const MARKETER_ROUTES = new Set(["/dashboard", "/settings", "/profile"]);
 
 export const AuthGuard = ({ children }: AuthGuardProps) => {
   const router = useRouter();
@@ -67,9 +69,9 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
 
     const profileStatus = getApiErrorStatus(profileError);
     const hasAccessDenied = profileStatus === 401 || profileStatus === 403;
-    const isAdmin = isAdminRole(profile?.user.role);
+    const allowed = isBackOfficeRole(profile?.user.role);
 
-    if (hasAccessDenied || (profile && !isAdmin)) {
+    if (hasAccessDenied || (profile && !allowed)) {
       clearAuthTokens();
       dispatch(setAuthenticated(false));
       if (!isLoginPage) {
@@ -86,6 +88,16 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
       return;
     }
 
+    if (
+      isMarketerRole(profile?.user.role) &&
+      !isLoginPage &&
+      !MARKETER_ROUTES.has(pathname)
+    ) {
+      beginNavigation("/dashboard");
+      router.push("/dashboard");
+      return;
+    }
+
     if (isLoginPage) {
       const destination = profile?.user.passwordChangeRequired ? "/settings" : "/dashboard";
       beginNavigation(destination);
@@ -98,6 +110,7 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     isSettingsPage,
     isProfileLoading,
     isPublicRoute,
+    pathname,
     profile,
     profileError,
     router,

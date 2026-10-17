@@ -191,7 +191,7 @@ export interface DocumentFundingRequest {
 }
 
 // Nest backend enums
-export type UserRole = "driver" | "passenger" | "admin" | "super_admin";
+export type UserRole = "driver" | "passenger" | "admin" | "super_admin" | "marketer";
 export type UserStatus = "active" | "inactive" | "suspended" | "pending_kyc";
 export type KycStatus = "pending" | "approved" | "rejected";
 

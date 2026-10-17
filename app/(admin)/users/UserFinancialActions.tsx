@@ -286,10 +286,7 @@ export default function UserFinancialActions({ user }: { user: User }) {
               </button>
               <button
                 className={styles.danger}
-                disabled={
-                  !!wallet &&
-                  (wallet.balance <= 0 || !!wallet.account?.withdrawalsBlocked)
-                }
+                disabled={!!wallet && wallet.balance <= 0}
                 onClick={() => {
                   setDirection("debit");
                   setFailure("");
@@ -325,8 +322,9 @@ export default function UserFinancialActions({ user }: { user: User }) {
         )}
         {wallet?.account?.withdrawalsBlocked && (
           <p role="alert" className={styles.message}>
-            Ce portefeuille nécessite une vérification : les débits sont
-            bloqués.
+            Ce portefeuille est en vérification : l’utilisateur ne peut pas
+            convertir ses jetons en argent. Un administrateur peut tout de
+            même en enlever.
           </p>
         )}
         {notice && (
@@ -345,7 +343,7 @@ export default function UserFinancialActions({ user }: { user: User }) {
             <p className={styles.muted}>
               {direction === "credit"
                 ? "Les jetons ajoutés manuellement sont utilisables dans l’application, mais ne sont pas retirables en argent."
-                : "Le retrait est définitif après confirmation. Il ne peut pas dépasser le solde disponible ni toucher les jetons déjà réservés."}
+                : "Le retrait est définitif après confirmation. Il ne peut pas dépasser le solde disponible ni toucher les jetons déjà réservés. Il reste possible même si l’utilisateur ne peut plus convertir ses jetons en argent."}
             </p>
             {pending && (
               <p className={styles.message}>

@@ -37,6 +37,7 @@ const roleLabel: Record<string, string> = {
   passenger: "Passager",
   admin: "Admin",
   super_admin: "Super admin",
+  marketer: "Marketeur",
 };
 
 const downloadBlob = (blob: Blob, filename: string) => {
@@ -107,7 +108,21 @@ function UsersList() {
   const [search, setSearch] = useState(urlSearch);
   const [appliedSearch, setAppliedSearch] = useState(urlSearch.trim());
   const appliedSearchRef = useRef(urlSearch.trim());
-  const [roleFilter, setRoleFilter] = useState<AdminUserRoleFilter | "all">("all");
+  const urlRole = useSearchParams().get("role");
+  const [roleFilter, setRoleFilter] = useState<AdminUserRoleFilter | "all">(
+    urlRole === "driver" || urlRole === "passenger" || urlRole === "verified_passenger"
+      ? urlRole
+      : "all"
+  );
+  /* Le lien « Conducteurs » du menu change le filtre sur une page deja ouverte. */
+  useEffect(() => {
+    setRoleFilter(
+      urlRole === "driver" || urlRole === "passenger" || urlRole === "verified_passenger"
+        ? urlRole
+        : "all"
+    );
+    setPage(1);
+  }, [urlRole]);
   const [registeredFrom, setRegisteredFrom] = useState("");
   const [registeredTo, setRegisteredTo] = useState("");
   const [page, setPage] = useState(1);
@@ -431,7 +446,9 @@ function UsersList() {
                           Profil déclaré: conducteur
                         </small>
                       </div>
-                    ) : user.role === "admin" || user.role === "super_admin" ? (
+                    ) : user.role === "admin" ||
+                      user.role === "super_admin" ||
+                      user.role === "marketer" ? (
                       <div>
                         <small style={{ color: "var(--color-text-muted)" }}>
                           {roleLabel[user.role]}

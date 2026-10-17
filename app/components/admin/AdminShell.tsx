@@ -7,6 +7,7 @@ import { setSidebarOpen } from "@/lib/features/ui/uiSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
 import styles from "./AdminShell.module.css";
+import { CommandPalette } from "./CommandPalette";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
@@ -62,6 +63,10 @@ export const AdminShell = ({ children }: Props) => {
         [styles.sidebarCollapsed]: !sidebarOpen,
       })}
     >
+      <a href="#contenu-principal" className="skip-link">
+        Aller au contenu
+      </a>
+      <CommandPalette />
       <Sidebar isCompactViewport={isCompactViewport} />
       {isCompactViewport && sidebarOpen ? (
         <button
@@ -73,7 +78,7 @@ export const AdminShell = ({ children }: Props) => {
       ) : null}
       <div className={styles.workbench}>
         <Topbar />
-        <main className={styles.content}>{children}</main>
+        <main id="contenu-principal" tabIndex={-1} className={styles.content}>{children}</main>
       </div>
     </div>
   );

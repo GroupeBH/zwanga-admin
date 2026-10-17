@@ -466,8 +466,15 @@ export const dashboardApi = baseApi.injectEndpoints({
       },
       providesTags: ["Dashboard"],
     }),
+    getMarketingStats: builder.query<
+      { users: number; trips: number; subscriptions: number; tripRequests: number },
+      void
+    >({
+      query: () => "/admin/stats",
+      providesTags: ["Dashboard"],
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetDashboardQuery } = dashboardApi;
+export const { useGetDashboardQuery, useGetMarketingStatsQuery } = dashboardApi;

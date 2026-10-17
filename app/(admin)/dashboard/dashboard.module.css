@@ -14,7 +14,6 @@
 }
 
 .hero h1 {
-  font-size: 1.6rem;
   margin: 0;
 }
 
@@ -29,9 +28,10 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 12px;
-  border-radius: 24px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-card);
   padding: 22px;
 }
 
@@ -54,9 +54,10 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 10px 16px;
-  border-radius: 14px;
+  min-height: 38px;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  border-radius: 10px;
   border: 1px solid var(--color-border-strong);
   background: var(--color-panel-muted);
   color: var(--color-text);
@@ -72,18 +73,21 @@
 }
 
 .metric {
-  border-radius: 24px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.02);
+  padding: 18px 20px;
+  background: var(--color-panel);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
 .metricValue {
-  font-size: 1.7rem;
+  font-size: 1.85rem;
   font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
 }
 
 .metricMeta,
@@ -97,7 +101,7 @@
 }
 
 .statusNeutral {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-line);
   color: var(--color-text-muted);
 }
 
@@ -123,10 +127,10 @@
 }
 
 .panel {
-  border-radius: 28px;
+  border-radius: 16px;
   border: 1px solid var(--color-border);
   padding: 20px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-subtle);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -162,7 +166,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 0.75rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-line);
 }
 
 .timeline,
@@ -187,8 +191,8 @@
 .statCard,
 .lifecycleCard {
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--color-hover);
+  background: var(--color-subtle);
 }
 
 .timelineItem,
@@ -326,7 +330,7 @@
 
   .metric,
   .panel {
-    border-radius: 20px;
+    border-radius: 14px;
     padding: 16px;
   }
 
@@ -355,5 +359,107 @@
   .alert,
   .driver {
     flex-direction: column;
+  }
+}
+
+.panelsEven {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.panelLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-primary-strong);
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.panelLink:hover {
+  text-decoration: underline;
+}
+
+.todoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 12px;
+}
+
+.todo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.todoActive {
+  border-color: rgba(255, 122, 0, 0.4);
+  background: linear-gradient(135deg, rgba(255, 122, 0, 0.1), transparent 70%), var(--color-panel);
+}
+
+.todoActive:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.todoIcon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--color-hover);
+}
+
+.todoActive .todoIcon {
+  background: rgba(255, 122, 0, 0.18);
+  color: var(--color-primary-strong);
+}
+
+.todoClear .todoIcon {
+  color: var(--color-success);
+}
+
+.todoClear {
+  opacity: 0.8;
+}
+
+.todoText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.todoText strong {
+  font-size: 0.92rem;
+}
+
+.todoText small {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+.todoCta {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--color-primary-strong);
+}
+
+@media (max-width: 1200px) {
+  .panelsEven {
+    grid-template-columns: 1fr;
   }
 }

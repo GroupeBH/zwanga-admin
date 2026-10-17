@@ -10,7 +10,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  padding: 4px 2px 2px;
+  padding: 0 0 4px;
 }
 
 .eyebrow {
@@ -18,9 +18,9 @@
   align-items: center;
   gap: 6px;
   color: var(--color-primary-strong);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   margin-bottom: 6px;
 }
@@ -62,7 +62,7 @@
 .iconButton,
 .tab {
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   transition:
     transform 0.16s ease,
@@ -74,8 +74,9 @@
 .button,
 .secondaryButton,
 .dangerButton {
-  min-height: 40px;
-  padding: 9px 14px;
+  min-height: 38px;
+  padding: 8px 14px;
+  font-size: 0.875rem;
   font-weight: 650;
   display: inline-flex;
   align-items: center;
@@ -85,13 +86,19 @@
 
 .button {
   background: var(--color-primary);
-  color: #111d2b;
+  color: var(--color-on-primary);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 4px 12px rgba(255, 122, 0, 0.22);
+}
+
+.button:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 
 .secondaryButton,
 .iconButton,
 .tab {
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--color-hover);
   border-color: var(--color-border-strong);
   color: var(--color-text);
 }
@@ -102,13 +109,12 @@
   border-color: rgba(255, 75, 85, 0.22);
 }
 
-.button:hover,
 .secondaryButton:hover,
 .dangerButton:hover,
 .iconButton:hover,
 .tab:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255, 122, 0, 0.5);
+  background: var(--color-hover);
+  border-color: var(--color-border-strong);
 }
 
 .button:disabled,
@@ -130,25 +136,27 @@
 .metricStrip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-block: 1px solid var(--color-border-strong);
+  gap: 12px;
 }
 
 .metric {
-  min-height: 112px;
-  padding: 20px 22px;
+  min-height: 104px;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-card);
 }
 
-.metric + .metric {
-  border-left: 1px solid var(--color-border-strong);
-}
 
 .metric span,
 .metric small {
   color: var(--color-text-muted);
+  font-size: 0.8rem;
 }
 
 .metric strong {
@@ -157,8 +165,11 @@
 }
 
 .panel {
-  border-top: 1px solid var(--color-border-strong);
-  padding-top: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-card);
+  padding: 20px 22px;
 }
 
 .panelHeader {
@@ -191,7 +202,7 @@
 .field select {
   min-height: 40px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 12px;
+  border-radius: 10px;
   background-color: var(--color-field);
   color: var(--color-text);
   padding: 8px 12px;
@@ -263,7 +274,8 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-strong) transparent;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 
 .table {
@@ -274,9 +286,11 @@
 }
 
 .table th {
+  background: var(--color-subtle);
+  white-space: nowrap;
   color: var(--color-text-muted);
-  font-size: 0.69rem;
-  letter-spacing: 0.09em;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 650;
 }
@@ -294,7 +308,7 @@
 }
 
 .table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--color-hover);
 }
 
 .reference {
@@ -325,12 +339,13 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 9px;
+  border: 1px solid var(--color-line);
+  padding: 3px 10px;
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 650;
   white-space: nowrap;
-  background: rgba(255, 255, 255, 0.065);
+  background: var(--color-line);
   color: var(--color-text-muted);
 }
 
@@ -376,7 +391,7 @@
 }
 
 .tab {
-  border-radius: 9px 9px 0 0;
+  border-radius: 8px 8px 0 0;
   border: 0;
   border-bottom: 2px solid transparent;
   background: transparent;
@@ -467,7 +482,7 @@
   width: min(520px, 100%);
   margin: auto;
   border: 1px solid var(--color-border-strong);
-  border-radius: 20px;
+  border-radius: 18px;
   background: var(--color-surface);
   box-shadow: var(--shadow-panel);
   padding: 24px;
@@ -631,25 +646,12 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .metric:nth-child(3) {
-    border-left: 0;
-    border-top: 1px solid var(--color-border-strong);
   }
-
-  .metric:nth-child(4) {
-    border-top: 1px solid var(--color-border-strong);
-  }
-}
 
 @media (max-width: 560px) {
   .metricStrip,
   .formGrid {
     grid-template-columns: 1fr;
-  }
-
-  .metric + .metric {
-    border-left: 0;
-    border-top: 1px solid var(--color-border-strong);
   }
 
   .headingActions,
