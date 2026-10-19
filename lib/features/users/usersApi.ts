@@ -13,10 +13,17 @@ export type AdminUserRoleFilter =
   | "passenger"
   | "verified_passenger";
 
+export type AdminVehicleTypeFilter =
+  | "car"
+  | "motorcycle_2_wheels"
+  | "motorcycle_3_wheels";
+
 export interface UsersQueryParams {
   page?: number;
   limit?: number;
   role?: AdminUserRoleFilter;
+  /** Type du véhicule actif du conducteur. */
+  vehicleType?: AdminVehicleTypeFilter;
   /** Jour calendaire AAAA-MM-JJ, inclus, fuseau de Kinshasa. */
   registeredFrom?: string;
   /** Jour calendaire AAAA-MM-JJ, inclus, fuseau de Kinshasa. */
@@ -44,6 +51,7 @@ export const usersApi = baseApi.injectEndpoints({
         page = 1,
         limit = 10,
         role,
+        vehicleType,
         registeredFrom,
         registeredTo,
         search,
@@ -53,6 +61,7 @@ export const usersApi = baseApi.injectEndpoints({
           page,
           limit,
           ...(role ? { role } : {}),
+          ...(vehicleType ? { vehicleType } : {}),
           ...(registeredFrom ? { registeredFrom } : {}),
           ...(registeredTo ? { registeredTo } : {}),
           ...(search ? { search } : {}),
@@ -60,11 +69,12 @@ export const usersApi = baseApi.injectEndpoints({
       }),
       serializeQueryArgs: ({ queryArgs }) => {
         const args = queryArgs ?? {};
-        return `users-${args.page ?? 1}-${args.limit ?? 10}-${args.role ?? "all"}-${args.registeredFrom ?? ""}-${args.registeredTo ?? ""}-${args.search ?? ""}`;
+        return `users-${args.page ?? 1}-${args.limit ?? 10}-${args.role ?? "all"}-${args.vehicleType ?? "any"}-${args.registeredFrom ?? ""}-${args.registeredTo ?? ""}-${args.search ?? ""}`;
       },
       forceRefetch({ currentArg, previousArg }) {
         return (
           currentArg?.role !== previousArg?.role ||
+          currentArg?.vehicleType !== previousArg?.vehicleType ||
           currentArg?.page !== previousArg?.page ||
           currentArg?.limit !== previousArg?.limit ||
           currentArg?.registeredFrom !== previousArg?.registeredFrom ||
@@ -87,12 +97,16 @@ export const usersApi = baseApi.injectEndpoints({
     }),
     exportUsersXls: builder.mutation<
       Blob,
-      Pick<UsersQueryParams, "role" | "registeredFrom" | "registeredTo" | "search"> | void
+      Pick<
+        UsersQueryParams,
+        "role" | "vehicleType" | "registeredFrom" | "registeredTo" | "search"
+      > | void
     >({
-      query: ({ role, registeredFrom, registeredTo, search } = {}) => ({
+      query: ({ role, vehicleType, registeredFrom, registeredTo, search } = {}) => ({
         url: "/admin/users/export",
         params: {
           ...(role ? { role } : {}),
+          ...(vehicleType ? { vehicleType } : {}),
           ...(registeredFrom ? { registeredFrom } : {}),
           ...(registeredTo ? { registeredTo } : {}),
           ...(search ? { search } : {}),

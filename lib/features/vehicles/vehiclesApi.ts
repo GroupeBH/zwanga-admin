@@ -18,8 +18,65 @@ export interface UpdateVehiclePayload {
   isActive?: boolean;
 }
 
+export interface AdminVehicleOwner {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string | null;
+  email?: string | null;
+}
+
+export interface AdminVehicle extends Vehicle {
+  type?: string | null;
+  owner?: AdminVehicleOwner | null;
+}
+
+export interface AdminVehiclesParams {
+  page?: number;
+  limit?: number;
+  /** car | motorcycle_2_wheels | motorcycle_3_wheels */
+  vehicleType?: string;
+  /** "true" | "false"; absent = tous. */
+  isActive?: "true" | "false";
+  search?: string;
+}
+
+export interface PaginatedAdminVehicles {
+  vehicles: AdminVehicle[];
+  total: number;
+}
+
 export const vehiclesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // Admin: tous les véhicules avec leur propriétaire
+    getAdminVehicles: builder.query<PaginatedAdminVehicles, AdminVehiclesParams | void>({
+      query: ({ page = 1, limit = 20, vehicleType, isActive, search } = {}) => ({
+        url: "/admin/vehicles",
+        params: {
+          page,
+          limit,
+          ...(vehicleType ? { vehicleType } : {}),
+          ...(isActive ? { isActive } : {}),
+          ...(search ? { search } : {}),
+        },
+      }),
+      transformResponse: (response: unknown): PaginatedAdminVehicles => {
+        const record =
+          response && typeof response === "object" && !Array.isArray(response)
+            ? (response as Record<string, unknown>)
+            : {};
+        const vehicles = Array.isArray(response)
+          ? (response as AdminVehicle[])
+          : Array.isArray(record.vehicles)
+            ? (record.vehicles as AdminVehicle[])
+            : [];
+        return {
+          vehicles,
+          total: typeof record.total === "number" ? record.total : vehicles.length,
+        };
+      },
+      providesTags: [{ type: "Vehicles", id: "LIST" }],
+    }),
     // Get all vehicles for current user
     getMyVehicles: builder.query<Vehicle[], void>({
       query: () => "/vehicles",
@@ -78,6 +135,7 @@ export const vehiclesApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetAdminVehiclesQuery,
   useGetMyVehiclesQuery,
   useGetVehicleByIdQuery,
   useCreateVehicleMutation,

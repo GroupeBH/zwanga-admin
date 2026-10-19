@@ -6,6 +6,7 @@ import {
   Building2,
   Calendar,
   Car,
+  CarFront,
   ClipboardList,
   Coins,
   Crown,
@@ -64,6 +65,7 @@ export const navGroups: readonly NavGroup[] = [
     items: [
       { label: "Utilisateurs", href: "/users", icon: Users, keywords: "passagers comptes" },
       { label: "Conducteurs", href: "/users?role=driver", icon: Car, keywords: "chauffeurs véhicules" },
+      { label: "Véhicules", href: "/vehicles", icon: CarFront, keywords: "propriétaires plaques voitures motos tricycles" },
       { label: "Validation KYC", href: "/kyc", icon: ShieldCheck, badgeKey: "kyc", keywords: "identité documents" },
     ],
   },

@@ -6,6 +6,7 @@ import {
   BadgeCheck,
   CheckCircle2,
   Clock,
+  Download,
   Info,
   ListChecks,
   Maximize2,
@@ -18,7 +19,9 @@ import {
   type KycStatusFilter,
 } from "@/lib/features/kyc/kycApi";
 import type { KycDocument, KycStatus } from "@/lib/features/admin/types";
+import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
+import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
 
 import styles from "./kyc.module.css";
 
@@ -109,6 +112,8 @@ export default function KycPage() {
     search: debouncedSearch || undefined,
   });
   const [verifyKyc, { isLoading: isDeciding }] = useVerifyKycMutation();
+  const [exportAdminXls, { isLoading: isExporting }] = useExportAdminXlsMutation();
+  const [exportError, setExportError] = useState<string | null>(null);
   const pendingTotal = useStatusTotal("pending");
   const approvedTotal = useStatusTotal("approved");
   const rejectedTotal = useStatusTotal("rejected");
@@ -157,7 +162,20 @@ export default function KycPage() {
     setFeedback(null);
   };
 
-  const rejectionText = [...chosenReasons, reasonNote.trim()].filter(Boolean).join(" — ");
+  const handleExport = async () => {
+    setExportError(null);
+    try {
+      const blob = await exportAdminXls({
+        url: "/admin/kyc/export",
+        params: { status: statusFilter, search: debouncedSearch },
+      }).unwrap();
+      downloadBlob(blob, datedExportName("demandes-kyc-zwanga"));
+    } catch (error) {
+      setExportError(getApiErrorMessage(error, "Impossible d'exporter les dossiers."));
+    }
+  };
+
+  const rejectionText =[...chosenReasons, reasonNote.trim()].filter(Boolean).join(" — ");
 
   const goToNext = (current: KycDocument) => {
     const index = documents.findIndex((document) => document.id === current.id);
@@ -213,6 +231,23 @@ export default function KycPage() {
           selfie. Comparez-les, puis validez ou refusez le dossier.
         </p>
       </header>
+
+      <div className={styles.decisionRow}>
+        <button
+          type="button"
+          className={styles.ghost}
+          onClick={handleExport}
+          disabled={isExporting}
+        >
+          <Download size={16} aria-hidden="true" style={{ verticalAlign: -3 }} />{" "}
+          {isExporting ? "Export..." : "Exporter XLS"}
+        </button>
+        {exportError ? (
+          <small role="alert" style={{ color: "var(--color-danger, #b91c1c)" }}>
+            {exportError}
+          </small>
+        ) : null}
+      </div>
 
       <div className={styles.tabs} role="tablist" aria-label="Statut des dossiers">
         {TABS.map((tab) => {

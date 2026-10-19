@@ -216,6 +216,7 @@ export interface User {
   driverActivatedAt?: string | null;
   hasApprovedKyc?: boolean;
   hasActiveVehicle?: boolean;
+  activeVehicleType?: string | null;
   isQualifiedDriver?: boolean;
   lastLoginAt?: string | null;
   createdAt: string;

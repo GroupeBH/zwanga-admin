@@ -10,6 +10,7 @@ import {
   useGetUsersQuery,
   useSuspendUserMutation,
   type AdminUserRoleFilter,
+  type AdminVehicleTypeFilter,
 } from "@/lib/features/users/usersApi";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 import type { User } from "@/lib/features/admin/types";
@@ -30,6 +31,12 @@ const segmentLabel: Record<AdminUserRoleFilter | "all", string> = {
   driver: "Conducteurs verifies",
   passenger: "Passagers sans KYC valide",
   verified_passenger: "Passagers KYC sans vehicule",
+};
+
+const vehicleTypeLabel: Record<AdminVehicleTypeFilter, string> = {
+  car: "Voiture",
+  motorcycle_2_wheels: "Moto",
+  motorcycle_3_wheels: "Tricycle",
 };
 
 const roleLabel: Record<string, string> = {
@@ -123,6 +130,7 @@ function UsersList() {
     );
     setPage(1);
   }, [urlRole]);
+  const [vehicleType, setVehicleType] = useState<AdminVehicleTypeFilter | "">("");
   const [registeredFrom, setRegisteredFrom] = useState("");
   const [registeredTo, setRegisteredTo] = useState("");
   const [page, setPage] = useState(1);
@@ -157,6 +165,7 @@ function UsersList() {
       page,
       limit,
       role,
+      vehicleType: vehicleType || undefined,
       registeredFrom: registeredFrom || undefined,
       registeredTo: registeredTo || undefined,
       search: appliedSearch || undefined,
@@ -175,6 +184,13 @@ function UsersList() {
       if (!matchesUserSegment(user, roleFilter)) {
         return false;
       }
+      if (
+        vehicleType &&
+        user.activeVehicleType !== undefined &&
+        user.activeVehicleType !== vehicleType
+      ) {
+        return false;
+      }
       const term = foldSearch(search).trim();
       if (!term) return true;
       const includesTerm = (value?: string | null) => foldSearch(value).includes(term);
@@ -187,7 +203,7 @@ function UsersList() {
         includesTerm(user.phone)
       );
     });
-  }, [users, search, roleFilter]);
+  }, [users, search, roleFilter, vehicleType]);
 
   const statusClass = (status: string) => {
     if (status === "active") return `${shared.badge} ${shared.badgeSuccess}`;
@@ -236,6 +252,7 @@ function UsersList() {
     try {
       const blob = await exportUsersXls({
         role,
+        vehicleType: vehicleType || undefined,
         registeredFrom: registeredFrom || undefined,
         registeredTo: registeredTo || undefined,
         search: appliedSearch || undefined,
@@ -267,6 +284,7 @@ function UsersList() {
             <h2>Gestion utilisateurs</h2>
             <p className={shared.filterSummary}>
               {total} compte{total > 1 ? "s" : ""} · {segmentLabel[roleFilter]}
+              {vehicleType ? ` · ${vehicleTypeLabel[vehicleType]}` : ""}
               {periodLabel ? ` · ${periodLabel}` : ""}
             </p>
           </div>
@@ -303,6 +321,28 @@ function UsersList() {
               </select>
             </div>
             <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="users-vehicle-type">
+                Type de véhicule
+              </label>
+              <select
+                id="users-vehicle-type"
+                value={vehicleType}
+                onChange={(event) => {
+                  setVehicleType(event.target.value as AdminVehicleTypeFilter | "");
+                  setPage(1);
+                }}
+              >
+                <option value="">Tous les véhicules</option>
+                {(Object.keys(vehicleTypeLabel) as AdminVehicleTypeFilter[]).map(
+                  (type) => (
+                    <option key={type} value={type}>
+                      {vehicleTypeLabel[type]}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+            <div className={shared.filterField}>
               <label className={shared.filterLabel} htmlFor="users-registered-from">
                 Enregistré du
               </label>
@@ -332,12 +372,13 @@ function UsersList() {
                 }}
               />
             </div>
-            {search || roleFilter !== "all" || registeredFrom || registeredTo ? (
+            {search || roleFilter !== "all" || vehicleType || registeredFrom || registeredTo ? (
               <button
                 type="button"
                 className={shared.secondaryButton}
                 onClick={() => {
                   setSearch("");
+                  setVehicleType("");
                   setRegisteredFrom("");
                   setRegisteredTo("");
                   handleRoleFilterChange("all");
@@ -401,7 +442,7 @@ function UsersList() {
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody key={`${roleFilter}-${registeredFrom}-${registeredTo}-${page}`}>
+            <tbody key={`${roleFilter}-${vehicleType}-${registeredFrom}-${registeredTo}-${page}`}>
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7}>
