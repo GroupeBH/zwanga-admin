@@ -554,13 +554,13 @@ export default function EvaluationsPage() {
                       <strong>
                         {report.reportedUser
                           ? `${report.reportedUser.firstName} ${report.reportedUser.lastName}`.trim()
-                          : "Compte supprimé"}
+                          : `Compte désactivé (réf. ${report.reportedUserId.slice(0, 8)})`}
                       </strong>
                     </td>
                     <td>
                       {report.reporter
                         ? `${report.reporter.firstName} ${report.reporter.lastName}`.trim()
-                        : "Compte supprimé"}
+                        : `Compte désactivé (réf. ${report.reporterId.slice(0, 8)})`}
                     </td>
                     <td>
                       {REASON_LABEL[report.reason] ?? report.reason}

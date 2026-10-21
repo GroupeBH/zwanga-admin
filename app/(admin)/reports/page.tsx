@@ -49,8 +49,10 @@ const formatDate = (value: string | null) => {
   }).format(parsed);
 };
 
-const formatParty = (party: UserReportParty | null) =>
-  party ? `${party.firstName} ${party.lastName}`.trim() : "Compte supprimé";
+const formatParty = (party: UserReportParty | null, id?: string) =>
+  party
+    ? `${party.firstName} ${party.lastName}`.trim()
+    : `Compte désactivé${id ? ` (réf. ${id.slice(0, 8)})` : ""}`;
 
 const statusClass = (status: ReportStatus) => {
   if (status === "resolved") return `${shared.badge} ${shared.badgeSuccess}`;
@@ -272,14 +274,14 @@ export default function ReportsPage() {
               {reports.map((report) => (
                 <tr key={report.id}>
                   <td>
-                    <strong>{formatParty(report.reportedUser)}</strong>
+                    <strong>{formatParty(report.reportedUser, report.reportedUserId)}</strong>
                     <br />
                     <small className={shared.mutedText}>
                       {report.reportedUser?.phone ?? "Téléphone indisponible"}
                     </small>
                   </td>
                   <td>
-                    {formatParty(report.reporter)}
+                    {formatParty(report.reporter, report.reporterId)}
                     <br />
                     <small className={shared.mutedText}>
                       {report.reporter?.phone ?? "Téléphone indisponible"}
@@ -350,8 +352,8 @@ export default function ReportsPage() {
           <div className={`${shared.card} ${shared.modalCard} ${shared.modalCompact}`}>
             <h3>Traiter le signalement</h3>
             <p className={shared.mutedText}>
-              {formatParty(target.reportedUser)} signalé par{" "}
-              {formatParty(target.reporter)} pour «{" "}
+              {formatParty(target.reportedUser, target.reportedUserId)} signalé par{" "}
+              {formatParty(target.reporter, target.reporterId)} pour «{" "}
               {REASON_LABEL[target.reason] ?? target.reason} ».
             </p>
             <label>

@@ -13,7 +13,7 @@ import {
   type AdminVehicleTypeFilter,
 } from "@/lib/features/users/usersApi";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
-import type { User } from "@/lib/features/admin/types";
+import type { User, UserStatus } from "@/lib/features/admin/types";
 
 import UserDetailsPage from "./UserDetails";
 
@@ -21,7 +21,7 @@ import shared from "../styles/page.module.css";
 
 const statusLabel: Record<string, string> = {
   active: "Actif",
-  inactive: "Inactif",
+  inactive: "Désactivé",
   suspended: "Suspendu",
   pending_kyc: "En vérification",
 };
@@ -31,6 +31,61 @@ const segmentLabel: Record<AdminUserRoleFilter | "all", string> = {
   driver: "Conducteurs verifies",
   passenger: "Passagers sans KYC valide",
   verified_passenger: "Passagers KYC sans vehicule",
+};
+
+const statusFilterOptions = ["active", "pending_kyc", "suspended", "inactive"] as const;
+
+type UserSort =
+  | "recent"
+  | "oldest"
+  | "name_asc"
+  | "name_desc"
+  | "login_recent"
+  | "login_oldest";
+
+const sortLabel: Record<UserSort, string> = {
+  recent: "Enregistrement : plus récents",
+  oldest: "Enregistrement : plus anciens",
+  name_asc: "Nom : A → Z",
+  name_desc: "Nom : Z → A",
+  login_recent: "Connexion : plus récente",
+  login_oldest: "Connexion : plus ancienne",
+};
+
+const timeOf = (value?: string | null) => {
+  const time = value ? new Date(value).getTime() : NaN;
+  return Number.isNaN(time) ? null : time;
+};
+
+const sortUsers = (users: User[], sort: UserSort) => {
+  const byName = (a: User, b: User) =>
+    `${a.lastName ?? ""} ${a.firstName ?? ""}`.localeCompare(
+      `${b.lastName ?? ""} ${b.firstName ?? ""}`,
+      "fr",
+      { sensitivity: "base" }
+    );
+  const byDate =
+    (key: "createdAt" | "lastLoginAt", direction: 1 | -1) => (a: User, b: User) => {
+      const first = timeOf(a[key]);
+      const second = timeOf(b[key]);
+      if (first === null && second === null) return 0;
+      if (first === null) return 1;
+      if (second === null) return -1;
+      return (first - second) * direction;
+    };
+  const compare =
+    sort === "name_asc"
+      ? byName
+      : sort === "name_desc"
+        ? (a: User, b: User) => byName(b, a)
+        : sort === "oldest"
+          ? byDate("createdAt", 1)
+          : sort === "login_recent"
+            ? byDate("lastLoginAt", -1)
+            : sort === "login_oldest"
+              ? byDate("lastLoginAt", 1)
+              : byDate("createdAt", -1);
+  return [...users].sort(compare);
 };
 
 const vehicleTypeLabel: Record<AdminVehicleTypeFilter, string> = {
@@ -131,6 +186,8 @@ function UsersList() {
     setPage(1);
   }, [urlRole]);
   const [vehicleType, setVehicleType] = useState<AdminVehicleTypeFilter | "">("");
+  const [statusFilter, setStatusFilter] = useState<UserStatus | "">("");
+  const [sort, setSort] = useState<UserSort>("recent");
   const [registeredFrom, setRegisteredFrom] = useState("");
   const [registeredTo, setRegisteredTo] = useState("");
   const [page, setPage] = useState(1);
@@ -180,7 +237,10 @@ function UsersList() {
   const [exportUsersXls, { isLoading: isExporting }] = useExportUsersXlsMutation();
 
   const filtered = useMemo(() => {
-    return users.filter((user) => {
+    const matching = users.filter((user) => {
+      if (statusFilter && user.status !== statusFilter) {
+        return false;
+      }
       if (!matchesUserSegment(user, roleFilter)) {
         return false;
       }
@@ -203,7 +263,8 @@ function UsersList() {
         includesTerm(user.phone)
       );
     });
-  }, [users, search, roleFilter, vehicleType]);
+    return sortUsers(matching, sort);
+  }, [users, search, roleFilter, vehicleType, statusFilter, sort]);
 
   const statusClass = (status: string) => {
     if (status === "active") return `${shared.badge} ${shared.badgeSuccess}`;
@@ -285,6 +346,7 @@ function UsersList() {
             <p className={shared.filterSummary}>
               {total} compte{total > 1 ? "s" : ""} · {segmentLabel[roleFilter]}
               {vehicleType ? ` · ${vehicleTypeLabel[vehicleType]}` : ""}
+              {statusFilter ? ` · ${statusLabel[statusFilter]}` : ""}
               {periodLabel ? ` · ${periodLabel}` : ""}
             </p>
           </div>
@@ -318,6 +380,39 @@ function UsersList() {
                 <option value="verified_passenger">
                   {segmentLabel.verified_passenger}
                 </option>
+              </select>
+            </div>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="users-status">
+                Statut du compte
+              </label>
+              <select
+                id="users-status"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as UserStatus | "")}
+              >
+                <option value="">Tous les statuts</option>
+                {statusFilterOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {statusLabel[status]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className={shared.filterField}>
+              <label className={shared.filterLabel} htmlFor="users-sort">
+                Trier par
+              </label>
+              <select
+                id="users-sort"
+                value={sort}
+                onChange={(event) => setSort(event.target.value as UserSort)}
+              >
+                {(Object.keys(sortLabel) as UserSort[]).map((key) => (
+                  <option key={key} value={key}>
+                    {sortLabel[key]}
+                  </option>
+                ))}
               </select>
             </div>
             <div className={shared.filterField}>
@@ -372,13 +467,15 @@ function UsersList() {
                 }}
               />
             </div>
-            {search || roleFilter !== "all" || vehicleType || registeredFrom || registeredTo ? (
+            {search || roleFilter !== "all" || vehicleType || statusFilter || registeredFrom || registeredTo ? (
               <button
                 type="button"
                 className={shared.secondaryButton}
                 onClick={() => {
                   setSearch("");
                   setVehicleType("");
+                  setStatusFilter("");
+                  setSort("recent");
                   setRegisteredFrom("");
                   setRegisteredTo("");
                   handleRoleFilterChange("all");
