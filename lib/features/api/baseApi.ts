@@ -93,6 +93,7 @@ export const baseApi = createApi({
     "Support",
     "Notifications",
     "AdminProfile",
+    "StoreManagement",
   ],
   endpoints: () => ({}),
 });
