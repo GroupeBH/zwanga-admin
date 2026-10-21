@@ -8,11 +8,15 @@
   font-size: 30px;
   margin-bottom: 8px;
 }
-.page h2 {
+.page h2,
+.drawer h2,
+.config h2 {
   font-size: 21px;
   margin-bottom: 10px;
 }
-.page h3 {
+.page h3,
+.drawer h3,
+.config h3 {
   font-size: 17px;
   margin: 14px 0;
 }
@@ -149,13 +153,184 @@
   border-bottom: 1px solid #e1e7eb;
   overflow-wrap: anywhere;
 }
-.page details {
+.page details,
+.drawer details,
+.config details {
   margin-top: 14px;
 }
-.page summary {
+.page summary,
+.drawer summary,
+.config summary {
   cursor: pointer;
   font-weight: 650;
   padding: 10px 0;
+}
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.headActions {
+  display: flex;
+  gap: 10px;
+}
+.tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #e1e7eb;
+  margin-bottom: 16px;
+}
+.tab {
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: #5c6d79;
+  font-weight: 600;
+}
+.tabActive {
+  color: #be4518;
+  border-bottom-color: #be4518;
+}
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.field input,
+.field select {
+  border: 1px solid #bdcbd5;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #fff;
+  color: #193142;
+  min-height: 42px;
+  width: 100%;
+}
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #e1e7eb;
+  border-radius: 10px;
+}
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 720px;
+}
+.grid th {
+  text-align: left;
+  background: #f4f7f9;
+  color: #5c6d79;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 14px;
+}
+.grid td {
+  padding: 12px 14px;
+  border-top: 1px solid #e1e7eb;
+  vertical-align: middle;
+}
+.grid td small {
+  display: block;
+  color: #5c6d79;
+  margin-top: 2px;
+}
+.grid tbody tr {
+  cursor: pointer;
+}
+.grid tbody tr:hover,
+.rowActive {
+  background: #f4f7f9;
+}
+.pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.toneOk {
+  background: #e0f3e6;
+  color: #1c6b36;
+}
+.toneBad {
+  background: #fbe4e1;
+  color: #ab291e;
+}
+.toneWarn {
+  background: #fdf0d8;
+  color: #8a5a00;
+}
+.toneInfo {
+  background: #e3eef5;
+  color: #254b65;
+}
+.small {
+  min-height: 34px;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+.empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: #5c6d79;
+}
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(25, 49, 66, 0.45);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 50;
+}
+.drawer {
+  background: #fff;
+  width: min(640px, 100%);
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px 24px 40px;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.15);
+}
+.close {
+  margin-left: auto;
+  display: block;
+  margin-bottom: 12px;
+}
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  background: #f4f7f9;
+  border-radius: 10px;
+  padding: 14px;
+  margin: 12px 0;
+}
+.facts small {
+  color: #5c6d79;
+  font-weight: 600;
 }
 @media (max-width: 900px) {
   .layout {
@@ -172,4 +347,12 @@
   .panel {
     padding: 14px;
   }
+}
+
+.config {
+  margin-top: 24px;
+  color: #193142;
+}
+.drawer {
+  color: #193142;
 }

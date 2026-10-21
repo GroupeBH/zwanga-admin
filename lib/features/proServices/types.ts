@@ -19,6 +19,8 @@ export interface CaseRow {
   status: string;
   createdAt: string;
   customerMessage: string;
+  phone?: string;
+  documentCodes?: string[];
 }
 export interface Quote {
   version: number;

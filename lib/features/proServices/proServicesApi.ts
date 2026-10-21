@@ -8,7 +8,14 @@ export const proServicesApi = baseApi.injectEndpoints({
     }),
     proCases: builder.query<
       { items: CaseRow[]; nextCursor: string | null },
-      { cursor?: string; status?: string }
+      {
+        cursor?: string;
+        status?: string;
+        search?: string;
+        documentCode?: string;
+        from?: string;
+        to?: string;
+      }
     >({
       query: (params) => ({ url: "/pro-services/admin/cases", params }),
       providesTags: ["ProServices"],
