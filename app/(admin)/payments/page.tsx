@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Ban,
   CheckCircle2,
@@ -27,6 +27,7 @@ import {
   formatVolumes,
 } from "@/lib/features/finance/format";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
+import { paymentReconciliationError, paymentReconciliationMessage } from "@/lib/features/finance/paymentReconciliation";
 import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
 import type {
   AdminPaymentTransaction,
@@ -37,6 +38,7 @@ import type { PaymentStatus } from "@/lib/features/admin/types";
 import styles from "../finance.module.css";
 import { DriverPayoutReviews } from "./DriverPayoutReviews";
 import { PayoutRecoveryDrawer } from "./PayoutRecoveryDrawer";
+import { DirectPayoutDrawer } from "./DirectPayoutDrawer";
 import type { PayoutTarget } from "@/lib/features/finance/payoutRecovery";
 
 const statusClass = (status: PaymentStatus) => {
@@ -63,6 +65,7 @@ const errorMessage = (error: unknown) => {
 
 export default function PaymentsPage() {
   const [view, setView] = useState<"transactions" | "driver-payouts">("transactions");
+  const [directPayoutOpen, setDirectPayoutOpen] = useState(false);
   const [recoveryTarget, setRecoveryTarget] = useState<PayoutTarget | null>(null);
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<PaymentStatus | "all">("all");
@@ -70,6 +73,7 @@ export default function PaymentsPage() {
   const [searchDraft, setSearchDraft] = useState("");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<AdminPaymentTransaction | null>(null);
+  const paymentActionLock = useRef(false);
 
   const { data: profile } = useGetCurrentUserProfileQuery();
   const canReconcilePayments = isSuperAdminRole(profile?.user.role);
@@ -84,6 +88,7 @@ export default function PaymentsPage() {
   const [reconcile, reconcileState] = useReconcileAdminPaymentMutation();
   const [cancelPayout, cancelState] = useCancelEnqueuedPayoutMutation();
   const [cancelNotice, setCancelNotice] = useState<string | null>(null);
+  const [reconcileNotice, setReconcileNotice] = useState<{ paymentId: string; message: string } | null>(null);
   const [exportAdminXls, { isLoading: isExporting }] = useExportAdminXlsMutation();
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -113,14 +118,23 @@ export default function PaymentsPage() {
   };
 
   const openPayment = (payment: AdminPaymentTransaction) => {
+    if (paymentActionLock.current) return;
     setCancelNotice(null);
+    setReconcileNotice(null);
     cancelState.reset();
     reconcileState.reset();
     setSelected(payment);
   };
 
+  const closePayment = () => {
+    if (!paymentActionLock.current) setSelected(null);
+  };
+
   const handleCancelPayout = async () => {
-    if (!selected || !canReconcilePayments) return;
+    if (!selected || !canReconcilePayments || paymentActionLock.current ||
+      data?.source !== "admin-api" || selected.provider !== "pawapay" || !selected.orderNumber ||
+      !PAYOUT_PURPOSES.includes(selected.purpose as PaymentPurpose) ||
+      !["pending", "initiated"].includes(selected.status)) return;
     const label =
       selected.purpose === "driver_payout"
         ? "ce versement de gains"
@@ -132,29 +146,49 @@ export default function PaymentsPage() {
     ) {
       return;
     }
+    paymentActionLock.current = true;
+    const paymentId = selected.id;
+    setReconcileNotice(null);
+    reconcileState.reset();
     try {
-      const updated = await cancelPayout(selected.id).unwrap();
+      const updated = await cancelPayout(paymentId).unwrap();
       setSelected((current) =>
-        current ? { ...current, ...updated, user: current.user ?? updated.user } : current
+        current?.id === paymentId ? { ...current, ...updated, user: current.user ?? updated.user } : current
       );
       setCancelNotice(
         "Le versement a été annulé. Le montant réservé est de nouveau disponible."
       );
     } catch {
       setCancelNotice(null);
+    } finally {
+      paymentActionLock.current = false;
     }
   };
 
   const handleReconcile = async () => {
-    if (!selected || data?.source !== "admin-api" || !canReconcilePayments) return;
-    if (!confirm(`Vérifier la transaction ${selected.reference} auprès de ${selected.provider === "pawapay" ? "PawaPay" : "FlexPay"} ?`)) {
+    if (!selected || data?.source !== "admin-api" || !canReconcilePayments || paymentActionLock.current ||
+      reconcileState.isLoading || cancelState.isLoading || selected.status === "succeeded") return;
+    if (!confirm(`Vérifier la transaction ${selected.reference} auprès de ${selected.provider === "pawapay" ? "PawaPay" : "FlexPay"}, sans envoyer à nouveau d’argent ?`)) {
       return;
     }
+    paymentActionLock.current = true;
+    setReconcileNotice(null);
+    setCancelNotice(null);
+    cancelState.reset();
+    const paymentId = selected.id;
     try {
-      await reconcile(selected.id).unwrap();
-      setSelected(null);
+      const result = await reconcile(paymentId).unwrap();
+      setSelected((current) => current?.id === paymentId ? {
+        ...current,
+        ...(result.status ? { status: result.status } : {}),
+        ...(result.paidAt !== undefined ? { paidAt: result.paidAt } : {}),
+        ...(result.updatedAt ? { updatedAt: result.updatedAt } : {}),
+      } : current);
+      setReconcileNotice({ paymentId, message: paymentReconciliationMessage(result) });
     } catch {
       // RTK Query exposes the failure below in the drawer.
+    } finally {
+      paymentActionLock.current = false;
     }
   };
 
@@ -167,6 +201,7 @@ export default function PaymentsPage() {
           <p>Suivi des encaissements et décaissements FlexPay et PawaPay.</p>
         </div>
         {view === "transactions" ? <div className={styles.headingActions}>
+          {canReconcilePayments ? <button type="button" className={styles.secondaryButton} onClick={() => setDirectPayoutOpen(true)}>Virement libre</button> : null}
           <button
             type="button"
             className={styles.secondaryButton}
@@ -253,6 +288,7 @@ export default function PaymentsPage() {
                 <option value="driver_payout">Versements de gains</option>
                 <option value="wallet_payout">Retraits de jetons</option>
                 <option value="referral_payout">Retraits parrainage</option>
+                <option value="admin_payout">Virements libres Zwanga</option>
               </select>
             </div>
             <div className={styles.filterField}>
@@ -331,6 +367,7 @@ export default function PaymentsPage() {
                       <button
                         type="button"
                         className={styles.secondaryButton}
+                        disabled={reconcileState.isLoading || cancelState.isLoading}
                         onClick={() => openPayment(payment)}
                       >
                         Détails
@@ -348,7 +385,7 @@ export default function PaymentsPage() {
       </>}
 
       {selected ? (
-        <div className={styles.drawerBackdrop} role="presentation" onMouseDown={() => setSelected(null)}>
+        <div className={styles.drawerBackdrop} role="presentation" onMouseDown={closePayment}>
           <aside
             className={styles.drawer}
             role="dialog"
@@ -361,13 +398,17 @@ export default function PaymentsPage() {
                 <span className={styles.eyebrow}>Transaction</span>
                 <h2>{selected.reference}</h2>
               </div>
-              <button className={styles.iconButton} onClick={() => setSelected(null)} aria-label="Fermer">
+              <button className={styles.iconButton} onClick={closePayment} disabled={reconcileState.isLoading || cancelState.isLoading} aria-label="Fermer">
                 <X size={18} />
               </button>
             </div>
             <dl className={styles.detailList}>
               <dt>Statut</dt><dd><span className={statusClass(selected.status)}>{financeLabel(selected.status)}</span></dd>
-              <dt>Utilisateur</dt><dd>{formatUser(selected.user)}</dd>
+              <dt>{selected.purpose === "admin_payout" ? "Super admin initiateur" : "Utilisateur"}</dt><dd>{formatUser(selected.user)}</dd>
+              {selected.purpose === "admin_payout" ? <>
+                <dt>Numéro destinataire</dt><dd>{selected.phone ?? "—"}</dd>
+                <dt>Motif du virement</dt><dd>{selected.description ?? "—"}</dd>
+              </> : null}
               <dt>Montant</dt><dd>{formatMoney(selected.amount, selected.currency)}</dd>
               <dt>Objet</dt><dd>{financeLabel(selected.purpose)}</dd>
               <dt>Méthode</dt><dd>{financeLabel(selected.method)}</dd>
@@ -393,9 +434,12 @@ export default function PaymentsPage() {
                 )}
               </div>
             ) : null}
-            {reconcileState.error ? (
+            {reconcileNotice?.paymentId === selected.id ? (
+              <p className={styles.helpText} role="status">{reconcileNotice.message}</p>
+            ) : null}
+            {reconcileState.error && reconcileState.originalArgs === selected.id ? (
               <div className={styles.error} style={{ marginTop: 18 }}>
-                Le rapprochement n’a pas abouti. Vérifiez que la route admin est déployée.
+                {paymentReconciliationError(reconcileState.error)}
               </div>
             ) : null}
             {selected &&
@@ -406,7 +450,7 @@ export default function PaymentsPage() {
                 <span>
                   {selected.provider === "pawapay" && selected.orderNumber
                     ? "Le super admin peut annuler ce versement tant que PawaPay le garde en file. Le montant réservé redevient alors disponible."
-                    : "Pour FlexPaie, ouvrez le dossier de retrait : vérification sans réémission, puis libération uniquement après confirmation définitive de non-exécution."}
+                    : "Pour FlexPaie, ouvrez le dossier de retrait : le super admin peut débloquer et relancer le versement au même numéro après confirmation de non-réception et preuve définitive de non-exécution."}
                 </span>
               </p>
             ) : null}
@@ -417,9 +461,10 @@ export default function PaymentsPage() {
               ) ? <button type="button" className={styles.secondaryButton}
                 disabled={reconcileState.isLoading || cancelState.isLoading}
                 onClick={() => {
+                  if (paymentActionLock.current) return;
                   setRecoveryTarget({ kind: selected.purpose === "driver_payout" ? "driver" : "referral", id: selected.relatedEntityId! });
                   setSelected(null);
-                }}>Ouvrir le dossier de retrait</button> : null}
+                }}>Suivi / relance du retrait</button> : null}
               {canReconcilePayments &&
               selected.provider === "pawapay" &&
               selected.orderNumber &&
@@ -429,7 +474,8 @@ export default function PaymentsPage() {
                   type="button"
                   className={styles.dangerButton}
                   onClick={handleCancelPayout}
-                  disabled={cancelState.isLoading || Boolean(cancelNotice)}
+                  disabled={cancelState.isLoading || reconcileState.isLoading || data?.source !== "admin-api" || Boolean(cancelNotice)}
+                  title={data?.source !== "admin-api" ? "Nécessite le contrat admin dédié" : undefined}
                 >
                   <Ban size={16} />{" "}
                   {cancelState.isLoading
@@ -445,6 +491,7 @@ export default function PaymentsPage() {
                 onClick={handleReconcile}
                 disabled={
                   reconcileState.isLoading ||
+                  cancelState.isLoading ||
                   !canReconcilePayments ||
                   data?.source !== "admin-api" ||
                   selected.status === "succeeded"
@@ -457,13 +504,14 @@ export default function PaymentsPage() {
                       : undefined
                 }
               >
-                <CheckCircle2 size={16} /> Vérifier chez le prestataire
+                <CheckCircle2 size={16} /> {reconcileState.isLoading ? "Vérification..." : "Vérifier chez le prestataire"}
               </button>
             </div>
           </aside>
         </div>
       ) : null}
-      {recoveryTarget ? <PayoutRecoveryDrawer key={`${recoveryTarget.kind}:${recoveryTarget.id}`} target={recoveryTarget} onClose={() => setRecoveryTarget(null)} /> : null}
+      {directPayoutOpen ? <DirectPayoutDrawer onClose={() => setDirectPayoutOpen(false)} /> : null}
+      {recoveryTarget ? <PayoutRecoveryDrawer key={`${recoveryTarget.kind}:${recoveryTarget.id}`} target={recoveryTarget} onClose={() => setRecoveryTarget(null)} onOpen={setRecoveryTarget} /> : null}
     </div>
   );
 }

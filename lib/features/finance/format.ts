@@ -40,6 +40,7 @@ const labels: Record<string, string> = {
   wallet_payout: "Retrait de jetons",
   driver_payout: "Versement de gains",
   referral_payout: "Retrait parrainage",
+  admin_payout: "Virement libre Zwanga",
   mobile_money: "Mobile Money",
   card: "Carte",
   flexpay: "FlexPay",

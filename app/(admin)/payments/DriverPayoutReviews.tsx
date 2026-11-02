@@ -10,10 +10,11 @@ import styles from "../finance.module.css";
 
 export function DriverPayoutReviews() {
   const [page, setPage] = useState(1);
+  const [view, setView] = useState<"pending" | "review" | "resolved">("pending");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lookupId, setLookupId] = useState("");
   const [lookupError, setLookupError] = useState<string | null>(null);
-  const query = useGetDriverPayoutReviewsQuery({ limit: 25, offset: (page - 1) * 25 });
+  const query = useGetDriverPayoutReviewsQuery({ limit: 25, offset: (page - 1) * 25, view });
   const rows = query.currentData?.data ?? [];
   const total = query.currentData?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / 25));
@@ -21,10 +22,18 @@ export function DriverPayoutReviews() {
   return <>
     <section className={styles.panel}>
       <div className={styles.panelHeader}>
-        <div><h2>Retraits de gains à examiner</h2><p>{total} dossier(s) signalé(s), ancien(s), sans commande ou avec incident.</p></div>
+        <div><h2>Retraits de gains conducteur</h2><p>{total} dossier(s) · suivi, résolution et relance.</p></div>
         <button type="button" className={styles.secondaryButton} disabled={query.isFetching} onClick={() => query.refetch()}><RefreshCw size={15} /> Actualiser</button>
       </div>
-      <p className={styles.helpText}>Cette file ne représente pas tous les retraits. Un dossier récent peut être ouvert avec son identifiant de retrait Zwanga, même s'il n'a pas encore de transaction.</p>
+      <div className={styles.filterField}>
+        <label className={styles.filterLabel} htmlFor="driver-payout-view">Afficher</label>
+        <select id="driver-payout-view" value={view} onChange={(event) => { setView(event.target.value as typeof view); setPage(1); }}>
+          <option value="pending">Tous les retraits en attente</option>
+          <option value="review">Signalements et incidents</option>
+          <option value="resolved">Échecs et annulations</option>
+        </select>
+      </div>
+      <p className={styles.helpText}>Ouvrez « Suivi / relance » pour relancer un retrait non reçu (super administrateur). Un dossier peut aussi être ouvert par son identifiant Zwanga, même sans transaction prestataire.</p>
       <form className={styles.filters} onSubmit={(event) => {
         event.preventDefault();
         const id = lookupId.trim();
@@ -54,7 +63,7 @@ export function DriverPayoutReviews() {
             <td>{payout.phone}</td>
             <td><span className={`${styles.badge} ${payout.recoveryBlocked ? styles.badgeDanger : styles.badgeWarning}`}>{financeLabel(payout.status)}</span></td>
             <td>{payout.recoveryBlocked ? "Succès tardif · bloqué" : payout.isStale ? "Retrait ancien" : "À vérifier"}</td>
-            <td><button type="button" className={styles.secondaryButton} onClick={() => setSelectedId(payout.id)}>Détails / traiter</button></td>
+            <td><button type="button" className={styles.secondaryButton} onClick={() => setSelectedId(payout.id)}>Suivi / relance</button></td>
           </tr>)}</tbody>
         </table>
       </div> : null}
@@ -66,6 +75,6 @@ export function DriverPayoutReviews() {
         </div>
       </div>
     </section>
-    {selectedId ? <PayoutRecoveryDrawer key={selectedId} target={{ kind: "driver", id: selectedId }} onClose={() => setSelectedId(null)} /> : null}
+    {selectedId ? <PayoutRecoveryDrawer key={selectedId} target={{ kind: "driver", id: selectedId }} onClose={() => setSelectedId(null)} onOpen={(target) => setSelectedId(target.id)} /> : null}
   </>;
 }

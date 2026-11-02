@@ -8,13 +8,18 @@ import {
   useReconcilePayoutRecoveryMutation,
   useResolvePayoutNotPaidMutation,
   useCloseDriverPayoutIncidentMutation,
+  useRetryPayoutMutation,
 } from "@/lib/features/finance/payoutRecoveryApi";
 import {
   canManagePayout,
   canReleasePayout,
+  canRetryPayout,
+  payoutRetryMessage,
+  payoutRetryResultMessage,
   payoutEvidenceError,
   resolutionError,
   type PayoutTarget,
+  type RecoveryWithdrawal,
 } from "@/lib/features/finance/payoutRecovery";
 import { financeLabel, formatDateTime, formatMoney, formatTokens, formatUser } from "@/lib/features/finance/format";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/utils/apiErrors";
@@ -28,29 +33,38 @@ const eventLabels: Record<string, string> = {
   late_success_review_closed: "Incident de succès tardif clôturé",
 };
 
-export function PayoutRecoveryDrawer({ target, onClose }: {
+export function PayoutRecoveryDrawer({ target, onClose, onOpen }: {
   target: PayoutTarget;
   onClose: () => void;
+  onOpen?: (target: PayoutTarget) => void;
 }) {
   const query = useGetPayoutRecoveryDetailQuery(target, { refetchOnMountOrArgChange: true });
   const { data: profile } = useGetCurrentUserProfileQuery();
   const [reconcile] = useReconcilePayoutRecoveryMutation();
   const [resolveNotPaid] = useResolvePayoutNotPaidMutation();
   const [closeIncident] = useCloseDriverPayoutIncidentMutation();
+  const [retryPayout] = useRetryPayoutMutation();
   const [reason, setReason] = useState("");
   const [evidenceReference, setEvidenceReference] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+  const [notReceived, setNotReceived] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [replacement, setReplacement] = useState<RecoveryWithdrawal | null>(null);
   const actionLock = useRef(false);
   const drawerRef = useRef<HTMLElement>(null);
   const data = query.currentData;
   const payout = data?.payout;
   const authorized = canManagePayout(target.kind, profile?.user.role);
   const unavailable = busy || query.isFetching || !!query.error || !payout;
-  const canRelease = payout && canReleasePayout(payout);
+  const canRelease = payout && !replacement && canReleasePayout(payout);
+  const canRetry = payout && !replacement && canRetryPayout(payout, profile?.user.role);
+  const replacementId = payout?.retry?.replacementId ?? replacement?.id;
+  const retryLabel = payout && ["pending", "initiated"].includes(payout.status)
+    ? "Débloquer et relancer au même numéro" : "Relancer au même numéro";
+  const retryError = payoutEvidenceError(reason, evidenceReference) || (!confirmed || !notReceived ? "Confirmez la non-réception et la non-exécution définitive." : null);
   const closingIncident = target.kind === "driver" && payout?.recoveryBlocked === true && payout.status === "succeeded";
   const formError = payout && (closingIncident
     ? payoutEvidenceError(reason, evidenceReference) || (!confirmed ? "Confirmez le rapprochement financier." : null)
@@ -70,19 +84,23 @@ export function PayoutRecoveryDrawer({ target, onClose }: {
     setBusy(true);
     setError(null);
     setConfirmed(false);
+    setNotReceived(false);
     try { await query.refetch().unwrap(); }
     catch { /* The query error is shown separately from mutation results. */ }
     finally { actionLock.current = false; setBusy(false); }
   };
 
-  const perform = async (action: "reconcile" | "release" | "close") => {
+  const perform = async (action: "reconcile" | "release" | "close" | "retry") => {
     if (actionLock.current || unavailable || !authorized || !payout) return;
-    if (action !== "reconcile" && formError) { setError(formError); return; }
+    if (action === "retry" && (!canRetry || retryError)) { setError(retryError || "Relance non autorisée."); return; }
+    if (action !== "reconcile" && action !== "retry" && formError) { setError(formError); return; }
     if (action === "reconcile" && orderNumber.trim().length > 120) {
       setError("Le numéro de commande ne doit pas dépasser 120 caractères.");
       return;
     }
-    if (!window.confirm(action === "release"
+    if (!window.confirm(action === "retry"
+      ? `Clôturer le retrait non payé et envoyer ${formatMoney(payout.amount, payout.currency)} au ${payout.phone} ? Le prestataire doit avoir confirmé définitivement la non-exécution initiale. Le nouvel envoi aura son propre statut et ne sera pas marqué payé sans confirmation.`
+      : action === "release"
       ? "Libérer les fonds réservés après confirmation définitive du prestataire ? Cette action n'annule pas le virement chez FlexPaie."
       : action === "close"
         ? "Clôturer cet incident après rapprochement financier ? Le versement réussi restera déduit du solde."
@@ -95,7 +113,17 @@ export function PayoutRecoveryDrawer({ target, onClose }: {
       // Always re-read the canonical record, never release from a table snapshot.
       const fresh = await query.refetch().unwrap();
       if (fresh.payout.id !== target.id) throw new Error("Le dossier a changé. Rouvrez-le avant de continuer.");
-      if (action === "release") {
+      if (action === "retry") {
+        if (!canRetryPayout(fresh.payout, profile?.user.role) || fresh.payout.expectedReference !== payout.expectedReference ||
+            Number(fresh.payout.amount) !== Number(payout.amount) || fresh.payout.currency !== payout.currency || fresh.payout.phone !== payout.phone)
+          throw new Error("Le dossier a changé. Vérifiez à nouveau le retrait avant de relancer.");
+        const next = await retryPayout({ ...target, body: {
+          expectedReference: fresh.payout.expectedReference!, reason: reason.trim(),
+          evidenceReference: evidenceReference.trim(), confirmedNotPaid: true, confirmedNotReceived: true,
+        } }).unwrap();
+        setReplacement(next);
+        setNotice(payoutRetryResultMessage(next));
+      } else if (action === "release") {
         const invalid = resolutionError(fresh.payout, reason, evidenceReference, confirmed);
         if (invalid) throw new Error(invalid);
         if (fresh.payout.expectedReference !== payout.expectedReference)
@@ -114,14 +142,15 @@ export function PayoutRecoveryDrawer({ target, onClose }: {
         if (fresh.payout.status === "succeeded") throw new Error("Ce versement est déjà confirmé comme réussi.");
         await reconcile({ ...target, orderNumber }).unwrap();
       }
-      setNotice(action === "reconcile"
+      if (action !== "retry") setNotice(action === "reconcile"
         ? "Vérification enregistrée. Consultez le statut actualisé ci-dessous ; aucun nouvel envoi n'a été demandé."
         : "Opération enregistrée par le serveur. Consultez le dossier actualisé ci-dessous.");
-      setReason(""); setEvidenceReference(""); setConfirmed(false); setOrderNumber("");
+      setReason(""); setEvidenceReference(""); setConfirmed(false); setNotReceived(false); setOrderNumber("");
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : getApiErrorMessage(failure,
         "Résultat non confirmé. Actualisez le dossier avant toute nouvelle action."));
       setConfirmed(false);
+      setNotReceived(false);
     } finally {
       // A refresh failure must not be reported as a rejected, already accepted operation.
       try { await query.refetch().unwrap(); } catch { /* query.error disables further writes */ }
@@ -176,7 +205,23 @@ export function PayoutRecoveryDrawer({ target, onClose }: {
             <dt>Demandé le</dt><dd>{formatDateTime(payout.requestedAt ?? payout.createdAt)}</dd>
             <dt>Traité le</dt><dd>{formatDateTime(payout.processedAt)}</dd>
             <dt>Dernier message</dt><dd>{payout.failureReason ?? payout.paymentTransaction?.providerMessage ?? "—"}</dd>
+            {payout.retry ? <><dt>Versement de remplacement</dt><dd className={styles.reference}>{payout.retry.replacementId}<br />Preuve : {payout.retry.evidenceReference}</dd></> : null}
+            {payout.retryOf ? <><dt>Relance du retrait</dt><dd className={styles.reference}>{payout.retryOf.sourceId}</dd></> : null}
           </dl>
+          {profile?.user.role === "super_admin" ? <section className={styles.formStack}>
+            <h3>Relance du versement</h3>
+            <p className={styles.notice}>{replacementId
+              ? "Une relance existe déjà. Suivez le nouveau versement ; ne renvoyez pas l’ancien retrait."
+              : payoutRetryMessage(payout)}
+              {payout.adminRetry?.code === "SAFETY_DELAY" && payout.adminRetry.availableAt
+                ? <> Disponible au plus tôt le {formatDateTime(payout.adminRetry.availableAt)}.</> : null}
+            </p>
+            {!canRetry ? <button type="button" className={styles.secondaryButton} disabled title={payoutRetryMessage(payout)}>{retryLabel}</button> : null}
+            {replacementId && onOpen ? <button type="button" className={styles.secondaryButton} disabled={busy || query.isFetching}
+              onClick={() => { if (!actionLock.current) onOpen({ ...target, id: replacementId }); }}>Suivre le versement de remplacement</button> : null}
+            {payout.retryOf && onOpen ? <button type="button" className={styles.secondaryButton} disabled={unavailable}
+              onClick={() => { if (!actionLock.current) onOpen({ ...target, id: payout.retryOf!.sourceId }); }}>Voir le retrait d’origine</button> : null}
+          </section> : null}
           {data?.lateSuccessAfterRelease || payout.recoveryBlocked ? <div className={styles.error}>
             Paiement confirmé après libération locale. Un rapprochement financier est nécessaire.
             {target.kind === "referral" ? " Les jetons restitués ont été redébités ; vérifiez le compte de parrainage." : " Les nouveaux retraits sont bloqués jusqu'à la clôture de l'incident."}
@@ -191,11 +236,12 @@ export function PayoutRecoveryDrawer({ target, onClose }: {
                 <RefreshCw size={15} /> Vérifier sans renvoyer d'argent
               </button>
             </div> : null}
-            {canRelease || closingIncident ? <form onSubmit={(event) => { event.preventDefault(); void perform(closingIncident ? "close" : "release"); }}>
-              <h3>{closingIncident ? "Clôturer l'incident" : "Libérer les fonds réservés"}</h3>
+            {canRelease || closingIncident || canRetry ? <form onSubmit={(event) => { event.preventDefault(); if (closingIncident || canRelease) void perform(closingIncident ? "close" : "release"); }}>
+              <h3>{closingIncident ? "Clôturer l'incident" : canRetry ? "Confirmer et relancer le retrait non reçu" : "Résoudre le retrait non reçu"}</h3>
               <p className={styles.notice}>{closingIncident
                 ? "Clôturez uniquement après rapprochement financier. Le versement reste réussi et déduit du solde : aucun remboursement n'est créé."
                 : "Obtenez d'abord une confirmation définitive de non-exécution ou d'annulation auprès de FlexPaie. Un manque de provision, un ticket ouvert, un délai dépassé ou une transaction introuvable ne suffisent pas."}</p>
+              {canRetry ? <p className={styles.helpText}>« {retryLabel} » clôture l’ancien retrait non payé et demande un nouveau versement de {formatMoney(payout.amount, payout.currency)} au {payout.phone}. Le numéro et le montant ne changent pas. « Confirmer la libération » n’envoie pas d’argent.</p> : null}
               <div className={styles.formStack}>
                 <label className={styles.field}>Motif (5 à 500 caractères)
                   <textarea required minLength={5} maxLength={500} value={reason} disabled={unavailable} onChange={(event) => { setReason(event.target.value); setConfirmed(false); }} />
@@ -208,10 +254,17 @@ export function PayoutRecoveryDrawer({ target, onClose }: {
                 <input type="checkbox" checked={confirmed} disabled={unavailable} onChange={(event) => setConfirmed(event.target.checked)} />
                 <span>{closingIncident ? "J'atteste avoir terminé le rapprochement financier de ce succès tardif." : "J'atteste que le prestataire a confirmé définitivement la non-exécution de ce retrait."}</span>
               </label>
+              {canRetry ? <label className={styles.candidate}>
+                <input type="checkbox" checked={notReceived} disabled={unavailable} onChange={(event) => setNotReceived(event.target.checked)} />
+                <span>Le bénéficiaire confirme ne pas avoir reçu cet argent.</span>
+              </label> : null}
               <div className={styles.modalActions}>
-                <button type="submit" className={styles.dangerButton} disabled={unavailable || !!formError}>
+                {canRelease || closingIncident ? <button type="submit" className={styles.dangerButton} disabled={unavailable || !!formError}>
                   {busy ? "Traitement…" : closingIncident ? "Clôturer l'incident" : "Confirmer la libération"}
-                </button>
+                </button> : null}
+                {canRetry ? <button type="button" className={styles.secondaryButton} disabled={unavailable || !!retryError} onClick={() => perform("retry")}>
+                  {busy ? "Traitement…" : retryLabel}
+                </button> : null}
               </div>
             </form> : ["pending", "initiated"].includes(payout.status) ? <div className={styles.notice}>
               La libération n'est pas autorisée dans l'état actuel. Le backend impose notamment un délai de sécurité de 15 minutes et contrôle la cohérence du dossier. Sans les nouvelles capacités du backend, seule la vérification reste proposée.

@@ -15,7 +15,7 @@ export const payoutRecoveryApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getDriverPayoutReviews: builder.query<
       { data: RecoveryWithdrawal[]; total: number; limit: number; offset: number },
-      { limit: number; offset: number }
+      { limit: number; offset: number; view?: "review" | "pending" | "resolved" }
     >({
       query: (params) => ({ url: "/admin/driver-payouts", params }),
       providesTags: ["Payments"],
@@ -74,6 +74,12 @@ export const payoutRecoveryApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [...financialTags],
     }),
+    retryPayout: builder.mutation<RecoveryWithdrawal, PayoutTarget & {
+      body: ResolveNotPaidPayload & { confirmedNotReceived: true };
+    }>({
+      query: ({ body, ...target }) => ({ url: `${payoutPath(target)}/retry`, method: "POST", body }),
+      invalidatesTags: [...financialTags],
+    }),
   }),
 });
 
@@ -83,4 +89,5 @@ export const {
   useReconcilePayoutRecoveryMutation,
   useResolvePayoutNotPaidMutation,
   useCloseDriverPayoutIncidentMutation,
+  useRetryPayoutMutation,
 } = payoutRecoveryApi;

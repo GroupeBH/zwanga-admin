@@ -243,6 +243,7 @@ export default function ReferralsPage() {
         key={selectedWithdrawal}
         target={{ kind: "referral", id: selectedWithdrawal }}
         onClose={() => setSelectedWithdrawal(null)}
+        onOpen={(target) => setSelectedWithdrawal(target.id)}
       /> : null}
     </div>
   );
@@ -324,7 +325,7 @@ function WithdrawalsTable({
                   className={styles.secondaryButton}
                   onClick={() => onOpen(withdrawal.id)}
                 >
-                  Détails / traiter
+                  Suivi / relance
                 </button>
               </td>
             </tr>

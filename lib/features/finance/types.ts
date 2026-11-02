@@ -20,7 +20,8 @@ export type PaymentPurpose =
   | "wallet_top_up"
   | "wallet_payout"
   | "driver_payout"
-  | "referral_payout";
+  | "referral_payout"
+  | "admin_payout";
 
 export interface CurrencyTotal {
   currency: string;
@@ -251,5 +252,10 @@ export interface AdminReferralQuery {
 
 export interface ReconcileResult {
   message?: string;
-  status?: string;
+  status?: PaymentStatus;
+  paymentId?: string;
+  completed?: boolean;
+  code?: 'RECONCILED' | 'MISSING_PROVIDER_ORDER' | 'UNRESOLVED';
+  paidAt?: string | null;
+  updatedAt?: string;
 }

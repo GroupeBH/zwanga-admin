@@ -184,7 +184,7 @@ export const financeApi = baseApi.injectEndpoints({
 
     reconcileAdminPayment: builder.mutation<ReconcileResult, string>({
       query: (paymentId) => ({
-        url: `/admin/payments/${paymentId}/reconcile`,
+        url: `/admin/payments/${encodeURIComponent(paymentId)}/reconcile`,
         method: "POST",
       }),
       invalidatesTags: (_result, _error, id) => [
@@ -192,6 +192,10 @@ export const financeApi = baseApi.injectEndpoints({
         { type: "Payments", id: "LIST" },
         "Wallets",
         "Referrals",
+        "Users",
+        "Dashboard",
+        "Subscriptions",
+        "Bookings",
       ],
     }),
 
