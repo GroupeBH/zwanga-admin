@@ -6,6 +6,7 @@ import { useGetAppReleasesQuery, usePublishAppReleaseMutation, useWithdrawAppRel
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 import shared from "../styles/page.module.css";
 import styles from "./page.module.css";
+import { UpdateCampaigns } from "./UpdateCampaigns";
 
 const stores = {
   ios: "https://apps.apple.com/app/id6756211830",
@@ -71,7 +72,7 @@ export default function AppUpdatesPage() {
             <label>Numéro de build<input required value={build} maxLength={32} pattern="[0-9]+(\.[0-9]+){0,2}" placeholder={platform === "ios" ? "12" : "42"} onChange={e => { setBuild(e.target.value); unconfirm(); }} /></label>
           </div>
           <label>Nouveautés à afficher<textarea value={notes} maxLength={500} rows={3} onChange={e => { setNotes(e.target.value); unconfirm(); }} /></label>
-          <p className={shared.mutedText}>Cette action ne publie pas l’application sur les stores. Seuls les appareils enregistrés avec une version antérieure sont ciblés.</p>
+          <p className={shared.mutedText}>Cette action ne publie pas l’application sur les stores. Elle déclenche automatiquement l’annonce pour les versions antérieures, y compris les installations abonnées sans compte.</p>
           <a className={styles.storeLink} href={stores[platform]} target="_blank" rel="noopener noreferrer">Vérifier la fiche {platform === "ios" ? "App Store" : "Google Play"} ↗</a>
           <label className={styles.confirm}>
             <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} required />
@@ -99,5 +100,6 @@ export default function AppUpdatesPage() {
           </tr>)}</tbody>
         </table></div>}
     </section>
+    <UpdateCampaigns releases={data} />
   </div>;
 }

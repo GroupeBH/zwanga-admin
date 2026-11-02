@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
@@ -72,9 +71,9 @@ export default function LoginPage() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <span>ZWANGA Admin</span>
-        <h1>Connexion sécurisée</h1>
-        <p>Authentification par numéro de téléphone + mot de passe admin</p>
+        <span>ZWANGA · Espace partenaires</span>
+        <h1>Accès réservé</h1>
+        <p>Interface réservée aux partenaires et administrateurs du système Zwanga.</p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <input
@@ -114,7 +113,7 @@ export default function LoginPage() {
         </form>
 
         <small>
-          Besoin d&apos;un compte ? <Link href="/support">Contacter l&apos;équipe</Link>
+          Accès sur invitation uniquement. Pour obtenir un compte, contactez votre administrateur Zwanga.
         </small>
       </div>
     </div>

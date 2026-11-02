@@ -15,8 +15,8 @@ interface AuthGuardProps {
   children: React.ReactNode;
 }
 
+// Pages accessibles sans compte, uniquement via un lien transmis aux utilisateurs.
 const PUBLIC_ROUTES = [
-  "/",
   "/login",
   "/privacy",
   "/terms",
@@ -24,10 +24,9 @@ const PUBLIC_ROUTES = [
   "/demande-documents",
   "/enquiry",
   "/recrutement-terrain",
-  "/zz-debug-users",
 ];
 
-const PUBLIC_ROUTE_PREFIXES = ["/track/"];
+const PUBLIC_ROUTE_PREFIXES = ["/track/", "/payments/return/", "/subscriptions/payment/"];
 
 const MARKETER_ROUTES = new Set(["/dashboard", "/settings", "/profile"]);
 

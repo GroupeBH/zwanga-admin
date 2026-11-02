@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Zwanga",
+    name: "Zwanga Partenaires",
     short_name: "Zwanga",
-    description: "Application de transport et covoiturage Kinshasa.",
-    start_url: "/",
+    description: "Espace réservé aux partenaires et administrateurs Zwanga.",
+    start_url: "/login",
     display: "standalone",
     background_color: "#f8fbff",
     theme_color: "#ff7a00",

@@ -19,72 +19,31 @@ const inter = Inter({
   display: "swap",
 });
 
-const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://zwanga-app.com";
-const siteUrl =
-  rawSiteUrl.startsWith("http://") || rawSiteUrl.startsWith("https://")
-    ? rawSiteUrl
-    : `https://${rawSiteUrl}`;
-
+// Plateforme privée, accessible uniquement par lien : aucun référencement.
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
   title: {
-    default: "Zwanga | Covoiturage Kinshasa et trajet sécurisé",
+    default: "Zwanga Partenaires",
     template: "%s | Zwanga",
   },
-  description:
-    "Zwanga est une application de transport de covoiturage Kinshasa. Trouvez un conducteur ou proposez un trajet sécurisé au quotidien.",
   applicationName: "Zwanga",
   manifest: "/manifest.webmanifest",
-  keywords: [
-    "Zwanga",
-    "covoiturage Kinshasa",
-    "trajet sécurisé",
-    "application de transport",
-    "conducteur",
-    "passager",
-  ],
-  authors: [{ name: "Zwanga" }],
-  creator: "Zwanga",
-  publisher: "Zwanga",
-  category: "transport",
+  referrer: "no-referrer",
   icons: {
     icon: "/icon.ico",
     shortcut: "/icon.ico",
     apple: "/zwanga.png",
   },
-  openGraph: {
-    title: "Zwanga | Covoiturage Kinshasa",
-    description:
-      "Application de transport locale à Kinshasa pour passagers et conducteurs avec suivi en direct et outils de sécurité.",
-    url: siteUrl,
-    siteName: "Zwanga",
-    locale: "fr_CD",
-    type: "website",
-    images: [
-      {
-        url: "/zwanga.png",
-        width: 512,
-        height: 512,
-        alt: "Logo Zwanga",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Zwanga | Covoiturage Kinshasa",
-    description:
-      "Covoiturage urbain à Kinshasa: passager et conducteur sur la même application, avec trajet sécurisé.",
-    images: ["/zwanga.png"],
-  },
   robots: {
-    index: true,
-    follow: true,
+    index: false,
+    follow: false,
+    nocache: true,
     googleBot: {
-      index: true,
-      follow: true,
-      "max-image-preview": "large",
-      "max-video-preview": -1,
-      "max-snippet": -1,
+      index: false,
+      follow: false,
+      noimageindex: true,
+      "max-snippet": 0,
+      "max-image-preview": "none",
+      "max-video-preview": 0,
     },
   },
 };

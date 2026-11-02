@@ -35,6 +35,9 @@ import type {
 import type { PaymentStatus } from "@/lib/features/admin/types";
 
 import styles from "../finance.module.css";
+import { DriverPayoutReviews } from "./DriverPayoutReviews";
+import { PayoutRecoveryDrawer } from "./PayoutRecoveryDrawer";
+import type { PayoutTarget } from "@/lib/features/finance/payoutRecovery";
 
 const statusClass = (status: PaymentStatus) => {
   if (status === "succeeded") return `${styles.badge} ${styles.badgeSuccess}`;
@@ -59,6 +62,8 @@ const errorMessage = (error: unknown) => {
 };
 
 export default function PaymentsPage() {
+  const [view, setView] = useState<"transactions" | "driver-payouts">("transactions");
+  const [recoveryTarget, setRecoveryTarget] = useState<PayoutTarget | null>(null);
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<PaymentStatus | "all">("all");
   const [purpose, setPurpose] = useState<PaymentPurpose | "all">("all");
@@ -75,7 +80,7 @@ export default function PaymentsPage() {
     status,
     purpose,
     search,
-  });
+  }, { skip: view !== "transactions" });
   const [reconcile, reconcileState] = useReconcileAdminPaymentMutation();
   const [cancelPayout, cancelState] = useCancelEnqueuedPayoutMutation();
   const [cancelNotice, setCancelNotice] = useState<string | null>(null);
@@ -161,7 +166,7 @@ export default function PaymentsPage() {
           <h1>Paiements</h1>
           <p>Suivi des encaissements et décaissements FlexPay et PawaPay.</p>
         </div>
-        <div className={styles.headingActions}>
+        {view === "transactions" ? <div className={styles.headingActions}>
           <button
             type="button"
             className={styles.secondaryButton}
@@ -178,8 +183,15 @@ export default function PaymentsPage() {
           >
             <Download size={15} aria-hidden="true" /> {isExporting ? "Export..." : "Exporter XLS"}
           </button>
-        </div>
+        </div> : null}
       </header>
+
+      <nav className={styles.tabs} aria-label="Vues des paiements">
+        <button type="button" className={`${styles.tab} ${view === "transactions" ? styles.tabActive : ""}`} onClick={() => setView("transactions")}>Transactions</button>
+        <button type="button" className={`${styles.tab} ${view === "driver-payouts" ? styles.tabActive : ""}`} onClick={() => setView("driver-payouts")}>Retraits de gains à examiner</button>
+      </nav>
+
+      {view === "driver-payouts" ? <DriverPayoutReviews /> : <>
 
       {exportError ? <div className={styles.error}>{exportError}</div> : null}
 
@@ -333,6 +345,7 @@ export default function PaymentsPage() {
 
         <Pagination page={page} pages={pages} total={data?.total ?? 0} onChange={setPage} />
       </section>
+      </>}
 
       {selected ? (
         <div className={styles.drawerBackdrop} role="presentation" onMouseDown={() => setSelected(null)}>
@@ -393,11 +406,20 @@ export default function PaymentsPage() {
                 <span>
                   {selected.provider === "pawapay" && selected.orderNumber
                     ? "Le super admin peut annuler ce versement tant que PawaPay le garde en file. Le montant réservé redevient alors disponible."
-                    : "L’annulation manuelle concerne un versement PawaPay déjà transmis et encore en file. Pour celui-ci, le rapprochement suit la réponse du prestataire."}
+                    : "Pour FlexPaie, ouvrez le dossier de retrait : vérification sans réémission, puis libération uniquement après confirmation définitive de non-exécution."}
                 </span>
               </p>
             ) : null}
             <div className={styles.modalActions}>
+              {selected.relatedEntityId && (
+                (selected.purpose === "driver_payout" && selected.relatedEntityType === "driver_payout") ||
+                (selected.purpose === "referral_payout" && selected.relatedEntityType === "referral_withdrawal")
+              ) ? <button type="button" className={styles.secondaryButton}
+                disabled={reconcileState.isLoading || cancelState.isLoading}
+                onClick={() => {
+                  setRecoveryTarget({ kind: selected.purpose === "driver_payout" ? "driver" : "referral", id: selected.relatedEntityId! });
+                  setSelected(null);
+                }}>Ouvrir le dossier de retrait</button> : null}
               {canReconcilePayments &&
               selected.provider === "pawapay" &&
               selected.orderNumber &&
@@ -441,6 +463,7 @@ export default function PaymentsPage() {
           </aside>
         </div>
       ) : null}
+      {recoveryTarget ? <PayoutRecoveryDrawer key={`${recoveryTarget.kind}:${recoveryTarget.id}`} target={recoveryTarget} onClose={() => setRecoveryTarget(null)} /> : null}
     </div>
   );
 }

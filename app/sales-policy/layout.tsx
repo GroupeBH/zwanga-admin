@@ -7,8 +7,6 @@ interface Props {
 
 export const metadata: Metadata = {
   title: "Politique de vente",
-  description:
-    "Politique de vente et services Zwanga pour la publication, réservation et gestion de trajet sécurisé.",
 };
 
 export default function SalesPolicyLayout({ children }: Props) {

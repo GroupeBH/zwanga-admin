@@ -7,8 +7,6 @@ interface Props {
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
-  description:
-    "Politique de confidentialité de Zwanga, application de covoiturage Kinshasa pour passager et conducteur.",
 };
 
 export default function PrivacyLayout({ children }: Props) {

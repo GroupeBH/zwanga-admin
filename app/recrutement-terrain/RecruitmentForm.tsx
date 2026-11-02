@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ZodIssue } from "zod";
-import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   ClipboardCheck,
@@ -121,7 +120,6 @@ function ChoiceGroup({ legend, name, options, value, onChange, error, columns = 
 }
 
 export function RecruitmentForm() {
-  const router = useRouter();
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -667,10 +665,7 @@ export function RecruitmentForm() {
               <button
                 type="button"
                 className={styles.secondaryBtn}
-                onClick={() => {
-                  setIsSuccessModalOpen(false);
-                  router.push("/");
-                }}
+                onClick={() => setIsSuccessModalOpen(false)}
               >
                 Terminer
               </button>

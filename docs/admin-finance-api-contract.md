@@ -2,6 +2,71 @@
 
 Date d'analyse : 31 août 2026.
 
+## Complément du 23 octobre 2026 : retraits bloqués
+
+Le parcours de résolution est raccordé aux composants et classes CSS financiers
+existants, sans modification du thème ni des fichiers de style.
+
+- **Parrainage → Retraits → Détails / traiter** : accès au dossier même si
+  aucune transaction n'a été créée. Lecture admin/super-admin ; vérification et
+  libération réservées au super-admin.
+- **Paiements → Retraits de gains à examiner** : liste paginée des dossiers
+  signalés, anciens, sans commande ou avec incident. Cette liste n'est pas la
+  liste exhaustive des retraits. Un identifiant UUID de retrait permet d'ouvrir
+  un dossier récent. Actions autorisées aux admins et super-admins.
+- Dans le détail d'un paiement conducteur/parrainage lié, **Ouvrir le dossier de
+  retrait** utilise `relatedEntityId`, jamais l'identifiant du paiement.
+
+Les appels réutilisent `baseApi` et le JWT existant. Toutes les routes sont
+relatives à `NEXT_PUBLIC_API_PUBLIC_URL`, comme le reste de l'admin.
+
+| Route | Fonction |
+| --- | --- |
+| `GET /admin/driver-payouts?limit=25&offset=0` | File des gains à examiner |
+| `GET /admin/driver-payouts/:id` | Dossier et historique d'interventions |
+| `GET /admin/referrals/withdrawals/:id` | Dossier et preuve de résolution |
+| `POST /admin/driver-payouts/:id/reconcile` | Vérifier sans renvoyer, avec `{}` ou `{"orderNumber":"REFERENCE_RETROUVEE"}` |
+| `POST /admin/referrals/withdrawals/:id/reconcile` | Vérifier sans renvoyer, y compris sans transaction créée |
+| `POST /admin/driver-payouts/:id/resolve-not-paid` | Libérer après confirmation définitive externe |
+| `POST /admin/referrals/withdrawals/:id/resolve-not-paid` | Libérer les jetons de parrainage après confirmation définitive externe |
+| `POST /admin/driver-payouts/:id/close-late-success` | Clôturer l'incident après rapprochement financier, sans rembourser |
+
+Les deux résolutions transmettent `expectedReference` issue du dossier relu,
+`reason` (5–500 caractères), `evidenceReference` (5–200 caractères) et
+`confirmedNotPaid: true`. Le motif et la preuve sont obligatoires, la confirmation
+reste décochée par défaut. La clôture d'incident transmet seulement le motif et
+la référence du rapprochement financier.
+
+**Une libération locale n'annule pas un virement chez FlexPaie.** Une absence de
+provision, l'âge du retrait, un ticket ouvert ou une réponse « introuvable » ne
+constituent pas une confirmation définitive de non-exécution. Le backend reste
+l'autorité, impose notamment le délai de sécurité de 15 minutes et garde l'audit.
+L'interface distingue le statut du retrait de celui de la transaction prestataire.
+Un succès tardif est visible : restitution redébitée côté parrainage, incident à
+rapprocher côté gains conducteur.
+
+Le dossier est relu avant toute mutation ; les doubles clics sont bloqués. Les
+comptes, paiements, utilisateurs et synthèses financières sont invalidés après
+traitement, même si la réponse réseau est incertaine. Aucune réémission de retrait
+n'est déclenchée par ces actions. Une actualisation échouée après une mutation
+acceptée laisse le message d'acceptation visible et bloque les actions suivantes.
+Sans `canResolveNotPaid`, `expectedReference` et
+`resolutionRequiresProviderConfirmation`, aucune libération n'est proposée.
+
+Prérequis : déployer le correctif backend et exécuter la migration
+`1780000090000-ReferralWithdrawalResolution` avant d'utiliser le détail/résolution
+du parrainage. Une route absente est signalée et n'entraîne aucun contournement.
+Les garanties serveur et la procédure sont détaillées dans
+`zwanga-backend/docs/finance/driver-payout-corrections.md`.
+
+Validation locale : `node --test lib/features/finance/payoutRecovery.test.cjs`
+(18 tests : règles, contrats, rendu React et gestionnaires simulés), ainsi que
+les quatre autres suites `.test.cjs` existantes, soit 30 tests réussis.
+`node node_modules/typescript/bin/tsc --noEmit --incremental false` et
+`npm run build` réussissent. Aucun appel financier réel ni recette navigateur
+authentifiée n'a été exécuté. Aucun déploiement, changement AWS/CI/CD ou ajout de
+dépendance n'est inclus.
+
 ## État du backend analysé
 
 Le backend `zwanga-backend` contient déjà les modèles et flux métier suivants :
@@ -19,7 +84,9 @@ L'interface admin utilise donc les contrats ci-dessous. La page Paiements possè
 ## Règles transversales
 
 - Les routes de lecture sont protégées par JWT et acceptent `UserRole.ADMIN` ou `UserRole.SUPER_ADMIN`.
-- Les mutations financières sensibles exigent `UserRole.SUPER_ADMIN`.
+- Les mutations financières sensibles exigent `UserRole.SUPER_ADMIN`, sauf les
+  routes de résolution conducteur décrites ci-dessus, également ouvertes à
+  `UserRole.ADMIN` conformément au backend.
 - La pagination accepte `page`, `limit` (maximum 200), `search` et les filtres indiqués.
 - Chaque réponse paginée contient `total`, `page` et `limit`.
 - Les montants numériques sont sérialisés en nombres, pas en chaînes PostgreSQL `numeric`.
