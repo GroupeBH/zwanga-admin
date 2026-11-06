@@ -1,5 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { createRequestIntent } from "@/lib/features/mobileOperations/mobilePresentation";
 import {
   useGetStoreStatusQuery,
   useGetStoreDashboardQuery,
@@ -20,10 +22,28 @@ import { downloadBlob } from "@/lib/utils/downloadBlob";
 import { StoreReview } from "./StoreReview";
 import { StoreConfiguration, StoreResources } from "./StoreSettings";
 import { StoreTrend } from "./StoreTrend";
+import { StoreDownloads } from "./StoreDownloads";
+import { STORE_DOWNLOAD_REFRESH } from "@/lib/features/stores/storePresentation";
 import { StoreVersion, StoreVersionComparison } from "./StoreVersions";
+import { StoreMonitoring } from "./StoreMonitoring";
+import { StatusBadge } from "./StoreCharts";
+import {
+  jobTone,
+  label,
+  REPORT_TOPIC_LABEL,
+  REVIEW_STATUS_LABEL,
+  STORE_PLATFORM_LABEL,
+  STORE_TASK_LABEL,
+} from "@/lib/features/stores/storeMonitoring";
+import { stateLabel } from "@/lib/features/mobileOperations/mobilePresentation";
 import shared from "../styles/page.module.css";
 
+import { confirmAction } from "@/app/components/ui/Feedback";
+
+import { SkeletonCards } from "@/app/components/ui/Skeleton";
+
 const tabs = [
+  ["monitoring", "Supervision", "store.analytics.read"],
   ["overview", "Vue d’ensemble", "store.analytics.read"],
   ["metrics", "Statistiques", "store.analytics.read"],
   ["reviews", "Avis", "store.reviews.read"],
@@ -36,11 +56,23 @@ const tabs = [
   ["access", "Permissions", "store.access.manage"],
   ["audit", "Audit", "store.audit.read"],
 ] as const;
+/* 12 onglets a plat etaient difficiles a parcourir: 5 rubriques, puis des
+   sous-onglets quand une rubrique en contient plusieurs. */
+const tabGroups = [
+  ["Supervision", ["monitoring", "overview", "metrics"]],
+  ["Avis", ["reviews"]],
+  ["Versions & qualité", ["versions", "builds", "vitals"]],
+  ["Synchronisations & alertes", ["syncs", "alerts"]],
+  ["Administration", ["configuration", "access", "audit"]],
+] as const;
 const date = (offset = 0) =>
   new Date(Date.now() - offset * 86400000).toISOString().slice(0, 10);
 export default function StoresPage() {
-  const status = useGetStoreStatusQuery();
-  const [tab, setTab] = useState("overview"),
+  const status = useGetStoreStatusQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
+  const intent = useRef(createRequestIntent());
+  const [tab, setTab] = useState("monitoring"),
     [platform, setPlatform] = useState<StorePlatform | "">(""),
     [from, setFrom] = useState(date(29)),
     [to, setTo] = useState(date()),
@@ -100,6 +132,7 @@ export default function StoresPage() {
     version: version || undefined,
   };
   const dashboard = useGetStoreDashboardQuery(params, {
+    ...STORE_DOWNLOAD_REFRESH,
     skip: !enabled || current !== "overview",
   });
   const kind =
@@ -132,7 +165,7 @@ export default function StoresPage() {
   );
   const metrics = useGetStoreMetricsQuery(
     { ...params, page, limit: 100, metric: metric || undefined },
-    { skip: !enabled || current !== "metrics" },
+    { ...STORE_DOWNLOAD_REFRESH, skip: !enabled || current !== "metrics" },
   );
   const catalog = useGetStoreMetricCatalogQuery(undefined, {
     skip: !enabled || !can("store.analytics.read"),
@@ -142,6 +175,7 @@ export default function StoresPage() {
     {
       skip: !enabled || current !== "syncs",
       pollingInterval: current === "syncs" ? 15000 : 0,
+      skipPollingIfUnfocused: true,
     },
   );
   const alerts = useGetStoreAlertsQuery(undefined, {
@@ -165,17 +199,17 @@ export default function StoresPage() {
     }
   };
   const start = (provider: StorePlatform, task: StoreTask) =>
-    void run(
-      () =>
-        sync({
-          platform: provider,
-          task,
-          from,
-          to,
-          requestId: crypto.randomUUID(),
-        }).unwrap(),
-      "Synchronisation mise en attente. Consultez son historique.",
-    );
+    void run(async () => {
+      const key = JSON.stringify({ provider, task, from, to });
+      await sync({
+        platform: provider,
+        task,
+        from,
+        to,
+        requestId: intent.current.id(key),
+      }).unwrap();
+      intent.current.complete(key);
+    }, "Synchronisation mise en attente. Consultez son historique.");
   const exportData = (format: "csv" | "xls" | "pdf") =>
     void run(async () => {
       const blob = await exportReport({
@@ -225,7 +259,13 @@ export default function StoresPage() {
     </div>
   );
   if (status.isLoading)
-    return <p role="status">Chargement des autorisations Store…</p>;
+    return (
+      <div className={shared.page} aria-busy="true">
+        <span className="sr-only" role="status">Chargement des autorisations Store…</span>
+        <SkeletonCards count={4} />
+        <SkeletonCards count={2} height={260} />
+      </div>
+    );
   if (status.error)
     return (
       <section className={shared.section}>
@@ -252,6 +292,11 @@ export default function StoresPage() {
           Données officielles importées, suivi des avis et qualité mobile.
           Aucune publication de version automatique.
         </p>
+        {permissions.some((p) => p.startsWith("mobile.")) && (
+          <Link href="/mobile-operations" className={shared.secondaryButton}>
+            Supervision mobile
+          </Link>
+        )}
       </header>
       {!enabled ? (
         <section className={shared.section}>
@@ -264,20 +309,56 @@ export default function StoresPage() {
         </section>
       ) : (
         <>
-          <nav className={shared.toolbar} aria-label="Sections Store">
-            {available.map(([id, label]) => (
-              <button
-                key={id}
-                className={
-                  current === id ? shared.primaryButton : shared.secondaryButton
-                }
-                aria-current={current === id ? "page" : undefined}
-                onClick={() => changeTab(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
+          {(() => {
+            const groups = tabGroups
+              .map(([name, ids]) => ({
+                name,
+                items: available.filter((t) =>
+                  (ids as readonly string[]).includes(t[0]),
+                ),
+              }))
+              .filter((g) => g.items.length > 0);
+            const activeGroup =
+              groups.find((g) => g.items.some((t) => t[0] === current)) ??
+              groups[0];
+            return (
+              <>
+                <nav className={shared.toolbar} aria-label="Rubriques Store">
+                  {groups.map((g) => (
+                    <button
+                      key={g.name}
+                      className={
+                        g === activeGroup
+                          ? shared.primaryButton
+                          : shared.secondaryButton
+                      }
+                      aria-current={g === activeGroup ? "page" : undefined}
+                      onClick={() => changeTab(g.items[0][0])}
+                    >
+                      {g.name}
+                    </button>
+                  ))}
+                </nav>
+                {activeGroup && activeGroup.items.length > 1 && (
+                  <nav
+                    className={shared.subTabs}
+                    aria-label={`Sections ${activeGroup.name}`}
+                  >
+                    {activeGroup.items.map(([id, label]) => (
+                      <button
+                        key={id}
+                        className={current === id ? shared.subTabActive : shared.subTab}
+                        aria-current={current === id ? "page" : undefined}
+                        onClick={() => changeTab(id)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </nav>
+                )}
+              </>
+            );
+          })()}
           <section className={shared.section}>
             <div className={shared.toolbar}>
               <label className={shared.filterField}>
@@ -342,7 +423,9 @@ export default function StoresPage() {
               >
                 Hier
               </button>
-              {["overview", "metrics", "reviews"].includes(current ?? "") && (
+              {["monitoring", "overview", "metrics", "reviews"].includes(
+                current ?? "",
+              ) && (
                 <>
                   <label className={shared.filterField}>
                     Pays / territoire
@@ -398,14 +481,37 @@ export default function StoresPage() {
             records.isFetching ||
             metrics.isFetching ||
             jobs.isFetching) && <p role="status">Actualisation des données…</p>}
-          {current === "overview" && dashboard.data && (
+          {current === "monitoring" && status.data && (
+            <StoreMonitoring
+              filters={params}
+              status={status.data}
+              openTab={changeTab}
+            />
+          )}
+          {["overview", "metrics"].includes(current ?? "") &&
+            can("store.analytics.read") && (
+              <StoreDownloads
+                filters={params}
+                selectDay={(value) => {
+                  setFrom(value);
+                  setTo(value);
+                  setPage(1);
+                }}
+              />
+            )}
+          {current === "overview" && dashboard.currentData && (
             <>
               <section className={shared.section}>
                 <h2>Acquisition et stabilité</h2>
                 <label>
                   Indicateur
                   <select
-                    value={metric}
+                    value={
+                      metric ||
+                      (platform === "google"
+                        ? "google.device_installs"
+                        : "apple.first_time_downloads")
+                    }
                     onChange={(e) => setMetric(e.target.value)}
                   >
                     <option value="">Choisir un indicateur</option>
@@ -419,15 +525,24 @@ export default function StoresPage() {
                 <StoreTrend
                   from={from}
                   to={to}
-                  points={dashboard.data.series.filter(
+                  points={dashboard.currentData.series.filter(
                     (s) =>
-                      s.metric === (metric || "apple.first_time_downloads"),
+                      s.metric ===
+                      (metric ||
+                        (platform === "google"
+                          ? "google.device_installs"
+                          : "apple.first_time_downloads")),
                   )}
                 />
                 <p>
                   {
                     catalog.data?.find(
-                      (m) => m.id === (metric || "apple.first_time_downloads"),
+                      (m) =>
+                        m.id ===
+                        (metric ||
+                          (platform === "google"
+                            ? "google.device_installs"
+                            : "apple.first_time_downloads")),
                     )?.description
                   }
                 </p>
@@ -442,9 +557,9 @@ export default function StoresPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {dashboard.data.reviewStats.map((r) => (
+                      {dashboard.currentData.reviewStats.map((r) => (
                         <tr key={r.platform}>
-                          <td>{r.platform}</td>
+                          <td>{label(STORE_PLATFORM_LABEL, r.platform)}</td>
                           <td>{r.reviews}</td>
                           <td>{r.unanswered}</td>
                           <td>
@@ -464,29 +579,34 @@ export default function StoresPage() {
                 <div className={shared.toolbar}>
                   <p>
                     KYC approuvés / soumis :{" "}
-                    {dashboard.data.conversion.kycApprovalPercent?.toFixed(1) ??
-                      "Indisponible"}{" "}
+                    {dashboard.currentData.conversion.kycApprovalPercent?.toFixed(
+                      1,
+                    ) ?? "Indisponible"}{" "}
                     %
                   </p>
                   <p>
                     Premier trajet des inscrits :{" "}
-                    {dashboard.data.conversion.firstTripPercent?.toFixed(1) ??
-                      "Indisponible"}{" "}
+                    {dashboard.currentData.conversion.firstTripPercent?.toFixed(
+                      1,
+                    ) ?? "Indisponible"}{" "}
                     %
                   </p>
                   <p>
                     Trajets terminés sur la période :{" "}
-                    {dashboard.data.business.completedTrips}
+                    {dashboard.currentData.business.completedTrips}
                   </p>
                 </div>
                 <p>
                   Comptes dont le dernier login est dans la période :{" "}
-                  {dashboard.data.business.accountsWithLatestLoginInPeriod}{" "}
+                  {
+                    dashboard.currentData.business
+                      .accountsWithLatestLoginInPeriod
+                  }{" "}
                   (indicateur de substitution, pas un DAU).
                 </p>
                 <p>
                   Dernier appareil déclaré des inscrits :{" "}
-                  {dashboard.data.business.platforms
+                  {dashboard.currentData.business.platforms
                     .map((p) => `${p.platform} : ${p.registrations}`)
                     .join(" · ") || "Indisponible"}
                   . Ce n’est pas la plateforme d’inscription.
@@ -510,7 +630,7 @@ export default function StoresPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {dashboard.data.cohorts.map((c) => (
+                      {dashboard.currentData.cohorts.map((c) => (
                         <tr key={c.date}>
                           <td>{c.date}</td>
                           <td>{c.registrations}</td>
@@ -527,13 +647,17 @@ export default function StoresPage() {
               </section>
               <section className={shared.section}>
                 <h2>Fraîcheur et méthodologie</h2>
-                {dashboard.data.freshness.map((f) => (
+                {dashboard.currentData.freshness.map((f) => (
                   <p key={f.platform + f.task}>
-                    {f.platform} / {f.task} : {f.state} ·{" "}
-                    {f.completedAt || "Aucun import terminé"} {f.errorCode}
+                    {label(STORE_PLATFORM_LABEL, f.platform)} ·{" "}
+                    {label(STORE_TASK_LABEL, f.task)} : {stateLabel(f.state)} ·{" "}
+                    {f.completedAt
+                      ? new Date(f.completedAt).toLocaleString("fr-FR")
+                      : "Aucun import terminé"}{" "}
+                    {f.errorCode}
                   </p>
                 ))}
-                {dashboard.data.notes.map((note) => (
+                {dashboard.currentData.notes.map((note) => (
                   <p key={note}>{note}</p>
                 ))}
               </section>
@@ -572,11 +696,12 @@ export default function StoresPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {metrics.data?.items.map((m) => (
+                    {metrics.currentData?.items.map((m) => (
                       <tr key={m.id}>
                         <td>{m.date}</td>
                         <td>
-                          {m.platform} / {m.dataset}
+                          {label(STORE_PLATFORM_LABEL, m.platform)}
+                          <small style={{ display: "block" }}>{m.dataset}</small>
                         </td>
                         <td>{m.metric}</td>
                         <td>
@@ -593,7 +718,8 @@ export default function StoresPage() {
                   </tbody>
                 </table>
               </div>
-              {metrics.data && pagination(metrics.data.total, 100)}
+              {metrics.currentData &&
+                pagination(metrics.currentData.total, 100)}
             </section>
           )}
           {current === "reviews" && (
@@ -658,7 +784,9 @@ export default function StoresPage() {
                       "responded",
                       "closed",
                     ].map((s) => (
-                      <option key={s}>{s}</option>
+                      <option key={s} value={s}>
+                        {label(REVIEW_STATUS_LABEL, s)}
+                      </option>
                     ))}
                   </select>
                 </label>
@@ -668,6 +796,9 @@ export default function StoresPage() {
                   key={r.id}
                   record={r}
                   permissions={permissions}
+                  repliesEnabled={
+                    status.data?.features?.reviewReplies !== false
+                  }
                   done={setMessage}
                 />
               ))}
@@ -728,7 +859,7 @@ export default function StoresPage() {
                     .filter((p) => !platform || p === platform)
                     .map((p) => (
                       <fieldset key={p}>
-                        <legend>{p}</legend>
+                        <legend>{label(STORE_PLATFORM_LABEL, p)}</legend>
                         {(
                           [
                             "connection",
@@ -744,7 +875,7 @@ export default function StoresPage() {
                             className={shared.secondaryButton}
                             onClick={() => start(p, task)}
                           >
-                            {task}
+                            {label(STORE_TASK_LABEL, task)}
                           </button>
                         ))}
                       </fieldset>
@@ -767,14 +898,24 @@ export default function StoresPage() {
                     {jobs.data?.items.map((j) => (
                       <tr key={j.id}>
                         <td>
-                          {j.platform} / {j.task}
+                          {label(STORE_PLATFORM_LABEL, j.platform)} ·{" "}
+                          {label(STORE_TASK_LABEL, j.task)}
                           <small style={{ display: "block" }}>{j.id}</small>
                         </td>
-                        <td>{j.state}</td>
+                        <td>
+                          <StatusBadge
+                            tone={jobTone(j.state)}
+                            running={["pending", "queued", "running"].includes(
+                              j.state,
+                            )}
+                          >
+                            {stateLabel(j.state)}
+                          </StatusBadge>
+                        </td>
                         <td>
                           {j.processed} / {j.attempts}
                         </td>
-                        <td>{j.createdAt}</td>
+                        <td>{new Date(j.createdAt).toLocaleString("fr-FR")}</td>
                         <td>{j.errorCode || "—"}</td>
                         <td>
                           {can("store.sync.execute") &&
@@ -786,14 +927,15 @@ export default function StoresPage() {
                                 disabled={retryState.isLoading}
                                 className={shared.secondaryButton}
                                 onClick={() =>
-                                  run(
-                                    () =>
-                                      retry({
-                                        id: j.id,
-                                        requestId: crypto.randomUUID(),
-                                      }).unwrap(),
-                                    "Relance mise en attente.",
-                                  )
+                                  run(async () => {
+                                    await retry({
+                                      id: j.id,
+                                      requestId: intent.current.id(
+                                        `retry:${j.id}`,
+                                      ),
+                                    }).unwrap();
+                                    intent.current.complete(`retry:${j.id}`);
+                                  }, "Relance mise en attente.")
                                 }
                               >
                                 Relancer
@@ -824,19 +966,18 @@ export default function StoresPage() {
                 <button
                   className={shared.primaryButton}
                   disabled={appleState.isLoading}
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      window.confirm(
+                      await confirmAction(
                         "Demander à Apple la génération continue des rapports pour cette application ?",
                       )
                     )
-                      void run(
-                        () =>
-                          requestApple({
-                            requestId: crypto.randomUUID(),
-                          }).unwrap(),
-                        "Demande mise en attente.",
-                      );
+                      void run(async () => {
+                        await requestApple({
+                          requestId: intent.current.id("apple-analytics"),
+                        }).unwrap();
+                        intent.current.complete("apple-analytics");
+                      }, "Demande mise en attente.");
                   }}
                 >
                   Demander les rapports Apple
@@ -850,7 +991,8 @@ export default function StoresPage() {
                 <h2>Diagnostics actuels</h2>
                 {alerts.data?.items.map((a) => (
                   <p key={a.id}>
-                    {a.platform} / {a.task} : {a.code}
+                    {label(STORE_PLATFORM_LABEL, a.platform)} ·{" "}
+                    {label(STORE_TASK_LABEL, a.task)} : <code>{a.code}</code>
                   </p>
                 ))}
               </section>
@@ -901,7 +1043,9 @@ export default function StoresPage() {
                     onChange={(e) => setTopic(e.target.value)}
                   >
                     {reportTopics.map((v) => (
-                      <option key={v}>{v}</option>
+                      <option key={v} value={v}>
+                        {label(REPORT_TOPIC_LABEL, v)}
+                      </option>
                     ))}
                   </select>
                 </label>

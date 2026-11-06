@@ -1,13 +1,24 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useGetStoreIntegrationsQuery,
+  useGetStoreStatusQuery,
+  useGetStoreJobQuery,
   useGetStoreResourceQuery,
   useStoreActionMutation,
   type StoreIntegration,
+  type StoreJob,
+  type StoreStatus,
 } from "@/lib/features/stores/storesApi";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 import shared from "../styles/page.module.css";
+import {
+  createRequestIntent,
+  dateLabel,
+  stateLabel,
+} from "@/lib/features/mobileOperations/mobilePresentation";
+import { confirmAction } from "@/app/components/ui/Feedback";
+
 const execute = async (
   operation: () => Promise<unknown>,
   done: (m: string) => void,
@@ -22,22 +33,108 @@ const execute = async (
 function Integration({
   item,
   done,
+  status,
+  refresh,
 }: {
   item: StoreIntegration;
   done: (m: string) => void;
+  status?: StoreStatus;
+  refresh: () => unknown;
 }) {
   const [cadence, setCadence] = useState<Record<string, number>>({}),
     [action, state] = useStoreActionMutation();
+  const [jobId, setJobId] = useState(""),
+    [poll, setPoll] = useState(false);
+  const intent = useRef(createRequestIntent()),
+    pending = useRef(false);
+  const canReadJobs = status?.permissions.includes("store.sync.read") === true;
+  const job = useGetStoreJobQuery(jobId, {
+    skip: !jobId || !canReadJobs,
+    pollingInterval: poll ? 2000 : 0,
+    skipPollingIfUnfocused: true,
+  });
+  const terminal =
+    job.currentData &&
+    !["pending", "queued", "running"].includes(job.currentData.state);
+  useEffect(() => {
+    if (terminal && poll) {
+      setPoll(false);
+      refresh();
+    }
+  }, [terminal, poll, refresh]);
+  const mode = status?.platforms.find(
+    (p) => p.platform === item.platform,
+  )?.authMode;
+  const authentication = (
+    {
+      aws_wif:
+        "Workload Identity Federation AWS → Google (sans clé privée Google)",
+      adc: "Identité Google ADC",
+      service_account: "Compte de service Google",
+      apple_team_key: "Clé d’équipe Apple — JWT ES256",
+      invalid: "Mode invalide à corriger sur le serveur",
+    } as Record<string, string>
+  )[mode ?? ""];
+  const testConnection = async () => {
+    if (pending.current) return;
+    pending.current = true;
+    try {
+      const result = (await action({
+        path: `integrations/${item.platform}/test`,
+        body: { requestId: intent.current.id("connection") },
+      }).unwrap()) as StoreJob;
+      intent.current.complete("connection");
+      setJobId(result.id);
+      setPoll(canReadJobs);
+      done(
+        "Test mis en file. La connexion sera confirmée uniquement après son exécution.",
+      );
+    } catch (error) {
+      done(
+        getApiErrorMessage(
+          error,
+          "Test non confirmé. Réessayer conserve la même demande.",
+        ),
+      );
+    } finally {
+      pending.current = false;
+    }
+  };
   return (
     <section className={shared.section}>
       <h2>
-        {item.platform} · {item.state}
+        {item.platform === "google" ? "Google Play" : "Apple App Store"} ·{" "}
+        {(
+          {
+            connected: "Connecté",
+            error: "Erreur de connexion",
+            unchecked: "À vérifier",
+            unconfigured: "Configuration incomplète",
+            disabled: "Désactivé",
+          } as Record<string, string>
+        )[item.state] ?? item.state}
       </h2>
       <p>
         Application : {item.appId || "Non configurée"} · Dernier test :{" "}
-        {item.checkedAt || "Aucun"} · Dernier import :{" "}
-        {item.lastSync || "Aucun"}
+        {dateLabel(item.checkedAt)} · Dernier import :{" "}
+        {dateLabel(item.lastSync)}
       </p>
+      {authentication && <p>Authentification : {authentication}.</p>}
+      {item.errorCode && <p role="alert">Diagnostic : {item.errorCode}</p>}
+      {jobId && (
+        <p role="status">
+          Dernier test :{" "}
+          {job.currentData ? stateLabel(job.currentData.state) : "Mis en file"}{" "}
+          {job.currentData?.errorCode ? `· ${job.currentData.errorCode}` : ""}.
+          Référence : {jobId}
+        </p>
+      )}
+      {job.error && (
+        <p role="alert">
+          Le résultat du test n’est pas accessible. Consultez Synchronisations
+          avant de recommencer.
+        </p>
+      )}
       {!!item.missingVariables.length && (
         <p>
           Variables serveur à renseigner : {item.missingVariables.join(", ")}.
@@ -46,27 +143,23 @@ function Integration({
       )}
       <div className={shared.toolbar}>
         <button
-          disabled={state.isLoading || !item.enabled}
-          className={shared.primaryButton}
-          onClick={() =>
-            execute(
-              () =>
-                action({
-                  path: `integrations/${item.platform}/test`,
-                  body: { requestId: crypto.randomUUID() },
-                }).unwrap(),
-              done,
-            )
+          disabled={
+            state.isLoading ||
+            poll ||
+            !item.enabled ||
+            !!item.missingVariables.length
           }
+          className={shared.primaryButton}
+          onClick={testConnection}
         >
           Tester la connexion
         </button>
         <button
           disabled={state.isLoading}
           className={shared.secondaryButton}
-          onClick={() => {
+          onClick={async () => {
             if (
-              window.confirm(
+              await confirmAction(
                 `${item.enabled ? "Désactiver" : "Activer"} cette intégration ?`,
               )
             )
@@ -145,8 +238,10 @@ function Integration({
   );
 }
 export function StoreConfiguration({ done }: { done: (m: string) => void }) {
+  const status = useGetStoreStatusQuery();
   const query = useGetStoreIntegrationsQuery(undefined, {
     pollingInterval: 15000,
+    skipPollingIfUnfocused: true,
   });
   return (
     <>
@@ -157,8 +252,39 @@ export function StoreConfiguration({ done }: { done: (m: string) => void }) {
         </p>
       )}
       {query.data?.map((item) => (
-        <Integration key={item.platform} item={item} done={done} />
+        <Integration
+          key={item.platform}
+          item={item}
+          done={done}
+          status={status.data}
+          refresh={query.refetch}
+        />
       ))}
+      <section className={shared.section}>
+        <h2>Fonctions activées sur le serveur</h2>
+        <p>
+          Synchronisation automatique :{" "}
+          {status.data?.scheduled ? "activée" : "désactivée"}.
+        </p>
+        <p>
+          Réponses publiques aux avis :{" "}
+          {status.data?.features?.reviewReplies
+            ? "activées"
+            : "non activées ou non annoncées"}
+          .
+        </p>
+        <p>
+          Lecture des tracks Google par édition temporaire non publiée :{" "}
+          {status.data?.features?.googleTemporaryEdits
+            ? "activée"
+            : "non activée ou non annoncée"}
+          .
+        </p>
+        <p>
+          Les identifiants restent dans la configuration du backend. Aucun
+          secret n’est demandé ni retourné ici.
+        </p>
+      </section>
     </>
   );
 }
@@ -176,6 +302,9 @@ export function StoreResources({
   const [action, state] = useStoreActionMutation(),
     [userId, setUserId] = useState(""),
     [profile, setProfile] = useState("reader");
+  const [customPermissions, setCustomPermissions] = useState<string[]>([]);
+  const [windowMinutes, setWindowMinutes] = useState(60),
+    [confirmationMinutes, setConfirmationMinutes] = useState(5);
   const [name, setName] = useState(""),
     [type, setType] = useState("sync_failed"),
     [platform, setPlatform] = useState(""),
@@ -192,7 +321,7 @@ export function StoreResources({
     "audit-logs": "Journal d’audit",
     "alerts/events": "Notifications de l’administration",
     "alerts/rules": "Règles d’alerte",
-    access: "Permissions Store",
+    access: "Permissions Stores et supervision mobile",
   }[resource];
   const createRule = () =>
     execute(
@@ -212,6 +341,9 @@ export function StoreResources({
               .map((s) => s.trim())
               .filter(Boolean),
             email,
+            ...(type.startsWith("mobile_")
+              ? { windowMinutes, confirmationMinutes }
+              : {}),
           },
         }).unwrap(),
       done,
@@ -254,9 +386,14 @@ export function StoreResources({
                   "support",
                   "validator",
                   "custom",
+                  "revoke",
                 ].map((p) => (
                   <option key={p} value={p}>
-                    {p === "custom" ? "Révoquer tous les accès Store" : p}
+                    {p === "revoke"
+                      ? "Révoquer tous les accès"
+                      : p === "custom"
+                        ? "Permissions personnalisées"
+                        : p}
                   </option>
                 ))}
               </select>
@@ -264,9 +401,9 @@ export function StoreResources({
             <button
               className={shared.primaryButton}
               disabled={state.isLoading || !userId}
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  window.confirm(
+                  await confirmAction(
                     "Modifier les permissions Store de ce compte ?",
                   )
                 )
@@ -276,8 +413,12 @@ export function StoreResources({
                         path: `access/${encodeURIComponent(userId)}`,
                         method: "PUT",
                         body: {
-                          profile,
-                          ...(profile === "custom" ? { permissions: [] } : {}),
+                          profile: profile === "revoke" ? "custom" : profile,
+                          ...(profile === "custom"
+                            ? { permissions: customPermissions }
+                            : profile === "revoke"
+                              ? { permissions: [] }
+                              : {}),
                         },
                       }).unwrap(),
                     done,
@@ -287,6 +428,35 @@ export function StoreResources({
               Appliquer le profil
             </button>
           </div>
+          {profile === "custom" && (
+            <fieldset>
+              <legend>Permissions attribuées</legend>
+              <div className={shared.grid}>
+                {permissions.map((permission) => (
+                  <label key={permission} className={shared.checkboxRow}>
+                    <input
+                      type="checkbox"
+                      checked={customPermissions.includes(permission)}
+                      onChange={(e) =>
+                        setCustomPermissions(
+                          e.target.checked
+                            ? [...customPermissions, permission]
+                            : customPermissions.filter((p) => p !== permission),
+                        )
+                      }
+                    />
+                    {permission}
+                  </label>
+                ))}
+              </div>
+              <p>
+                Pour valider une campagne : mobile.campaigns.read +
+                mobile.campaigns.approve. Pour la lancer : mobile.campaigns.read
+                + mobile.campaigns.launch. L’auteur ne peut pas l’approuver
+                lui-même.
+              </p>
+            </fieldset>
+          )}
         </>
       )}
       {resource === "alerts/rules" &&
@@ -313,6 +483,9 @@ export function StoreResources({
                     "metric_above",
                     "metric_drop_percent",
                     "version_changed",
+                    "mobile_push_failure_percent",
+                    "mobile_registration_drop_percent",
+                    "mobile_required_policy_conflict",
                   ].map((v) => (
                     <option key={v}>{v}</option>
                   ))}
@@ -372,6 +545,32 @@ export function StoreResources({
                 />
                 E-mail (SMTP serveur nécessaire)
               </label>
+              {type.startsWith("mobile_") && (
+                <>
+                  <label className={shared.filterField}>
+                    Fenêtre (minutes)
+                    <input
+                      type="number"
+                      min={5}
+                      max={10080}
+                      value={windowMinutes}
+                      onChange={(e) => setWindowMinutes(Number(e.target.value))}
+                    />
+                  </label>
+                  <label className={shared.filterField}>
+                    Confirmation (minutes)
+                    <input
+                      type="number"
+                      min={0}
+                      max={1440}
+                      value={confirmationMinutes}
+                      onChange={(e) =>
+                        setConfirmationMinutes(Number(e.target.value))
+                      }
+                    />
+                  </label>
+                </>
+              )}
               <button
                 className={shared.primaryButton}
                 disabled={state.isLoading || !name.trim()}
@@ -399,6 +598,28 @@ export function StoreResources({
               {JSON.stringify(row, null, 2)}
             </pre>
           </details>
+          {resource === "access" &&
+            permissions.includes("store.access.manage") && (
+              <button
+                className={shared.secondaryButton}
+                disabled={state.isLoading}
+                onClick={() => {
+                  setUserId(String(row.userId));
+                  setProfile("custom");
+                  setCustomPermissions(
+                    Array.isArray(row.permissions)
+                      ? row.permissions.filter(
+                          (p): p is string =>
+                            typeof p === "string" && permissions.includes(p),
+                        )
+                      : [],
+                  );
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              >
+                Modifier les accès de ce compte
+              </button>
+            )}
           {resource === "alerts/events" && !row.acknowledgedAt && (
             <button
               disabled={state.isLoading}
@@ -422,26 +643,12 @@ export function StoreResources({
                 disabled={state.isLoading}
                 className={shared.secondaryButton}
                 onClick={() => {
-                  const body = Object.fromEntries(
-                    [
-                      "name",
-                      "type",
-                      "platform",
-                      "metric",
-                      "threshold",
-                      "severity",
-                      "recipients",
-                      "email",
-                    ]
-                      .filter((k) => row[k] != null)
-                      .map((k) => [k, row[k]]),
-                  );
                   void execute(
                     () =>
                       action({
                         path: `alerts/rules/${row.id}`,
-                        method: "PUT",
-                        body: { ...body, enabled: !row.enabled },
+                        method: "PATCH",
+                        body: { enabled: !row.enabled },
                       }).unwrap(),
                     done,
                   );

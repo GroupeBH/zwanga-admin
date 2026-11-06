@@ -25,6 +25,10 @@ import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
 
 import styles from "./kyc.module.css";
 
+import { useUrlState } from "@/lib/utils/useUrlState";
+
+import { SkeletonList } from "@/app/components/ui/Skeleton";
+
 const TABS: Array<{ value: KycStatusFilter; label: string }> = [
   { value: "pending", label: "À traiter" },
   { value: "approved", label: "Validés" },
@@ -87,10 +91,10 @@ const useStatusTotal = (status: KycStatus) =>
 type DecisionMode = "idle" | "approve" | "reject";
 
 export default function KycPage() {
-  const [statusFilter, setStatusFilter] = useState<KycStatusFilter>("pending");
-  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useUrlState<KycStatusFilter>("statut", "pending");
+  const [search, setSearch] = useUrlState<string>("q", "");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useUrlState<number>("page", 1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileDetail, setMobileDetail] = useState(false);
   const [mode, setMode] = useState<DecisionMode>("idle");
@@ -298,7 +302,7 @@ export default function KycPage() {
           />
           <div className={styles.queueList}>
             {isFetching && documents.length === 0 ? (
-              <div className={styles.empty}>Chargement des dossiers…</div>
+              <SkeletonList count={5} />
             ) : documents.length === 0 ? (
               <div className={styles.empty}>
                 <strong>

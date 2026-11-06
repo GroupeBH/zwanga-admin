@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Info, RotateCcw } from "lucide-react";
 
@@ -13,6 +14,13 @@ import {
   type UserReportParty,
 } from "@/lib/features/reports/reportsApi";
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
+import { bulkSummary, runBulk } from "@/lib/utils/runBulk";
+import { useUrlState } from "@/lib/utils/useUrlState";
+import { BulkBar } from "@/app/components/ui/DataTable";
+import { confirmAction, notify, promptText } from "@/app/components/ui/Feedback";
+import { Pagination } from "@/app/components/ui/Pagination";
+import { SkeletonList } from "@/app/components/ui/Skeleton";
+import { QueueEmptyDetail, QueueItem, QueueLayout } from "@/app/components/ui/WorkQueue";
 
 import shared from "../styles/page.module.css";
 
@@ -32,9 +40,15 @@ const REASON_LABEL: Record<ReportReason, string> = {
 };
 
 const DECISION_LABEL: Record<ReportStatusDecision, string> = {
-  under_review: "Marquer « en cours d’examen »",
-  resolved: "Marquer « résolu »",
-  dismissed: "Classer sans suite",
+  under_review: "En cours d’examen",
+  resolved: "Résolu",
+  dismissed: "Classé sans suite",
+};
+
+const DECISION_HINT: Record<ReportStatusDecision, string> = {
+  under_review: "Vous vérifiez les faits ; le signalement reste ouvert.",
+  resolved: "Le problème est traité (avertissement, suspension, échange avec les personnes…).",
+  dismissed: "Le signalement n’est pas fondé ou ne demande aucune action.",
 };
 
 const formatDate = (value: string | null) => {
@@ -60,46 +74,62 @@ const statusClass = (status: ReportStatus) => {
   return `${shared.badge} ${shared.badgeWarning}`;
 };
 
+const LIMIT = 20;
+
 export default function ReportsPage() {
-  const [statusFilter, setStatusFilter] = useState<ReportStatus | "all">("all");
-  const [reasonFilter, setReasonFilter] = useState<ReportReason | "all">("all");
+  const [statusFilter, setStatusFilter] = useUrlState<ReportStatus | "all">("statut", "all");
+  const [reasonFilter, setReasonFilter] = useUrlState<ReportReason | "all">("motif", "all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [target, setTarget] = useState<UserReport | null>(null);
+  const [page, setPage] = useUrlState<number>("page", 1);
+  const [selectedId, setSelectedId] = useUrlState<string>("dossier", "");
+  const [mobileDetail, setMobileDetail] = useState(false);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [decision, setDecision] = useState<ReportStatusDecision>("under_review");
   const [adminNotes, setAdminNotes] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
-  const limit = 20;
 
   useEffect(() => {
+    const next = search.trim();
+    // Sans ce garde, le premier passage ecraserait la page lue dans l'URL.
+    if (next === debouncedSearch) return;
     const timeout = setTimeout(() => {
-      setDebouncedSearch(search.trim());
+      setDebouncedSearch(next);
       setPage(1);
     }, 300);
     return () => clearTimeout(timeout);
-  }, [search]);
+  }, [search, debouncedSearch, setPage]);
 
-  const { data, isFetching, isError, error } = useGetReportsQuery({
+  const { data, isFetching, isLoading, isError, error } = useGetReportsQuery({
     page,
-    limit,
+    limit: LIMIT,
     status: statusFilter === "all" ? undefined : statusFilter,
     reason: reasonFilter === "all" ? undefined : reasonFilter,
     search: debouncedSearch || undefined,
   });
-  const [updateReportStatus, { isLoading: isUpdating }] =
-    useUpdateReportStatusMutation();
+  const [updateReportStatus, { isLoading: isUpdating }] = useUpdateReportStatusMutation();
 
-  const reports = data?.reports ?? [];
+  const reports = useMemo(() => data?.reports ?? [], [data]);
   const total = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const selected = reports.find((report) => report.id === selectedId) ?? null;
   const hasFilters =
     statusFilter !== "all" || reasonFilter !== "all" || Boolean(debouncedSearch);
+  const pendingCount = reports.filter((report) => report.status === "pending").length;
 
-  const pendingCount = useMemo(
-    () => reports.filter((report) => report.status === "pending").length,
-    [reports]
-  );
+  // Le formulaire de decision suit le dossier affiche.
+  useEffect(() => {
+    if (!selected) return;
+    setActionError(null);
+    setDecision(selected.status === "pending" ? "under_review" : "resolved");
+    setAdminNotes(selected.adminNotes ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
+
+  // Changer de page ou de filtre vide la selection: on n'agit que sur ce qu'on voit.
+  useEffect(() => {
+    setChecked(new Set());
+  }, [page, statusFilter, reasonFilter, debouncedSearch]);
 
   const resetFilters = () => {
     setStatusFilter("all");
@@ -108,52 +138,259 @@ export default function ReportsPage() {
     setPage(1);
   };
 
-  const openDecision = (report: UserReport) => {
-    setActionError(null);
-    setTarget(report);
-    setDecision(report.status === "pending" ? "under_review" : "resolved");
-    setAdminNotes(report.adminNotes ?? "");
+  const select = (report: UserReport) => {
+    setSelectedId(report.id);
+    setMobileDetail(true);
   };
 
-  const closeDecision = () => {
-    setTarget(null);
-    setAdminNotes("");
-    setActionError(null);
+  /* Apres une decision, on passe au dossier suivant de la page (ou precedent
+     s'il n'y en a plus), comme dans la file KYC. */
+  const advanceFrom = (id: string) => {
+    const index = reports.findIndex((report) => report.id === id);
+    const next = reports[index + 1] ?? reports[index - 1];
+    setSelectedId(next && next.id !== id ? next.id : "");
+    if (!next) setMobileDetail(false);
   };
 
   const submitDecision = async () => {
-    if (!target) return;
+    if (!selected) return;
     setActionError(null);
     try {
       await updateReportStatus({
-        reportId: target.id,
+        reportId: selected.id,
         body: {
           status: decision,
           adminNotes: adminNotes.trim() ? adminNotes.trim() : undefined,
         },
       }).unwrap();
-      closeDecision();
+      notify(`Signalement : ${DECISION_LABEL[decision].toLowerCase()}.`, "success");
+      advanceFrom(selected.id);
     } catch (mutationError) {
       setActionError(
-        getApiErrorMessage(
-          mutationError,
-          "La décision n’a pas pu être enregistrée."
-        )
+        getApiErrorMessage(mutationError, "La décision n’a pas pu être enregistrée.")
       );
     }
   };
+
+  const bulkDecide = async (status: ReportStatusDecision) => {
+    const targets = reports.filter((report) => checked.has(report.id));
+    if (!targets.length) return;
+    const note = await promptText({
+      title: `${DECISION_LABEL[status]} : ${targets.length} signalement${targets.length > 1 ? "s" : ""}`,
+      message: `${DECISION_HINT[status]}\nLa note sera ajoutée à chaque dossier sélectionné.`,
+      label: "Note interne commune",
+      placeholder: "Ce que vous avez vérifié, la suite donnée…",
+      confirmLabel: "Appliquer",
+      required: status !== "under_review",
+    });
+    if (note === null) return;
+    const result = await runBulk(
+      targets,
+      (report) =>
+        updateReportStatus({
+          reportId: report.id,
+          body: { status, adminNotes: note || undefined },
+        }).unwrap(),
+      (done, count) => setProgress({ done, total: count })
+    );
+    setProgress(null);
+    setChecked(new Set(result.failed.map(({ item }) => item.id)));
+    notify(
+      bulkSummary(result.succeeded, result.failed.length, "signalement"),
+      result.failed.length ? "error" : "success"
+    );
+  };
+
+  const toggleChecked = (id: string) =>
+    setChecked((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const allChecked = reports.length > 0 && reports.every((report) => checked.has(report.id));
+
+  const list = (
+    <>
+      {reports.length > 0 ? (
+        <label className={shared.checkboxRow} style={{ fontSize: "0.82rem" }}>
+          <input
+            type="checkbox"
+            checked={allChecked}
+            onChange={() =>
+              setChecked(allChecked ? new Set() : new Set(reports.map((report) => report.id)))
+            }
+          />
+          Tout sélectionner sur cette page
+        </label>
+      ) : null}
+      {isLoading ? (
+        <SkeletonList />
+      ) : reports.length === 0 ? (
+        <p className={shared.emptyState}>
+          {hasFilters
+            ? "Aucun signalement ne correspond à ces filtres."
+            : "Aucun signalement pour l’instant. Les signalements envoyés depuis l’application apparaîtront ici."}
+        </p>
+      ) : (
+        reports.map((report) => (
+          <QueueItem
+            key={report.id}
+            active={report.id === selectedId}
+            onSelect={() => select(report)}
+            checked={checked.has(report.id)}
+            onCheck={() => toggleChecked(report.id)}
+            title={formatParty(report.reportedUser, report.reportedUserId)}
+            badge={
+              <span className={statusClass(report.status)}>
+                {STATUS_LABEL[report.status] ?? report.status}
+              </span>
+            }
+            subtitle={`${REASON_LABEL[report.reason] ?? report.reason} · ${report.description}`}
+            meta={`Reçu le ${formatDate(report.createdAt)} · par ${formatParty(report.reporter, report.reporterId)}`}
+          />
+        ))
+      )}
+    </>
+  );
+
+  const detail = selected ? (
+    <>
+      <div className={shared.sectionHeader}>
+        <div>
+          <h2>{formatParty(selected.reportedUser, selected.reportedUserId)}</h2>
+          <p className={shared.mutedText}>
+            {REASON_LABEL[selected.reason] ?? selected.reason} · reçu le{" "}
+            {formatDate(selected.createdAt)}
+          </p>
+        </div>
+        <span className={statusClass(selected.status)}>
+          {STATUS_LABEL[selected.status] ?? selected.status}
+        </span>
+      </div>
+
+      <div className={shared.fieldGrid}>
+        <div>
+          <span className={shared.filterLabel}>Personne signalée</span>
+          <p style={{ margin: "4px 0 0" }}>
+            {selected.reportedUser ? (
+              <Link className={shared.textLink} href={`/users?fiche=${selected.reportedUserId}`}>
+                {formatParty(selected.reportedUser)}
+              </Link>
+            ) : (
+              formatParty(null, selected.reportedUserId)
+            )}
+            <br />
+            <small className={shared.mutedText}>
+              {selected.reportedUser?.phone ?? "Téléphone indisponible"}
+            </small>
+          </p>
+        </div>
+        <div>
+          <span className={shared.filterLabel}>Signalée par</span>
+          <p style={{ margin: "4px 0 0" }}>
+            {selected.reporter ? (
+              <Link className={shared.textLink} href={`/users?fiche=${selected.reporterId}`}>
+                {formatParty(selected.reporter)}
+              </Link>
+            ) : (
+              formatParty(null, selected.reporterId)
+            )}
+            <br />
+            <small className={shared.mutedText}>
+              {selected.reporter?.phone ?? "Téléphone indisponible"}
+            </small>
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <span className={shared.filterLabel}>Description</span>
+        <p style={{ margin: "4px 0 0", whiteSpace: "pre-line" }}>{selected.description}</p>
+      </div>
+
+      {selected.tripRoute || selected.tripId ? (
+        <p className={shared.mutedText}>
+          Trajet concerné :{" "}
+          {selected.tripId ? (
+            <Link className={shared.textLink} href={`/trips?fiche=${selected.tripId}`}>
+              {selected.tripRoute ?? "voir le trajet"}
+            </Link>
+          ) : (
+            selected.tripRoute
+          )}
+        </p>
+      ) : null}
+
+      {selected.reviewedAt ? (
+        <p className={shared.mutedText}>Dernière décision le {formatDate(selected.reviewedAt)}.</p>
+      ) : null}
+
+      <fieldset className={shared.decisionGroup}>
+        <legend className={shared.filterLabel}>Décision</legend>
+        {(Object.keys(DECISION_LABEL) as ReportStatusDecision[]).map((value) => (
+          <label key={value} className={shared.decisionOption}>
+            <input
+              type="radio"
+              name="report-decision"
+              value={value}
+              checked={decision === value}
+              onChange={() => setDecision(value)}
+            />
+            <span>
+              <strong>{DECISION_LABEL[value]}</strong>
+              <small className={shared.mutedText}>{DECISION_HINT[value]}</small>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+
+      <label className={shared.filterField}>
+        <span className={shared.filterLabel}>Note interne (visible par l’équipe, pas par l’utilisateur)</span>
+        <textarea
+          rows={4}
+          maxLength={1000}
+          value={adminNotes}
+          onChange={(event) => setAdminNotes(event.target.value)}
+          placeholder="Ce que vous avez vérifié, la suite donnée…"
+        />
+      </label>
+
+      {actionError ? (
+        <p className={shared.errorText} role="alert">
+          {actionError}
+        </p>
+      ) : null}
+
+      <div className={shared.modalActions}>
+        <button
+          type="button"
+          className={shared.primaryButton}
+          onClick={() => void submitDecision()}
+          disabled={isUpdating}
+        >
+          {isUpdating ? "Enregistrement…" : "Enregistrer et passer au suivant"}
+        </button>
+      </div>
+    </>
+  ) : (
+    <QueueEmptyDetail>
+      {reports.length
+        ? "Choisissez un signalement dans la liste pour le traiter."
+        : "Rien à afficher pour ces filtres."}
+    </QueueEmptyDetail>
+  );
 
   return (
     <div className={shared.page}>
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h2>Signalements & modération</h2>
+            <h1>Signalements</h1>
             <p className={shared.filterSummary}>
               {total} signalement{total > 1 ? "s" : ""}
-              {pendingCount > 0
-                ? ` · ${pendingCount} à traiter sur cette page`
-                : ""}
+              {pendingCount > 0 ? ` · ${pendingCount} à traiter sur cette page` : ""}
             </p>
           </div>
           <div className={shared.toolbar}>
@@ -201,9 +438,7 @@ export default function ReportsPage() {
                 }}
               >
                 <option value="all">Tous les motifs</option>
-                {(
-                  Object.keys(REASON_LABEL) as ReportReason[]
-                ).map((reason) => (
+                {(Object.keys(REASON_LABEL) as ReportReason[]).map((reason) => (
                   <option key={reason} value={reason}>
                     {REASON_LABEL[reason]}
                   </option>
@@ -211,11 +446,7 @@ export default function ReportsPage() {
               </select>
             </div>
             {hasFilters ? (
-              <button
-                type="button"
-                className={shared.secondaryButton}
-                onClick={resetFilters}
-              >
+              <button type="button" className={shared.secondaryButton} onClick={resetFilters}>
                 <RotateCcw size={14} aria-hidden="true" />
                 Réinitialiser
               </button>
@@ -226,189 +457,63 @@ export default function ReportsPage() {
         <p className={shared.helpText}>
           <Info size={16} aria-hidden="true" />
           <span>
-            Ces signalements sont envoyés par les utilisateurs depuis
-            l’application. « À traiter » signifie que personne ne s’en est encore
-            occupé. Ouvrez « Traiter » pour indiquer où vous en êtes : en cours
-            d’examen, résolu, ou classé sans suite quand le signalement n’est pas
-            fondé. Votre note reste visible par l’équipe, pas par l’utilisateur.
+            Choisissez un signalement à gauche, décidez à droite : le suivant s’ouvre
+            tout seul. Cochez plusieurs signalements pour les traiter en une fois.
+            Votre note reste visible par l’équipe, pas par l’utilisateur.
           </span>
         </p>
 
         {isError ? (
           <p className={shared.errorText} role="alert">
-            {getApiErrorMessage(
-              error,
-              "Impossible de charger les signalements pour le moment."
-            )}
+            {getApiErrorMessage(error, "Impossible de charger les signalements pour le moment.")}
           </p>
         ) : null}
 
-        <div className={shared.tableWrapper}>
-          <table className={shared.table}>
-            <thead>
-              <tr>
-                <th>Personne signalée</th>
-                <th>Signalée par</th>
-                <th>Motif</th>
-                <th>Description</th>
-                <th>Trajet</th>
-                <th>Statut</th>
-                <th>Reçu le</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reports.length === 0 ? (
-                <tr>
-                  <td colSpan={8}>
-                    <p className={shared.emptyState}>
-                      {isFetching
-                        ? "Chargement des signalements..."
-                        : hasFilters
-                          ? "Aucun signalement ne correspond à ces filtres."
-                          : "Aucun signalement pour l’instant. Les signalements envoyés depuis l’application apparaîtront ici."}
-                    </p>
-                  </td>
-                </tr>
-              ) : null}
-              {reports.map((report) => (
-                <tr key={report.id}>
-                  <td>
-                    <strong>{formatParty(report.reportedUser, report.reportedUserId)}</strong>
-                    <br />
-                    <small className={shared.mutedText}>
-                      {report.reportedUser?.phone ?? "Téléphone indisponible"}
-                    </small>
-                  </td>
-                  <td>
-                    {formatParty(report.reporter, report.reporterId)}
-                    <br />
-                    <small className={shared.mutedText}>
-                      {report.reporter?.phone ?? "Téléphone indisponible"}
-                    </small>
-                  </td>
-                  <td>{REASON_LABEL[report.reason] ?? report.reason}</td>
-                  <td>{report.description}</td>
-                  <td>{report.tripRoute ?? "—"}</td>
-                  <td>
-                    <span className={statusClass(report.status)}>
-                      {STATUS_LABEL[report.status] ?? report.status}
-                    </span>
-                    {report.adminNotes ? (
-                      <>
-                        <br />
-                        <small className={shared.mutedText}>
-                          {report.adminNotes}
-                        </small>
-                      </>
-                    ) : null}
-                  </td>
-                  <td>{formatDate(report.createdAt)}</td>
-                  <td>
-                    <div className={shared.rowActions}>
-                      <button
-                        type="button"
-                        className={shared.secondaryButton}
-                        onClick={() => openDecision(report)}
-                      >
-                        Traiter
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <BulkBar count={checked.size} onClear={() => setChecked(new Set())} progress={progress}>
+          <button type="button" className={shared.secondaryButton} onClick={() => void bulkDecide("under_review")}>
+            Passer en examen
+          </button>
+          <button type="button" className={shared.secondaryButton} onClick={() => void bulkDecide("resolved")}>
+            Marquer résolus
+          </button>
+          <button
+            type="button"
+            className={shared.secondaryButton}
+            onClick={async () => {
+              if (
+                await confirmAction({
+                  title: "Classer sans suite ?",
+                  message: `${checked.size} signalement(s) seront fermés sans action. Vérifiez qu’aucun ne concerne la sécurité d’un passager.`,
+                  confirmLabel: "Continuer",
+                  tone: "danger",
+                })
+              )
+                void bulkDecide("dismissed");
+            }}
+          >
+            Classer sans suite
+          </button>
+        </BulkBar>
+
+        <div style={{ opacity: isFetching && !isLoading ? 0.6 : 1, transition: "opacity .2s" }}>
+          <QueueLayout
+            list={list}
+            detail={detail}
+            showDetailOnMobile={mobileDetail && Boolean(selected)}
+            onBack={() => setMobileDetail(false)}
+          />
         </div>
 
-        <div className={shared.pagination}>
-          <p className={shared.paginationInfo}>
-            Page {page} sur {totalPages} · {total} signalement
-            {total > 1 ? "s" : ""}
-          </p>
-          <div className={shared.paginationButtons}>
-            <button
-              type="button"
-              className={shared.secondaryButton}
-              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-              disabled={page === 1 || isFetching}
-            >
-              Page précédente
-            </button>
-            <button
-              type="button"
-              className={shared.secondaryButton}
-              onClick={() => setPage((prev) => prev + 1)}
-              disabled={isFetching || page >= totalPages}
-            >
-              Page suivante
-            </button>
-          </div>
-        </div>
+        <Pagination
+          page={page}
+          limit={LIMIT}
+          total={total}
+          pageCount={reports.length}
+          onChange={setPage}
+          disabled={isFetching}
+          noun="signalements"
+        />
       </section>
-
-      {target ? (
-        <div className={shared.modalBackdrop} role="presentation">
-          <div className={`${shared.card} ${shared.modalCard} ${shared.modalCompact}`}>
-            <h3>Traiter le signalement</h3>
-            <p className={shared.mutedText}>
-              {formatParty(target.reportedUser, target.reportedUserId)} signalé par{" "}
-              {formatParty(target.reporter, target.reporterId)} pour «{" "}
-              {REASON_LABEL[target.reason] ?? target.reason} ».
-            </p>
-            <label>
-              Décision
-              <select
-                value={decision}
-                onChange={(event) =>
-                  setDecision(event.target.value as ReportStatusDecision)
-                }
-              >
-                {(
-                  Object.keys(DECISION_LABEL) as ReportStatusDecision[]
-                ).map((value) => (
-                  <option key={value} value={value}>
-                    {DECISION_LABEL[value]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Note interne (facultative)
-              <textarea
-                rows={4}
-                maxLength={1000}
-                value={adminNotes}
-                onChange={(event) => setAdminNotes(event.target.value)}
-                placeholder="Ce que vous avez vérifié, la suite donnée…"
-              />
-            </label>
-            {actionError ? (
-              <p className={shared.errorText} role="alert">
-                {actionError}
-              </p>
-            ) : null}
-            <div className={shared.modalActions}>
-              <button
-                type="button"
-                className={shared.secondaryButton}
-                onClick={closeDecision}
-                disabled={isUpdating}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className={shared.primaryButton}
-                onClick={submitDecision}
-                disabled={isUpdating}
-              >
-                {isUpdating ? "Enregistrement..." : "Enregistrer la décision"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

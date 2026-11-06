@@ -5,13 +5,15 @@ import { useId, useState } from "react";
 
 import styles from "./Charts.module.css";
 
+/* Variables CSS (voir globals.css): le theme clair utilise des teintes plus
+   foncees, sinon les traits passent sous 3:1 de contraste sur fond blanc. */
 export const CHART_COLORS = {
-  orange: "#ff7a00",
-  green: "#3dd598",
-  blue: "#38bdf8",
-  amber: "#f5c542",
-  red: "#ff5d68",
-  grey: "#8b95a7",
+  orange: "var(--chart-orange)",
+  green: "var(--chart-green)",
+  blue: "var(--chart-blue)",
+  amber: "var(--chart-amber)",
+  red: "var(--chart-red)",
+  grey: "var(--chart-grey)",
 } as const;
 
 const formatNumber = (value: number) =>

@@ -21,6 +21,8 @@ import UserSearchField from "@/app/components/admin/UserSearchField";
 import shared from "../styles/page.module.css";
 import styles from "./UserFinancialActions.module.css";
 
+import { confirmAction } from "@/app/components/ui/Feedback";
+
 const tokens = (value: number) =>
   `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(value)} jetons`;
 const name = (user: { firstName?: string; lastName?: string }) =>
@@ -92,12 +94,14 @@ export default function UserFinancialActions({ user }: { user: User }) {
         setFailure(error);
         return;
       }
-      if (
-        !window.confirm(
-          `${signedAmount > 0 ? "Ajouter" : "Retirer"} ${tokens(Math.abs(signedAmount))} ${signedAmount > 0 ? "à" : "de"} ${name(user)} ?`,
-        )
-      )
-        return;
+      // Verrou tenu pendant la confirmation (asynchrone): un second envoi
+      // creerait une autre demande et donc un second mouvement de solde.
+      busy.current = true;
+      const confirmed = await confirmAction(
+        `${signedAmount > 0 ? "Ajouter" : "Retirer"} ${tokens(Math.abs(signedAmount))} ${signedAmount > 0 ? "à" : "de"} ${name(user)} ?`,
+      );
+      busy.current = false;
+      if (!confirmed) return;
     }
     const intent = pending ?? {
       requestId: crypto.randomUUID(),
@@ -152,14 +156,16 @@ export default function UserFinancialActions({ user }: { user: User }) {
       referralReason.trim().length < 10
     )
       return;
+    referralBusy.current = true;
     if (
       !referralPending &&
-      !window.confirm(
+      !(await confirmAction(
         `Rattacher ${name(user)} à ${name(selected)} ? Ce parrain ne pourra pas être remplacé. Le bonus de rattachement habituel sera accordé une seule fois, sans commissions rétroactives.`,
-      )
-    )
+      ))
+    ) {
+      referralBusy.current = false;
       return;
-    referralBusy.current = true;
+    }
     setReferralPending(true);
     setReferralFailure("");
     setNotice("");
@@ -199,14 +205,16 @@ export default function UserFinancialActions({ user }: { user: User }) {
       filleulReason.trim().length < 10
     )
       return;
+    filleulBusy.current = true;
     if (
       !filleulPending &&
-      !window.confirm(
+      !(await confirmAction(
         `Rattacher ${name(filleulSelected)} comme filleul de ${name(user)} ? Le parrain ne pourra pas être remplacé. Le bonus de rattachement habituel sera accordé une seule fois, sans commissions rétroactives.`,
-      )
-    )
+      ))
+    ) {
+      filleulBusy.current = false;
       return;
-    filleulBusy.current = true;
+    }
     setFilleulPending(true);
     setFilleulFailure("");
     setNotice("");

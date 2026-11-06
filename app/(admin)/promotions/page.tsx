@@ -10,6 +10,8 @@ import { useGetUsersQuery } from "@/lib/features/users/usersApi";
 import { useGetAllTripsQuery } from "@/lib/features/trips/tripsApi";
 import shared from "../styles/page.module.css";
 
+import local from "./promotions.module.css";
+
 // ---------------------------------------------------------------------------
 // Données statiques de démonstration — codes promotionnels
 // ---------------------------------------------------------------------------
@@ -165,7 +167,7 @@ export default function PromotionsPage() {
       {/* ------------------------------------------------------------------ */}
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
-          <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 className={local.m0FlexCenterGap8}>
             <Gift size={20} color="var(--color-primary)" />
             Règle de parrainage actuelle
           </h2>
@@ -176,30 +178,22 @@ export default function PromotionsPage() {
 
         {/* Encadré mis en valeur */}
         <div
-          style={{
-            padding: "16px 20px",
-            borderRadius: 18,
-            border: "1px solid rgba(61,213,152,0.25)",
-            background: "rgba(61,213,152,0.07)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
+          className={local.p1620Radius18Border1SolidRgba61213152025BackgroundRgba612131}
         >
-          <p style={{ margin: 0, fontWeight: 600, fontSize: "1.05rem" }}>
+          <p className={local.m0SemiboldText105}>
             Le parrain reçoit{" "}
-            <span style={{ color: "var(--color-success)" }}>15 000 FC</span>{" "}
+            <span className={local.success}>15 000 FC</span>{" "}
             quand son filleul atteint{" "}
-            <span style={{ color: "var(--color-success)" }}>5 trajets</span>{" "}
+            <span className={local.success}>5 trajets</span>{" "}
             terminés et éligibles.
           </p>
 
-          <p className={shared.mutedText} style={{ fontSize: "0.88rem" }}>
-            <Link size={13} style={{ verticalAlign: "middle", marginRight: 4 }} />
+          <p className={`${shared.mutedText} ${local.text88}`}>
+            <Link size={13} className={local.verticalAlignMiddleMr4} />
             Modifiable via le module Parrainage{" "}
             <a
               href="/referrals"
-              style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 600 }}
+              className={local.primaryDecorationNoneSemibold}
             >
               /referrals
             </a>
@@ -212,11 +206,11 @@ export default function PromotionsPage() {
       {/* ------------------------------------------------------------------ */}
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
-          <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 className={local.m0FlexCenterGap8}>
             <TrendingUp size={20} color="var(--color-primary)" />
             Indicateurs clés
           </h2>
-          <span className={shared.mutedText} style={{ fontSize: "0.82rem" }}>
+          <span className={`${shared.mutedText} ${local.text82}`}>
             Calculés en temps réel depuis les données de la plateforme
           </span>
         </div>
@@ -224,48 +218,48 @@ export default function PromotionsPage() {
         <div className={shared.grid}>
           {/* KPI — Conducteurs inscrits */}
           <div className={shared.card}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className={local.flexCenterGap8}>
               <Users size={18} color="var(--color-primary)" />
-              <span className={shared.mutedText} style={{ fontSize: "0.85rem" }}>
+              <span className={`${shared.mutedText} ${local.text85}`}>
                 Conducteurs inscrits
               </span>
             </div>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }}>
+            <p className={local.m0Text2Bold}>
               {kpis.totalDrivers}
             </p>
-            <p className={shared.mutedText} style={{ fontSize: "0.8rem", margin: 0 }}>
+            <p className={`${shared.mutedText} ${local.text8M0}`}>
               dont {kpis.activeDriverCount} actifs (au moins 1 trajet)
             </p>
           </div>
 
           {/* KPI — Trajets publiés */}
           <div className={shared.card}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className={local.flexCenterGap8}>
               <TrendingUp size={18} color="var(--color-primary)" />
-              <span className={shared.mutedText} style={{ fontSize: "0.85rem" }}>
+              <span className={`${shared.mutedText} ${local.text85}`}>
                 Trajets publiés
               </span>
             </div>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }}>
+            <p className={local.m0Text2Bold}>
               {kpis.totalTrips}
             </p>
-            <p className={shared.mutedText} style={{ fontSize: "0.8rem", margin: 0 }}>
+            <p className={`${shared.mutedText} ${local.text8M0}`}>
               Total des trajets sur la plateforme
             </p>
           </div>
 
           {/* KPI — Moyenne de trajets par conducteur actif */}
           <div className={shared.card}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className={local.flexCenterGap8}>
               <Star size={18} color="var(--color-primary)" />
-              <span className={shared.mutedText} style={{ fontSize: "0.85rem" }}>
+              <span className={`${shared.mutedText} ${local.text85}`}>
                 Trajets moy. / conducteur actif
               </span>
             </div>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }}>
+            <p className={local.m0Text2Bold}>
               {kpis.avgTripsPerDriver}
             </p>
-            <p className={shared.mutedText} style={{ fontSize: "0.8rem", margin: 0 }}>
+            <p className={`${shared.mutedText} ${local.text8M0}`}>
               Sur les conducteurs ayant au moins 1 trajet
             </p>
           </div>
@@ -277,7 +271,7 @@ export default function PromotionsPage() {
       {/* ------------------------------------------------------------------ */}
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
-          <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 className={local.m0FlexCenterGap8}>
             <Tag size={20} color="var(--color-primary)" />
             Codes promotionnels
           </h2>
@@ -294,7 +288,7 @@ export default function PromotionsPage() {
                 <th>Type</th>
                 <th>Valeur</th>
                 <th>Description</th>
-                <th style={{ minWidth: 140 }}>Utilisation</th>
+                <th className={local.minWidth140}>Utilisation</th>
                 <th>Validité</th>
                 <th>Statut</th>
               </tr>
@@ -308,29 +302,17 @@ export default function PromotionsPage() {
                   <tr key={promo.code}>
                     {/* Code + bouton copier */}
                     <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div className={local.flexCenterGap8}>
                         <code
-                          style={{
-                            fontFamily: "monospace",
-                            fontWeight: 700,
-                            fontSize: "0.95rem",
-                            color: "var(--color-primary)",
-                            letterSpacing: "0.06em",
-                          }}
+                          className={local.fontMonospaceBoldText95PrimaryLetterSpacing006Em}
                         >
                           {promo.code}
                         </code>
                         <button
                           onClick={() => handleCopyCode(promo.code)}
                           title="Copier le code"
-                          className={shared.secondaryButton}
-                          style={{
-                            minHeight: 30,
-                            padding: "4px 8px",
-                            borderRadius: 8,
-                            fontSize: "0.75rem",
-                            gap: 4,
-                          }}
+                          className={`${shared.secondaryButton} ${local.minHeight30P48Radius8Text75Gap4}`}
+
                         >
                           <Copy size={12} />
                           {copiedCode === promo.code ? "Copié !" : "Copier"}
@@ -346,26 +328,21 @@ export default function PromotionsPage() {
                     </td>
 
                     {/* Valeur formatée */}
-                    <td style={{ fontWeight: 600 }}>
+                    <td className={local.semibold}>
                       {formatPromoValue(promo.type, promo.value)}
                     </td>
 
                     {/* Description */}
-                    <td className={shared.mutedText} style={{ fontSize: "0.85rem" }}>
+                    <td className={`${shared.mutedText} ${local.text85}`}>
                       {promo.description}
                     </td>
 
                     {/* Barre de progression utilisation */}
                     <td>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div className={local.flexDirColumnGap4}>
                         {/* Barre simple */}
                         <div
-                          style={{
-                            width: "100%",
-                            background: "rgba(255,255,255,0.1)",
-                            borderRadius: 4,
-                            height: 6,
-                          }}
+                          className={local.w100PctBackgroundRgba25525525501Radius4H6}
                         >
                           <div
                             style={{
@@ -379,8 +356,8 @@ export default function PromotionsPage() {
                           />
                         </div>
                         <span
-                          className={shared.mutedText}
-                          style={{ fontSize: "0.78rem" }}
+                          className={`${shared.mutedText} ${local.text78}`}
+
                         >
                           {promo.uses} / {promo.maxUses}
                         </span>
@@ -388,7 +365,7 @@ export default function PromotionsPage() {
                     </td>
 
                     {/* Date de validité */}
-                    <td className={shared.mutedText} style={{ fontSize: "0.85rem" }}>
+                    <td className={`${shared.mutedText} ${local.text85}`}>
                       {new Date(promo.validUntil).toLocaleDateString("fr-FR", {
                         day: "2-digit",
                         month: "short",
@@ -416,7 +393,7 @@ export default function PromotionsPage() {
         </div>
 
         {/* Note sur la création de codes */}
-        <p className={shared.mutedText} style={{ fontSize: "0.85rem", margin: 0 }}>
+        <p className={`${shared.mutedText} ${local.text85M0}`}>
           ℹ️ La création de codes promo nécessite une interface backend dédiée.
           Cette vue présente les campagnes actives.
         </p>
@@ -427,11 +404,11 @@ export default function PromotionsPage() {
       {/* ------------------------------------------------------------------ */}
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
-          <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 className={local.m0FlexCenterGap8}>
             <Star size={20} color="var(--color-primary)" />
             Niveaux de fidélité
           </h2>
-          <span className={shared.mutedText} style={{ fontSize: "0.82rem" }}>
+          <span className={`${shared.mutedText} ${local.text82}`}>
             Basés sur le nombre de trajets complétés par le passager
           </span>
         </div>
@@ -447,8 +424,8 @@ export default function PromotionsPage() {
               }}
             >
               {/* En-tête de la carte : étoile + nom */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: "1.6rem" }}>⭐</span>
+              <div className={local.flexCenterGap10}>
+                <span className={local.text16}>⭐</span>
                 <div>
                   <p
                     style={{
@@ -461,8 +438,8 @@ export default function PromotionsPage() {
                     {level.label}
                   </p>
                   <p
-                    className={shared.mutedText}
-                    style={{ margin: 0, fontSize: "0.8rem" }}
+                    className={`${shared.mutedText} ${local.m0Text8}`}
+
                   >
                     {level.range}
                   </p>
@@ -470,7 +447,7 @@ export default function PromotionsPage() {
               </div>
 
               {/* Avantages */}
-              <p style={{ margin: 0, fontSize: "0.87rem" }}>{level.perks}</p>
+              <p className={local.m0Text87}>{level.perks}</p>
             </div>
           ))}
         </div>
@@ -481,19 +458,19 @@ export default function PromotionsPage() {
       {/* ------------------------------------------------------------------ */}
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
-          <h2 style={{ margin: 0 }}>À propos de ce module</h2>
+          <h2 className={local.m0}>À propos de ce module</h2>
         </div>
         <p className={shared.mutedText}>
           Ce module centralise la vue des outils de rétention et de croissance
           de Zwanga :
         </p>
-        <ul className={shared.mutedText} style={{ paddingLeft: 20, margin: 0 }}>
+        <ul className={`${shared.mutedText} ${local.paddingLeft20M0}`}>
           <li>
             <strong>Règle de parrainage</strong> — affiche la règle en vigueur ;
             la modifier via{" "}
             <a
               href="/referrals"
-              style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 600 }}
+              className={local.primaryDecorationNoneSemibold}
             >
               /referrals
             </a>

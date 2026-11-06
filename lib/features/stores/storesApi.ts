@@ -7,11 +7,18 @@ export interface StoreStatus {
   enabled: boolean;
   scheduled: boolean;
   permissions: string[];
+  features?: {
+    mobileOperations: boolean;
+    mobileCampaigns: boolean;
+    reviewReplies?: boolean;
+    googleTemporaryEdits?: boolean;
+  };
   platforms: {
     platform: StorePlatform;
     appId: string | null;
     configured: boolean;
     missingVariables: string[];
+    authMode?: string;
   }[];
 }
 export interface StoreRecord {
@@ -40,6 +47,7 @@ export interface StoreIntegration {
   enabled: boolean;
   missingVariables: string[];
   checkedAt: string | null;
+  errorCode?: string | null;
   lastSync: string | null;
   nextSchedulerCheck: string | null;
   schedule: Record<string, number>;
@@ -103,8 +111,16 @@ export interface StoreDashboard {
     errorCode: string | null;
   }[];
   notes: string[];
-  business: { platforms: {platform:string;registrations:number}[]; accountsWithLatestLoginInPeriod:number; completedTrips:number };
-  conversion: { kycApprovalPercent:number|null; firstTripPercent:number|null; downloadToRegistrationPercent:number|null };
+  business: {
+    platforms: { platform: string; registrations: number }[];
+    accountsWithLatestLoginInPeriod: number;
+    completedTrips: number;
+  };
+  conversion: {
+    kycApprovalPercent: number | null;
+    firstTripPercent: number | null;
+    downloadToRegistrationPercent: number | null;
+  };
 }
 export interface MetricDefinition {
   id: string;
@@ -114,6 +130,32 @@ export interface MetricDefinition {
   source: string;
   officialName: string;
   timezone: string;
+}
+export interface StoreDownloads {
+  from: string;
+  to: string;
+  generatedAt: string;
+  filters: {
+    platform: StorePlatform | null;
+    country: string | null;
+    version: string | null;
+  };
+  latestScope: "all_imported_dates_with_selected_dimensions";
+  comparableAcrossStores: false;
+  metrics: {
+    platform: StorePlatform;
+    metric: string;
+    label: string;
+    definition: MetricDefinition;
+    latest: { date: string; value: string; importedAt: string } | null;
+    period: {
+      value: string | null;
+      observedDays: number;
+      expectedDays: number;
+      availability: "available" | "partial" | "unavailable";
+    };
+    daily: { date: string; value: string | null; importedAt: string | null }[];
+  }[];
 }
 export interface StoreAlert {
   id: string;
@@ -140,6 +182,10 @@ export const storesApi = baseApi.injectEndpoints({
       query: (params) => ({ url: prefix + "/dashboard", params }),
       providesTags: ["StoreManagement"],
     }),
+    getStoreDownloads: builder.query<StoreDownloads, Params>({
+      query: (params) => ({ url: prefix + "/analytics/downloads", params }),
+      providesTags: ["StoreManagement"],
+    }),
     getStoreRecords: builder.query<Page<StoreRecord>, Params>({
       query: (params) => ({ url: prefix + "/records", params }),
       providesTags: ["StoreManagement"],
@@ -153,6 +199,10 @@ export const storesApi = baseApi.injectEndpoints({
     }),
     getStoreJobs: builder.query<Page<StoreJob>, Params>({
       query: (params) => ({ url: prefix + "/syncs", params }),
+      providesTags: ["StoreManagement"],
+    }),
+    getStoreJob: builder.query<StoreJob, string>({
+      query: (id) => prefix + "/sync/" + encodeURIComponent(id),
       providesTags: ["StoreManagement"],
     }),
     getStoreAlerts: builder.query<{ items: StoreAlert[] }, void>({
@@ -275,10 +325,12 @@ export const storesApi = baseApi.injectEndpoints({
 export const {
   useGetStoreStatusQuery,
   useGetStoreDashboardQuery,
+  useGetStoreDownloadsQuery,
   useGetStoreRecordsQuery,
   useGetStoreMetricsQuery,
   useGetStoreMetricCatalogQuery,
   useGetStoreJobsQuery,
+  useGetStoreJobQuery,
   useGetStoreAlertsQuery,
   useSyncStoreMutation,
   useRetryStoreSyncMutation,

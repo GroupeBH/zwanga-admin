@@ -22,6 +22,8 @@ import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 
 import shared from "../styles/page.module.css";
 
+import { SkeletonList } from "@/app/components/ui/Skeleton";
+
 const formatAmount = (amount: number, currency: string) =>
   `${new Intl.NumberFormat("fr-CD", { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
 
@@ -253,7 +255,7 @@ export default function SubscriptionsPage() {
         </p>
 
         {isLoading ? (
-          <p className={shared.emptyState}>Chargement des demandes...</p>
+          <SkeletonList count={5} />
         ) : (
           <div className={shared.tableWrapper}>
             <table className={shared.table}>
@@ -264,7 +266,7 @@ export default function SubscriptionsPage() {
                   <th>Montant</th>
                   <th>Statut</th>
                   <th>Abonnement</th>
-                  <th>Cree le</th>
+                  <th>Créé le</th>
                   <th>Note admin</th>
                 </tr>
               </thead>
@@ -423,7 +425,7 @@ function ActiveProSubscriptions() {
       ) : null}
 
       {isFetching && subscriptions.length === 0 ? (
-        <p className={shared.emptyState}>Chargement des abonnements...</p>
+        <SkeletonList count={5} />
       ) : (
         <div className={shared.tableWrapper}>
           <table className={shared.table}>

@@ -23,12 +23,15 @@ import {
   Clock,
 } from "lucide-react";
 
+import { BarList, CHART_COLORS, TrendChart } from "@/app/components/charts/Charts";
 import { useGetAllTripsQuery } from "@/lib/features/trips/tripsApi";
 import { useGetUsersQuery } from "@/lib/features/users/usersApi";
 import { useGetDashboardQuery } from "@/lib/features/dashboard/dashboardApi";
 import { useGetReportsQuery } from "@/lib/features/reports/reportsApi";
 
 import shared from "../styles/page.module.css";
+
+import local from "./analytics.module.css";
 
 // ---------------------------------------------------------------------------
 // Types locaux
@@ -89,317 +92,15 @@ const downloadCsv = (rows: string[][], filename: string): void => {
   URL.revokeObjectURL(url);
 };
 
-// ---------------------------------------------------------------------------
-// Sous-composant — Graphique SVG polyline (tendance des trajets)
-// ---------------------------------------------------------------------------
-
 interface TrendPoint {
   label: string;
   published: number;
   completed: number;
 }
 
-interface TrendChartProps {
-  data: TrendPoint[];
-}
-
-/**
- * Graphique SVG minimaliste à deux polylines :
- *  - orange (#ff7a00) = trajets publiés
- *  - vert (#3dd598)   = trajets complétés
- * Identique au style du dashboard existant.
- */
-function TrendChart({ data }: TrendChartProps) {
-  const W = 100;
-  const H = 60;
-  const PAD = 6;
-
-  // Calcul de l'échelle Y
-  const maxVal = Math.max(...data.flatMap((d) => [d.published, d.completed]), 1);
-
-  const toX = (i: number): number =>
-    PAD + (i / Math.max(data.length - 1, 1)) * (W - PAD * 2);
-  const toY = (v: number): number =>
-    H - PAD - ((v / maxVal) * (H - PAD * 2));
-
-  const buildPoints = (key: "published" | "completed"): string =>
-    data.map((d, i) => `${toX(i)},${toY(d[key])}`).join(" ");
-
-  if (data.length === 0) {
-    return (
-      <p className={shared.emptyState} style={{ textAlign: "center", padding: "32px 0" }}>
-        Aucune donnée de tendance disponible.
-      </p>
-    );
-  }
-
-  return (
-    <div style={{ width: "100%", overflowX: "auto" }}>
-      {/* Légende */}
-      <div
-        style={{
-          display: "flex",
-          gap: 20,
-          marginBottom: 10,
-          flexWrap: "wrap",
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem" }}>
-          <span
-            style={{ width: 16, height: 3, background: "#ff7a00", borderRadius: 2, display: "inline-block" }}
-          />
-          Publiés
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem" }}>
-          <span
-            style={{ width: 16, height: 3, background: "#3dd598", borderRadius: 2, display: "inline-block" }}
-          />
-          Complétés
-        </span>
-      </div>
-
-      {/* SVG principal */}
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={`Tendance des trajets sur ${data.length} jours : publiés (orange) et complétés (vert)`}
-        style={{
-          width: "100%",
-          height: 140,
-          display: "block",
-        }}
-      >
-        <title>Tendance des trajets sur 7 jours</title>
-
-        {/* Grille horizontale discrète */}
-        {[0.25, 0.5, 0.75].map((ratio) => (
-          <line
-            key={ratio}
-            x1={PAD}
-            y1={PAD + ratio * (H - PAD * 2)}
-            x2={W - PAD}
-            y2={PAD + ratio * (H - PAD * 2)}
-            stroke="rgba(255,255,255,0.06)"
-            strokeWidth={0.5}
-          />
-        ))}
-
-        {/* Zone remplie sous la courbe « publiés » */}
-        <polygon
-          points={`${buildPoints("published")} ${toX(data.length - 1)},${H - PAD} ${toX(0)},${H - PAD}`}
-          fill="rgba(255,122,0,0.08)"
-        />
-
-        {/* Polyline publiés */}
-        <polyline
-          points={buildPoints("published")}
-          fill="none"
-          stroke="#ff7a00"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Zone remplie sous la courbe « complétés » */}
-        <polygon
-          points={`${buildPoints("completed")} ${toX(data.length - 1)},${H - PAD} ${toX(0)},${H - PAD}`}
-          fill="rgba(61,213,152,0.08)"
-        />
-
-        {/* Polyline complétés */}
-        <polyline
-          points={buildPoints("completed")}
-          fill="none"
-          stroke="#3dd598"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Points de données publiés */}
-        {data.map((d, i) => (
-          <circle
-            key={`pub-${i}`}
-            cx={toX(i)}
-            cy={toY(d.published)}
-            r={1.8}
-            fill="#ff7a00"
-          />
-        ))}
-
-        {/* Points de données complétés */}
-        {data.map((d, i) => (
-          <circle
-            key={`comp-${i}`}
-            cx={toX(i)}
-            cy={toY(d.completed)}
-            r={1.8}
-            fill="#3dd598"
-          />
-        ))}
-      </svg>
-
-      {/* Labels de l'axe X */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginTop: 4,
-          paddingInline: `${(PAD / W) * 100}%`,
-        }}
-      >
-        {data.map((d, i) => (
-          <span
-            key={i}
-            style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", textAlign: "center" }}
-          >
-            {d.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sous-composant — Pie chart SVG (répartition des motifs de signalement)
-// ---------------------------------------------------------------------------
-
-interface PieSlice {
+interface ReasonSlice {
   label: string;
   count: number;
-  color: string;
-}
-
-interface PieChartProps {
-  slices: PieSlice[];
-}
-
-/** Génère un arc SVG décrit par startAngle et sweepAngle (en radians). */
-function arcPath(
-  cx: number,
-  cy: number,
-  r: number,
-  startAngle: number,
-  sweepAngle: number
-): string {
-  if (sweepAngle >= 2 * Math.PI) {
-    // Cercle complet
-    return `M ${cx + r} ${cy} A ${r} ${r} 0 1 1 ${cx + r - 0.001} ${cy} Z`;
-  }
-  const x1 = cx + r * Math.cos(startAngle);
-  const y1 = cy + r * Math.sin(startAngle);
-  const x2 = cx + r * Math.cos(startAngle + sweepAngle);
-  const y2 = cy + r * Math.sin(startAngle + sweepAngle);
-  const large = sweepAngle > Math.PI ? 1 : 0;
-  return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
-}
-
-function PieChart({ slices }: PieChartProps) {
-  const total = slices.reduce((sum, s) => sum + s.count, 0);
-
-  if (total === 0 || slices.length === 0) {
-    return (
-      <p className={shared.emptyState} style={{ textAlign: "center", padding: "32px 0" }}>
-        Aucune donnée de signalement disponible.
-      </p>
-    );
-  }
-
-  const CX = 50;
-  const CY = 50;
-  const R = 38;
-
-  let currentAngle = -Math.PI / 2; // Commence à midi
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: 24,
-        alignItems: "center",
-        flexWrap: "wrap",
-      }}
-    >
-      {/* Disque SVG */}
-      <svg
-        viewBox="0 0 100 100"
-        role="img"
-        aria-label={`Répartition des ${total} signalement(s) par motif`}
-        style={{ width: 160, height: 160, flexShrink: 0 }}
-      >
-        <title>Répartition des signalements par motif</title>
-        {slices.map((slice) => {
-          const sweep = (slice.count / total) * 2 * Math.PI;
-          const path = arcPath(CX, CY, R, currentAngle, sweep);
-          currentAngle += sweep;
-          return (
-            <path
-              key={slice.label}
-              d={path}
-              fill={slice.color}
-              stroke="var(--color-surface)"
-              strokeWidth={0.8}
-            >
-              <title>
-                {slice.label} : {slice.count} ({pct(slice.count, total)})
-              </title>
-            </path>
-          );
-        })}
-        {/* Trou central pour effet donut */}
-        <circle cx={CX} cy={CY} r={18} fill="var(--color-surface)" />
-        {/* Total au centre */}
-        <text
-          x={CX}
-          y={CY + 2}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="var(--color-text)"
-          fontSize="10"
-          fontWeight="600"
-        >
-          {total}
-        </text>
-      </svg>
-
-      {/* Légende */}
-      <ul
-        style={{
-          listStyle: "none",
-          margin: 0,
-          padding: 0,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        {slices.map((slice) => (
-          <li
-            key={slice.label}
-            style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "0.86rem" }}
-          >
-            <span
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: "50%",
-                background: slice.color,
-                flexShrink: 0,
-              }}
-            />
-            <span>
-              {slice.label}{" "}
-              <span style={{ color: "var(--color-text-muted)" }}>
-                ({slice.count} — {pct(slice.count, total)})
-              </span>
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -416,18 +117,18 @@ interface KpiCardProps {
 
 function KpiCard({ icon, label, value, helper, accentColor = "var(--color-primary)" }: KpiCardProps) {
   return (
-    <div className={shared.card} style={{ gap: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div className={`${shared.card} ${local.gap10}`}>
+      <div className={local.flexCenterGap8}>
         <span style={{ color: accentColor }}>{icon}</span>
-        <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", fontWeight: 600 }}>
+        <span className={local.text8MutedSemibold}>
           {label}
         </span>
       </div>
-      <p style={{ margin: 0, fontSize: "1.6rem", fontWeight: 700, lineHeight: 1 }}>
+      <p className={local.m0Text16BoldLh1}>
         {value}
       </p>
       {helper && (
-        <p className={shared.mutedText} style={{ fontSize: "0.78rem" }}>
+        <p className={`${shared.mutedText} ${local.text78}`}>
           {helper}
         </p>
       )}
@@ -438,9 +139,6 @@ function KpiCard({ icon, label, value, helper, accentColor = "var(--color-primar
 // ---------------------------------------------------------------------------
 // Composant principal
 // ---------------------------------------------------------------------------
-
-/** Couleurs pour les segments du pie chart des signalements. */
-const PIE_COLORS = ["#ff7a00", "#3dd598", "#4db8ff", "#ffd047", "#ff4b55", "#b67aff"];
 
 /** Labels français des motifs de signalement. */
 const REASON_LABELS: Record<string, string> = {
@@ -512,6 +210,13 @@ export default function AnalyticsPage() {
   // Calculs dérivés — Onglet Opérationnel
   // -------------------------------------------------------------------------
 
+  /* Les trajets sont charges par lot de 1000 au plus: le total vient du
+     serveur, les repartitions portent sur l'echantillon et le disent. */
+  const tripsTotal = dashboard?.tripSample.total ?? null;
+  const tripsTruncated = tripsTotal !== null && tripsTotal > trips.length;
+  const reportSampleSize = allReportsData?.reports?.length ?? 0;
+  const reportsTruncated = (allReportsData?.total ?? 0) > reportSampleSize;
+
   const operationalKpis = useMemo(() => {
     const total = trips.length;
     const completed = trips.filter((t) => t.status === "completed").length;
@@ -560,7 +265,7 @@ export default function AnalyticsPage() {
   }, [trips, pendingReportsData, resolvedReportsData, dismissedReportsData]);
 
   /** Répartition des motifs de signalement pour le pie chart. */
-  const reportReasonSlices = useMemo<PieSlice[]>(() => {
+  const reportReasonSlices = useMemo<ReasonSlice[]>(() => {
     const reports = allReportsData?.reports ?? [];
     const counts: Record<string, number> = {};
 
@@ -570,10 +275,9 @@ export default function AnalyticsPage() {
 
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
-      .map(([reason, count], idx) => ({
+      .map(([reason, count]) => ({
         label: REASON_LABELS[reason] ?? reason,
         count,
-        color: PIE_COLORS[idx % PIE_COLORS.length],
       }));
   }, [allReportsData]);
 
@@ -683,11 +387,11 @@ export default function AnalyticsPage() {
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h1 style={{ margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
+            <h1 className={local.m0FlexCenterGap10}>
               <BarChart2 size={26} aria-hidden="true" />
               Analytics &amp; Business Intelligence
             </h1>
-            <p className={shared.mutedText} style={{ marginTop: 4 }}>
+            <p className={`${shared.mutedText} ${local.mt4}`}>
               Rapport agrégé en temps réel depuis les données de la plateforme Zwanga.
             </p>
           </div>
@@ -695,10 +399,10 @@ export default function AnalyticsPage() {
           {/* Bouton Export CSV global (onglet actif) */}
           <button
             type="button"
-            className={shared.primaryButton}
+            className={`${shared.primaryButton} ${local.gap8}`}
             onClick={handleExportCsv}
             disabled={isLoading}
-            style={{ gap: 8 }}
+
           >
             <Download size={16} aria-hidden="true" />
             Exporter CSV — {TABS.find((t) => t.key === activeTab)?.label}
@@ -710,9 +414,10 @@ export default function AnalyticsPage() {
           <Info size={16} aria-hidden="true" />
           <span>
             Ces métriques sont calculées en direct depuis les données de la plateforme (trajets,
-            utilisateurs, signalements). Aucune donnée n'est stockée dans ce module : chaque
-            rechargement reflète l'état courant. L'export CSV produit un fichier adapté à Excel
-            ou Google Sheets.
+            utilisateurs, signalements). L'export CSV produit un fichier adapté à Excel ou
+            Google Sheets.
+            {tripsTruncated &&
+              ` Attention : les taux et répartitions portent sur les ${fmt(trips.length)} trajets les plus récents, sur ${fmt(tripsTotal ?? 0)} au total.`}
           </span>
         </p>
 
@@ -731,7 +436,7 @@ export default function AnalyticsPage() {
       <div
         role="tablist"
         aria-label="Onglets Analytics"
-        style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
+        className={local.flexGap10WrapWrap}
       >
         {TABS.map((tab) => (
           <button
@@ -763,12 +468,12 @@ export default function AnalyticsPage() {
           {/* KPIs principaux */}
           <section className={shared.section}>
             <div className={shared.sectionHeader}>
-              <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 className={local.m0FlexCenterGap8}>
                 <TrendingUp size={20} aria-hidden="true" />
                 KPIs Trajets
               </h2>
               {isLoading && (
-                <span className={shared.mutedText} style={{ fontSize: "0.82rem" }}>
+                <span className={`${shared.mutedText} ${local.text82}`}>
                   Chargement…
                 </span>
               )}
@@ -778,8 +483,12 @@ export default function AnalyticsPage() {
               <KpiCard
                 icon={<Route size={18} />}
                 label="Total trajets publiés"
-                value={fmt(operationalKpis.total)}
-                helper="Tous statuts confondus"
+                value={fmt(tripsTotal ?? operationalKpis.total)}
+                helper={
+                  tripsTruncated
+                    ? `Tous statuts · répartition ci-dessous sur les ${fmt(trips.length)} plus récents`
+                    : "Tous statuts confondus"
+                }
               />
               <KpiCard
                 icon={<CheckCircle size={18} />}
@@ -793,7 +502,7 @@ export default function AnalyticsPage() {
                 label="Trajets en cours"
                 value={fmt(operationalKpis.ongoing)}
                 helper="Actuellement actifs sur la plateforme"
-                accentColor="#4db8ff"
+                accentColor="var(--chart-blue)"
               />
               <KpiCard
                 icon={<XCircle size={18} />}
@@ -808,7 +517,7 @@ export default function AnalyticsPage() {
           {/* Graphique de tendance */}
           <section className={shared.section}>
             <div className={shared.sectionHeader}>
-              <h2 style={{ margin: 0 }}>Tendance des trajets — 7 derniers jours</h2>
+              <h2 className={local.m0}>Tendance des trajets — 7 derniers jours</h2>
             </div>
 
             {dashboardError ? (
@@ -820,14 +529,24 @@ export default function AnalyticsPage() {
                 Aucune donnée de tendance disponible pour le moment.
               </p>
             ) : (
-              <TrendChart data={trendData} />
+              <TrendChart
+                ariaLabel="Trajets publiés et terminés par jour."
+                points={trendData.map((d) => ({
+                  label: d.label,
+                  values: [d.published, d.completed],
+                }))}
+                series={[
+                  { label: "Publiés", color: CHART_COLORS.orange },
+                  { label: "Terminés", color: CHART_COLORS.blue },
+                ]}
+              />
             )}
           </section>
 
           {/* Routes populaires */}
           <section className={shared.section}>
             <div className={shared.sectionHeader}>
-              <h2 style={{ margin: 0 }}>Routes populaires</h2>
+              <h2 className={local.m0}>Routes populaires</h2>
             </div>
 
             {popularRoutes.length === 0 ? (
@@ -896,7 +615,7 @@ export default function AnalyticsPage() {
           {/* Taux de service */}
           <section className={shared.section}>
             <div className={shared.sectionHeader}>
-              <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 className={local.m0FlexCenterGap8}>
                 <CheckCircle size={20} aria-hidden="true" />
                 Taux de service
               </h2>
@@ -923,7 +642,7 @@ export default function AnalyticsPage() {
           {/* Signalements */}
           <section className={shared.section}>
             <div className={shared.sectionHeader}>
-              <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 className={local.m0FlexCenterGap8}>
                 <AlertTriangle size={20} aria-hidden="true" />
                 Signalements utilisateurs
               </h2>
@@ -954,11 +673,24 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Pie chart des motifs */}
-            <div style={{ marginTop: 8 }}>
-              <h3 style={{ margin: "0 0 16px", fontSize: "0.95rem" }}>
+            <div className={local.mt8}>
+              <h3 className={local.m0016Text95}>
                 Répartition par motif de signalement
               </h3>
-              <PieChart slices={reportReasonSlices} />
+              <BarList
+                emptyLabel="Aucun signalement enregistré."
+                items={reportReasonSlices.map((slice) => ({
+                  label: slice.label,
+                  value: slice.count,
+                  valueLabel: `${fmt(slice.count)} · ${pct(slice.count, reportSampleSize)}`,
+                }))}
+              />
+              {reportsTruncated && (
+                <p className={`${shared.mutedText} ${local.mt10Text8}`}>
+                  Répartition calculée sur les {fmt(reportSampleSize)} signalements les plus
+                  récents (sur {fmt(allReportsData?.total ?? 0)}).
+                </p>
+              )}
             </div>
           </section>
 
@@ -990,7 +722,7 @@ export default function AnalyticsPage() {
           {/* KPIs utilisateurs */}
           <section className={shared.section}>
             <div className={shared.sectionHeader}>
-              <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 className={local.m0FlexCenterGap8}>
                 <Users size={20} aria-hidden="true" />
                 Base utilisateurs
               </h2>
@@ -1021,20 +753,10 @@ export default function AnalyticsPage() {
 
             {/* Avertissement UTM */}
             <div
-              className={shared.notice}
-              style={{
-                background: "rgba(255, 208, 71, 0.08)",
-                borderColor: "rgba(255, 208, 71, 0.2)",
-                color: "var(--color-warning)",
-                display: "flex",
-                gap: 10,
-                alignItems: "flex-start",
-                borderRadius: 14,
-                padding: "12px 14px",
-                fontSize: "0.86rem",
-              }}
+              className={`${shared.notice} ${local.backgroundRgba25520871008BorderColorRgba2552087102WarningFle}`}
+
             >
-              <AlertTriangle size={16} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
+              <AlertTriangle size={16} className={local.mt2Shrink0} aria-hidden="true" />
               <span>
                 <strong>Données de conversion et d'acquisition :</strong> les métriques
                 d'acquisition (canaux, UTM, entonnoir d'inscription) nécessitent un suivi UTM
@@ -1047,7 +769,7 @@ export default function AnalyticsPage() {
           {/* Top conducteurs */}
           <section className={shared.section}>
             <div className={shared.sectionHeader}>
-              <h2 style={{ margin: 0 }}>Top 5 conducteurs par trajets complétés</h2>
+              <h2 className={local.m0}>Top 5 conducteurs par trajets complétés</h2>
             </div>
 
             {marketingKpis.topDrivers.length === 0 ? (

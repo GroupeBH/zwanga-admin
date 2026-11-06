@@ -7,10 +7,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { isMarketerRole } from "@/lib/features/auth/adminRoles";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
+import { useGetStoreStatusQuery } from "@/lib/features/stores/storesApi";
 import { beginNavigation } from "@/app/components/navigation/NavigationLoader";
 
 import styles from "./CommandPalette.module.css";
-import { marketerGroups, navGroups } from "./navigation";
+import { marketerGroups, navGroups, withStoreNavigation } from "./navigation";
 
 const normalize = (value: string) =>
   value
@@ -23,7 +24,11 @@ const normalize = (value: string) =>
 export const CommandPalette = () => {
   const router = useRouter();
   const { data: profile } = useGetCurrentUserProfileQuery();
-  const groups = isMarketerRole(profile?.user.role) ? marketerGroups : navGroups;
+  const stores = useGetStoreStatusQuery(undefined, { skip: !profile });
+  const groups = useMemo(() => withStoreNavigation(
+    isMarketerRole(profile?.user.role) ? marketerGroups : navGroups,
+    stores.data?.permissions ?? [],
+  ), [profile?.user.role, stores.data?.permissions]);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);

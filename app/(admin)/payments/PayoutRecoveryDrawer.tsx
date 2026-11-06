@@ -24,6 +24,9 @@ import {
 import { financeLabel, formatDateTime, formatMoney, formatTokens, formatUser } from "@/lib/features/finance/format";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/utils/apiErrors";
 import styles from "../finance.module.css";
+import { FinanceOtpConfirmation } from './FinanceOtpConfirmation';
+
+import { confirmAction } from "@/app/components/ui/Feedback";
 
 const eventLabels: Record<string, string> = {
   review_requested: "Vérification demandée",
@@ -48,6 +51,7 @@ export function PayoutRecoveryDrawer({ target, onClose, onOpen }: {
   const [evidenceReference, setEvidenceReference] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [notReceived, setNotReceived] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
   const [orderNumber, setOrderNumber] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,19 +97,24 @@ export function PayoutRecoveryDrawer({ target, onClose, onOpen }: {
   const perform = async (action: "reconcile" | "release" | "close" | "retry") => {
     if (actionLock.current || unavailable || !authorized || !payout) return;
     if (action === "retry" && (!canRetry || retryError)) { setError(retryError || "Relance non autorisée."); return; }
+    if (action === 'retry' && !/^\d{6}$/.test(otpCode)) { setError('Saisissez le code SMS de confirmation.'); return; }
     if (action !== "reconcile" && action !== "retry" && formError) { setError(formError); return; }
     if (action === "reconcile" && orderNumber.trim().length > 120) {
       setError("Le numéro de commande ne doit pas dépasser 120 caractères.");
       return;
     }
-    if (!window.confirm(action === "retry"
+    // Verrou pris avant la confirmation: elle est asynchrone, un second clic ne doit pas passer.
+    actionLock.current = true;
+    if (!(await confirmAction(action === "retry"
       ? `Clôturer le retrait non payé et envoyer ${formatMoney(payout.amount, payout.currency)} au ${payout.phone} ? Le prestataire doit avoir confirmé définitivement la non-exécution initiale. Le nouvel envoi aura son propre statut et ne sera pas marqué payé sans confirmation.`
       : action === "release"
       ? "Libérer les fonds réservés après confirmation définitive du prestataire ? Cette action n'annule pas le virement chez FlexPaie."
       : action === "close"
         ? "Clôturer cet incident après rapprochement financier ? Le versement réussi restera déduit du solde."
-        : "Vérifier ce retrait sans renvoyer d'argent ?")) return;
-    actionLock.current = true;
+        : "Vérifier ce retrait sans renvoyer d'argent ?"))) {
+      actionLock.current = false;
+      return;
+    }
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -119,7 +128,7 @@ export function PayoutRecoveryDrawer({ target, onClose, onOpen }: {
           throw new Error("Le dossier a changé. Vérifiez à nouveau le retrait avant de relancer.");
         const next = await retryPayout({ ...target, body: {
           expectedReference: fresh.payout.expectedReference!, reason: reason.trim(),
-          evidenceReference: evidenceReference.trim(), confirmedNotPaid: true, confirmedNotReceived: true,
+          evidenceReference: evidenceReference.trim(), confirmedNotPaid: true, confirmedNotReceived: true, otpCode,
         } }).unwrap();
         setReplacement(next);
         setNotice(payoutRetryResultMessage(next));
@@ -152,6 +161,7 @@ export function PayoutRecoveryDrawer({ target, onClose, onOpen }: {
       setConfirmed(false);
       setNotReceived(false);
     } finally {
+      setOtpCode('');
       // A refresh failure must not be reported as a rejected, already accepted operation.
       try { await query.refetch().unwrap(); } catch { /* query.error disables further writes */ }
       actionLock.current = false;
@@ -262,7 +272,11 @@ export function PayoutRecoveryDrawer({ target, onClose, onOpen }: {
                 {canRelease || closingIncident ? <button type="submit" className={styles.dangerButton} disabled={unavailable || !!formError}>
                   {busy ? "Traitement…" : closingIncident ? "Clôturer l'incident" : "Confirmer la libération"}
                 </button> : null}
-                {canRetry ? <button type="button" className={styles.secondaryButton} disabled={unavailable || !!retryError} onClick={() => perform("retry")}>
+                {canRetry && !retryError ? <FinanceOtpConfirmation
+                  intent={{ action: target.kind === 'driver' ? 'driver_payout_retry' : 'referral_withdrawal_retry', targetId: target.id,
+                    payload: { expectedReference: payout.expectedReference!, reason: reason.trim(), evidenceReference: evidenceReference.trim(), confirmedNotPaid: true, confirmedNotReceived: true } }}
+                  code={otpCode} onCode={setOtpCode} disabled={unavailable} /> : null}
+                {canRetry ? <button type="button" className={styles.secondaryButton} disabled={unavailable || !!retryError || !/^\d{6}$/.test(otpCode)} onClick={() => perform("retry")}>
                   {busy ? "Traitement…" : retryLabel}
                 </button> : null}
               </div>

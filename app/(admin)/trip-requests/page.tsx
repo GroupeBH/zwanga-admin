@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import type { TripPaymentMode, TripRequest, TripRequestStatus } from "@/lib/features/admin/types";
 import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
@@ -18,12 +18,19 @@ import { Download, Info } from "lucide-react";
 
 import shared from "../styles/page.module.css";
 
+import { confirmAction, notify } from "@/app/components/ui/Feedback";
+import { BulkBar, DataTable, type DataColumn } from "@/app/components/ui/DataTable";
+import { Pagination } from "@/app/components/ui/Pagination";
+import { bulkSummary, runBulk } from "@/lib/utils/runBulk";
+
+import { useUrlState } from "@/lib/utils/useUrlState";
+
 const statusLabel: Record<TripRequestStatus, string> = {
   pending: "En attente",
   offers_received: "Offres reçues",
   driver_selected: "Conducteur choisi",
-  cancelled: "Annulee",
-  expired: "Expiree",
+  cancelled: "Annulée",
+  expired: "Expirée",
 };
 
 const statusClass = (status: TripRequestStatus) => {
@@ -45,7 +52,7 @@ const formatDate = (dateString: string) =>
 
 const formatAmount = (amount?: number | null) =>
   amount === null || amount === undefined
-    ? "-"
+    ? "—"
     : new Intl.NumberFormat("fr-CD", {
         style: "currency",
         currency: "CDF",
@@ -53,19 +60,21 @@ const formatAmount = (amount?: number | null) =>
       }).format(Number(amount));
 
 export default function TripRequestsPage() {
-  const [statusFilter, setStatusFilter] = useState<TripRequestStatus | "all">("all");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useUrlState<TripRequestStatus | "all">("statut", "all");
+  const [search, setSearch] = useUrlState<string>("q", "");
+  const [page, setPage] = useUrlState<number>("page", 1);
   const [selectedRequest, setSelectedRequest] = useState<TripRequest | null>(null);
   const [requestForm, setRequestForm] = useState<UpdateTripRequestPayload>({});
   const limit = 50;
 
-  const { data, isFetching } = useGetAllTripRequestsQuery({
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const { data, isFetching, isLoading } = useGetAllTripRequestsQuery({
     page,
     limit,
     status: statusFilter,
   });
-  const tripRequests = data?.tripRequests ?? [];
+  const tripRequests = useMemo(() => data?.tripRequests ?? [], [data]);
 
   const [updateTripRequest, { isLoading: isUpdating }] =
     useUpdateAdminTripRequestMutation();
@@ -125,29 +134,179 @@ export default function TripRequestsPage() {
       closeEditModal();
     } catch (error) {
       console.error("Failed to update trip request:", error);
-      alert(error instanceof Error ? error.message : getApiErrorMessage(error, "Impossible de modifier cette demande de trajet."));
+      notify(error instanceof Error ? error.message : getApiErrorMessage(error, "Impossible de modifier cette demande de trajet."));
     }
   };
 
+  const route = (request: TripRequest) =>
+    `${request.departureLocation} → ${request.arrivalLocation}`;
+  const passengerName = (request: TripRequest) =>
+    `${request.passenger.firstName} ${request.passenger.lastName}`.trim();
+
   const handleDeactivate = async (request: TripRequest) => {
-    if (!confirm("Désactiver cette demande de trajet ?")) return;
+    const confirmed = await confirmAction({
+      title: "Désactiver cette demande ?",
+      message: `${passengerName(request)} · ${route(request)}\nLes conducteurs ne pourront plus faire d’offre.`,
+      confirmLabel: "Désactiver",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       await deactivateTripRequest(request.id).unwrap();
+      notify("Demande désactivée.", "success");
     } catch (error) {
       console.error("Failed to deactivate trip request:", error);
-      alert("Impossible de désactiver cette demande.");
+      notify(getApiErrorMessage(error, "Impossible de désactiver cette demande."), "error");
     }
   };
 
   const handleDelete = async (request: TripRequest) => {
-    if (!confirm("Supprimer définitivement cette demande de trajet ?")) return;
+    const confirmed = await confirmAction({
+      title: "Supprimer définitivement cette demande ?",
+      message: `${passengerName(request)} · ${route(request)}\nCette action est irréversible ; préférez « Désactiver » pour simplement la retirer.`,
+      confirmLabel: "Supprimer",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       await deleteTripRequest(request.id).unwrap();
+      notify("Demande supprimée.", "success");
     } catch (error) {
       console.error("Failed to delete trip request:", error);
-      alert("Impossible de supprimer cette demande.");
+      notify(getApiErrorMessage(error, "Impossible de supprimer cette demande."), "error");
     }
   };
+
+  useEffect(() => {
+    setChecked(new Set());
+  }, [page, statusFilter]);
+
+  const checkedRequests = filtered.filter((request) => checked.has(request.id));
+  const checkedActive = checkedRequests.filter((request) => request.status !== "cancelled");
+
+  const bulkDeactivate = async () => {
+    if (!checkedActive.length) return;
+    const confirmed = await confirmAction({
+      title: `Désactiver ${checkedActive.length} demande(s) ?`,
+      message: "Les conducteurs ne pourront plus faire d’offre sur ces demandes.",
+      confirmLabel: "Désactiver",
+      tone: "danger",
+    });
+    if (!confirmed) return;
+    const result = await runBulk(
+      checkedActive,
+      (request) => deactivateTripRequest(request.id).unwrap(),
+      (done, count) => setProgress({ done, total: count })
+    );
+    setProgress(null);
+    setChecked(new Set(result.failed.map(({ item }) => item.id)));
+    notify(
+      bulkSummary(result.succeeded, result.failed.length, "demande"),
+      result.failed.length ? "error" : "success"
+    );
+  };
+
+  const columns: DataColumn<TripRequest>[] = [
+    {
+      key: "passenger",
+      header: "Passager",
+      sortValue: passengerName,
+      cell: (request) => (
+        <>
+          <strong>{passengerName(request)}</strong>
+          <br />
+          <small className={shared.mutedText}>{request.passenger.phone}</small>
+        </>
+      ),
+    },
+    {
+      key: "route",
+      header: "Demande",
+      sortValue: (request) => request.departureLocation,
+      cell: (request) => (
+        <>
+          <strong>{request.departureLocation}</strong>
+          <br />
+          <small className={shared.mutedText}>→ {request.arrivalLocation}</small>
+        </>
+      ),
+    },
+    {
+      key: "window",
+      header: "Fenêtre de départ",
+      sortValue: (request) => request.departureDateMin,
+      cell: (request) => (
+        <>
+          {formatDate(request.departureDateMin)}
+          <br />
+          <small className={shared.mutedText}>au plus tard {formatDate(request.departureDateMax)}</small>
+        </>
+      ),
+    },
+    {
+      key: "seats",
+      header: "Places",
+      align: "right",
+      sortValue: (request) => request.numberOfSeats,
+      cell: (request) => request.numberOfSeats,
+    },
+    {
+      key: "price",
+      header: "Prix max",
+      align: "right",
+      sortValue: (request) => request.maxPricePerSeat ?? null,
+      cell: (request) => formatAmount(request.maxPricePerSeat),
+    },
+    {
+      key: "offers",
+      header: "Offres",
+      align: "right",
+      sortValue: (request) => request.driverOffers.length,
+      cell: (request) => request.driverOffers.length,
+    },
+    {
+      key: "status",
+      header: "Statut",
+      sortValue: (request) => statusLabel[request.status],
+      cell: (request) => (
+        <span className={statusClass(request.status)}>{statusLabel[request.status]}</span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (request) => (
+        <div className={shared.rowActions}>
+          <button
+            type="button"
+            className={shared.secondaryButton}
+            onClick={() => openEditModal(request)}
+            disabled={!canEditRequest(request)}
+          >
+            {request.status === "expired" ? "Reprogrammer" : "Modifier"}
+          </button>
+          {request.status !== "cancelled" ? (
+            <button
+              type="button"
+              className={shared.secondaryButton}
+              onClick={() => void handleDeactivate(request)}
+              disabled={isDeactivating}
+            >
+              Désactiver
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={shared.dangerButton}
+            onClick={() => void handleDelete(request)}
+            disabled={isDeleting}
+          >
+            Supprimer
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   const handleExport = async () => {
     setExportError(null);
@@ -169,16 +328,16 @@ export default function TripRequestsPage() {
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h2>Demandes de trajet</h2>
+            <h1>Demandes de trajet</h1>
             <p className={shared.filterSummary}>
-              {filtered.length} demande{filtered.length > 1 ? "s" : ""} affichée
-              {filtered.length > 1 ? "s" : ""}
+              {typeof data?.total === "number" ? `${data.total} au total · ` : ""}
+              {filtered.length} affichée{filtered.length > 1 ? "s" : ""} sur cette page
             </p>
           </div>
           <div className={shared.toolbar}>
             <div className={shared.filterField}>
               <label className={shared.filterLabel} htmlFor="requests-search">
-                Rechercher une demande
+                Rechercher (page affichée)
               </label>
               <input
                 id="requests-search"
@@ -204,8 +363,8 @@ export default function TripRequestsPage() {
                 <option value="pending">En attente</option>
                 <option value="offers_received">Offres reçues</option>
                 <option value="driver_selected">Conducteur choisi</option>
-                <option value="cancelled">Annulees</option>
-                <option value="expired">Expirees</option>
+                <option value="cancelled">Annulées</option>
+                <option value="expired">Expirées</option>
               </select>
             </div>
             <button
@@ -214,8 +373,8 @@ export default function TripRequestsPage() {
               onClick={handleExport}
               disabled={isExporting}
             >
-              <Download size={16} style={{ marginRight: 8 }} />
-              {isExporting ? "Export..." : "Exporter XLS"}
+              <Download size={16} aria-hidden="true" />
+              {isExporting ? "Export…" : "Exporter XLS"}
             </button>
           </div>
         </div>
@@ -235,136 +394,42 @@ export default function TripRequestsPage() {
           </p>
         ) : null}
 
-        {isFetching ? (
-          <p>Chargement des demandes...</p>
-        ) : (
-          <div className={shared.tableWrapper}>
-            <table className={shared.table}>
-              <thead>
-                <tr>
-                  <th>Passager</th>
-                  <th>Demande</th>
-                  <th>Fenêtre de départ</th>
-                  <th>Places</th>
-                  <th>Prix max</th>
-                  <th>Offres</th>
-                  <th>Statut</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center" }}>
-                      Aucune demande trouvée
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((request) => (
-                    <tr key={request.id}>
-                      <td>
-                        <strong>
-                          {request.passenger.firstName} {request.passenger.lastName}
-                        </strong>
-                        <br />
-                        <small style={{ color: "var(--color-text-muted)" }}>
-                          {request.passenger.phone}
-                        </small>
-                      </td>
-                      <td>
-                        <strong>{request.departureLocation}</strong>
-                        <br />
-                        <small style={{ color: "var(--color-text-muted)" }}>
-                          -&gt; {request.arrivalLocation}
-                        </small>
-                      </td>
-                      <td>
-                        {formatDate(request.departureDateMin)}
-                        <br />
-                        <small style={{ color: "var(--color-text-muted)" }}>
-                          max {formatDate(request.departureDateMax)}
-                        </small>
-                      </td>
-                      <td>{request.numberOfSeats}</td>
-                      <td>{formatAmount(request.maxPricePerSeat)}</td>
-                      <td>{request.driverOffers.length}</td>
-                      <td>
-                        <span className={statusClass(request.status)}>
-                          {statusLabel[request.status]}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button
-                            type="button"
-                            className={shared.primaryButton}
-                            onClick={() => openEditModal(request)}
-                            disabled={!canEditRequest(request)}
-                            style={{ fontSize: "0.85rem", padding: "6px 12px" }}
-                          >
-                            {request.status === 'expired' ? 'Reprogrammer' : 'Modifier'}
-                          </button>
-                          {request.status !== "cancelled" ? (
-                            <button
-                              type="button"
-                              className={shared.primaryButton}
-                              onClick={() => handleDeactivate(request)}
-                              disabled={isDeactivating}
-                              style={{
-                                fontSize: "0.85rem",
-                                padding: "6px 12px",
-                                background: "rgba(255, 208, 71, 0.14)",
-                                color: "var(--color-warning)",
-                              }}
-                            >
-                              Désactiver
-                            </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            className={shared.primaryButton}
-                            onClick={() => handleDelete(request)}
-                            disabled={isDeleting}
-                            style={{
-                              fontSize: "0.85rem",
-                              padding: "6px 12px",
-                              background: "rgba(255, 75, 85, 0.15)",
-                              color: "var(--color-danger)",
-                            }}
-                          >
-                            Supprimer
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <BulkBar count={checked.size} onClear={() => setChecked(new Set())} progress={progress}>
+          <button
+            type="button"
+            className={shared.secondaryButton}
+            onClick={() => void bulkDeactivate()}
+            disabled={!checkedActive.length}
+          >
+            Désactiver ({checkedActive.length})
+          </button>
+        </BulkBar>
 
-        <div className={shared.pagination}>
-          <button
-            type="button"
-            className={shared.primaryButton}
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            disabled={isFetching || page === 1}
-          >
-            Page precedente
-          </button>
-          <span>
-            Page {page} - {data?.total ?? 0} demande(s)
-          </span>
-          <button
-            type="button"
-            className={shared.primaryButton}
-            onClick={() => setPage((prev) => prev + 1)}
-            disabled={isFetching || (data?.total ?? 0) <= page * limit}
-          >
-            Page suivante
-          </button>
-        </div>
+        <DataTable
+          caption="Demandes de trajet"
+          rows={filtered}
+          columns={columns}
+          rowKey={(request) => request.id}
+          loading={isLoading}
+          refreshing={isFetching && !isLoading}
+          selected={checked}
+          onSelectedChange={setChecked}
+          empty={
+            search.trim()
+              ? "Aucune demande de cette page ne correspond à la recherche."
+              : "Aucune demande pour ce filtre."
+          }
+        />
+
+        <Pagination
+          page={page}
+          limit={limit}
+          total={typeof data?.total === "number" ? data.total : null}
+          pageCount={tripRequests.length}
+          onChange={setPage}
+          disabled={isFetching}
+          noun="demandes"
+        />
       </section>
 
       {selectedRequest ? (

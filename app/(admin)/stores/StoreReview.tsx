@@ -9,14 +9,19 @@ import {
 import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 import shared from "../styles/page.module.css";
 
+import { confirmAction, promptText } from "@/app/components/ui/Feedback";
+import { label, REVIEW_STATUS_LABEL } from "@/lib/features/stores/storeMonitoring";
+
 export function StoreReview({
   record,
   permissions,
   done,
+  repliesEnabled = true,
 }: {
   record: StoreRecord;
   permissions: string[];
   done: (message: string) => void;
+  repliesEnabled?: boolean;
 }) {
   const [open, setOpen] = useState(false),
     [text, setText] = useState<string | null>(null),
@@ -52,9 +57,9 @@ export function StoreReview({
   const send = async () => {
     if (
       !workflow ||
-      !window.confirm(
+      !(await confirmAction(
         "Publier la réponse approuvée sur le store ? Cette action est publique.",
-      )
+      ))
     )
       return;
     if (intent.current?.revision !== workflow.revision)
@@ -114,7 +119,7 @@ export function StoreReview({
           {workflow && (
             <>
               <p>
-                État Zwanga : {workflow.status} · Révision {workflow.revision} ·
+                État Zwanga : {label(REVIEW_STATUS_LABEL, workflow.status)} · Révision {workflow.revision} ·
                 Responsable : {workflow.assigneeId || "Non assigné"}
               </p>
               {workflow.publishedJobId && (
@@ -221,9 +226,9 @@ export function StoreReview({
                 <button
                   disabled={busy}
                   className={shared.primaryButton}
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      window.confirm(
+                      await confirmAction(
                         "Approuver ce brouillon pour une publication publique ?",
                       )
                     )
@@ -238,8 +243,8 @@ export function StoreReview({
                   <button
                     disabled={busy}
                     className={shared.secondaryButton}
-                    onClick={() => {
-                      const reason = window.prompt(
+                    onClick={async () => {
+                      const reason = await promptText(
                         "Dérogation Super Admin : motif obligatoire de l’auto-approbation",
                       );
                       if (reason?.trim())
@@ -253,13 +258,21 @@ export function StoreReview({
                   </button>
                 )}
               {can("reply") && workflow.status === "approved" && (
-                <button
-                  disabled={busy}
-                  className={shared.primaryButton}
-                  onClick={send}
-                >
-                  Publier la réponse approuvée
-                </button>
+                <>
+                  <button
+                    disabled={busy || !repliesEnabled}
+                    className={shared.primaryButton}
+                    onClick={send}
+                  >
+                    Publier la réponse approuvée
+                  </button>
+                  {!repliesEnabled && (
+                    <p>
+                      La publication des réponses est désactivée côté serveur
+                      (STORE_REVIEW_REPLIES_ENABLED).
+                    </p>
+                  )}
+                </>
               )}
             </>
           )}

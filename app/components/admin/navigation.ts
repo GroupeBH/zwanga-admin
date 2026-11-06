@@ -22,6 +22,8 @@ import {
   Share2,
   ShieldCheck,
   Star,
+  Smartphone,
+  Store,
   UserPlus,
   UserRound,
   Users,
@@ -42,6 +44,9 @@ export interface NavItem {
   readonly badgeKey?: BadgeKey;
   /** Mots supplementaires reconnus par la palette de commandes. */
   readonly keywords?: string;
+  /** Raccourci vers une vue d'une autre page: cherchable (Ctrl K) mais
+      absent du menu lateral, pour garder un menu court. */
+  readonly paletteOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -56,7 +61,7 @@ export const navGroups: readonly NavGroup[] = [
     label: "Vue d’ensemble",
     items: [
       { label: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard, keywords: "accueil statistiques kpi" },
-      { label: "Carte des trajets", href: "/trips#carte", icon: MapPin, keywords: "temps réel live carte" },
+      { label: "Carte des trajets", href: "/trips#carte", icon: MapPin, keywords: "temps réel live carte", paletteOnly: true },
       { label: "Analyses", href: "/analytics", icon: BarChart3, keywords: "bi rapports croissance rétention" },
     ],
   },
@@ -64,7 +69,7 @@ export const navGroups: readonly NavGroup[] = [
     label: "Utilisateurs et ressources",
     items: [
       { label: "Utilisateurs", href: "/users", icon: Users, keywords: "passagers comptes" },
-      { label: "Conducteurs", href: "/users?role=driver", icon: Car, keywords: "chauffeurs véhicules" },
+      { label: "Conducteurs", href: "/users?role=driver", icon: Car, keywords: "chauffeurs véhicules", paletteOnly: true },
       { label: "Véhicules", href: "/vehicles", icon: CarFront, keywords: "propriétaires plaques voitures motos tricycles" },
       { label: "Validation KYC", href: "/kyc", icon: ShieldCheck, badgeKey: "kyc", keywords: "identité documents" },
     ],
@@ -110,7 +115,7 @@ export const navGroups: readonly NavGroup[] = [
     items: [
       { label: "Mises à jour", href: "/app-updates", icon: Download, keywords: "version application" },
       { label: "Paramètres", href: "/settings", icon: Settings, keywords: "configuration" },
-      { label: "Profil admin", href: "/profile", icon: UserRound, keywords: "mot de passe compte" },
+      { label: "Profil admin", href: "/profile", icon: UserRound, keywords: "mot de passe compte", paletteOnly: true },
     ],
   },
 ];
@@ -129,6 +134,17 @@ export const marketerGroups: readonly NavGroup[] = [
   },
 ];
 
+/** UI visibility follows the permissions returned by NestJS, never a local role guess. */
+export function withStoreNavigation(groups: readonly NavGroup[], permissions: readonly string[]) {
+  const items: NavItem[] = [];
+  if (permissions.some((p) => p.startsWith('store.')))
+    items.push({ label: 'Stores & Distribution', href: '/stores', icon: Store, keywords: 'google play apple avis analytics intégrations synchronisations' });
+  if (permissions.some((p) => p.startsWith('mobile.')) || permissions.includes('store.versions.read'))
+    items.push({ label: 'Supervision mobile', href: '/mobile-operations', icon: Smartphone, keywords: 'installations campagnes versions politiques android ios' });
+  if (!items.length) return groups;
+  return [...groups.slice(0, -1), { label: 'Applications mobiles', items }, ...groups.slice(-1)];
+}
+
 /* Un lien actif doit etre unique: "/users?role=driver" ne doit pas allumer
    aussi "Utilisateurs". */
 export const isNavItemActive = (
@@ -144,7 +160,8 @@ export const isNavItemActive = (
   if (rawPath === "/users") {
     const wantsDriver = rawQuery.includes("role=driver");
     const isDriver = new URLSearchParams(search).get("role") === "driver";
-    return wantsDriver === isDriver;
+    // « Conducteurs » n'est plus dans le menu: « Utilisateurs » couvre les deux vues.
+    return wantsDriver ? isDriver : true;
   }
   return true;
 };

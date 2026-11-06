@@ -7,6 +7,7 @@ import clsx from "clsx";
 import { isMarketerRole } from "@/lib/features/auth/adminRoles";
 import { useGetPendingKycsQuery } from "@/lib/features/kyc/kycApi";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
+import { useGetStoreStatusQuery } from "@/lib/features/stores/storesApi";
 import { useGetReportsQuery } from "@/lib/features/reports/reportsApi";
 import { useGetDocumentFundingRequestsQuery } from "@/lib/features/subscriptions/subscriptionsApi";
 import { useGetAllTripsQuery } from "@/lib/features/trips/tripsApi";
@@ -15,7 +16,7 @@ import { setSidebarOpen } from "@/lib/features/ui/uiSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
 import styles from "./Sidebar.module.css";
-import { isNavItemActive, marketerGroups, navGroups, type BadgeKey } from "./navigation";
+import { isNavItemActive, marketerGroups, navGroups, withStoreNavigation, type BadgeKey } from "./navigation";
 import { X } from "lucide-react";
 
 interface SidebarProps {
@@ -33,7 +34,8 @@ export const Sidebar = ({ isCompactViewport }: SidebarProps) => {
   }, [pathname]);
   const { data: profile } = useGetCurrentUserProfileQuery();
   const marketer = isMarketerRole(profile?.user.role);
-  const groups = marketer ? marketerGroups : navGroups;
+  const stores = useGetStoreStatusQuery(undefined, { skip: !profile });
+  const groups = withStoreNavigation(marketer ? marketerGroups : navGroups, stores.data?.permissions ?? []);
   /* Le badge annonce les signalements a traiter: le filtre serveur evite de
      rapatrier tout l'historique pour n'en compter qu'une partie. */
   const { data: pendingReports } = useGetReportsQuery(
@@ -149,7 +151,7 @@ export const Sidebar = ({ isCompactViewport }: SidebarProps) => {
           <div key={group.label} className={styles.navGroup}>
             <p className={styles.groupLabel}>{group.label}</p>
             <div className={styles.nav}>
-              {group.items.map((item) => {
+              {group.items.filter((item) => !item.paletteOnly).map((item) => {
                 const Icon = item.icon;
                 const active = isNavItemActive(item, pathname, search);
                 const badgeValue = getBadge(item.badgeKey);

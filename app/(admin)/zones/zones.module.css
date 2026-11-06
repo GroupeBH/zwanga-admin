@@ -1,0 +1,134 @@
+/* Styles propres a la page, extraits des attributs style= en ligne.
+   Classe doublee: meme priorite qu'avant face aux regles partagees. */
+.m0FlexCenterGap10.m0FlexCenterGap10 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.primary.primary {
+  color: var(--color-primary);
+}
+
+.m0.m0 {
+  margin: 0;
+}
+
+.flexCenterGap8Muted.flexCenterGap8Muted {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+}
+
+.success.success {
+  color: var(--color-success);
+}
+
+.text2Success.text2Success {
+  font-size: 2rem;
+  color: var(--color-success);
+}
+
+.warning.warning {
+  color: var(--color-warning);
+}
+
+.text2Warning.text2Warning {
+  font-size: 2rem;
+  color: var(--color-warning);
+}
+
+.text2Primary.text2Primary {
+  font-size: 2rem;
+  color: var(--color-primary);
+}
+
+.radius18OverflowHiddenBorder1SolidVarColorBorderH320Backgrou.radius18OverflowHiddenBorder1SolidVarColorBorderH320Backgrou {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  height: 320px;
+  background: rgba(255,255,255,0.02);
+}
+
+.w100PctH100PctBorder0Block.w100PctH100PctBorder0Block {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.text82M0.text82M0 {
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.m400Text88.m400Text88 {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+}
+
+.flexCenterGap8.flexCenterGap8 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text88.text88 {
+  font-size: 0.88rem;
+}
+
+.flexCenterGap8MinWidth120.flexCenterGap8MinWidth120 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.flex1H6Radius999BackgroundRgba255255255007OverflowHidden.flex1H6Radius999BackgroundRgba255255255007OverflowHidden {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.07);
+  overflow: hidden;
+}
+
+.text78MinWidth34TextRight.text78MinWidth34TextRight {
+  font-size: 0.78rem;
+  min-width: 34px;
+  text-align: right;
+}
+
+.m0Text1.m0Text1 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.m0Lh165.m0Lh165 {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.text.text {
+  color: var(--color-text);
+}
+
+.mt4P1214Radius14Border1SolidRgba25520871025BackgroundRgba255.mt4P1214Radius14Border1SolidRgba25520871025BackgroundRgba255 {
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 208, 71, 0.25);
+  background: rgba(255, 208, 71, 0.07);
+  color: var(--color-warning);
+  font-size: 0.88rem;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.shrink0Mt2.shrink0Mt2 {
+  flex-shrink: 0;
+  margin-top: 2px;
+}

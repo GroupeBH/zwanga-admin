@@ -27,6 +27,10 @@ import type {
 
 import styles from "../finance.module.css";
 
+import { confirmAction } from "@/app/components/ui/Feedback";
+
+import { SkeletonList } from "@/app/components/ui/Skeleton";
+
 const ACCOUNT_PAGE_SIZE = 25;
 
 type BalanceFilter = "all" | "positive" | "negative" | "zero";
@@ -268,7 +272,7 @@ export default function TokensPage() {
 
         {accountsQuery.error ? <div className={styles.error}>{getApiError(accountsQuery.error)}</div> : null}
         {accountsQuery.isFetching && accounts.length === 0 ? (
-          <div className={styles.empty}>Chargement des portefeuilles…</div>
+          <SkeletonList count={6} />
         ) : accounts.length === 0 ? (
           <div className={styles.empty}>
             {accountSearch || balanceFilter !== "all"
@@ -416,7 +420,7 @@ export default function TokensPage() {
 
         {ledgerQuery.error ? <div className={styles.error}>{getApiError(ledgerQuery.error)}</div> : null}
         {ledgerQuery.isFetching && entries.length === 0 ? (
-          <div className={styles.empty}>Chargement du registre…</div>
+          <SkeletonList count={6} />
         ) : entries.length === 0 ? (
           <div className={styles.empty}>Aucune écriture disponible.</div>
         ) : (
@@ -517,7 +521,7 @@ function AdjustmentModal({
     }
     const signedAmount = direction === "credit" ? numericAmount : -numericAmount;
     if (signedAmount < 0 && numericAmount > account.balance) return;
-    if (!confirm(`${direction === "credit" ? "Ajouter" : "Retirer"} ${formatTokens(numericAmount)} ${direction === "credit" ? "à" : "de"} ${formatUser(account.user)} ?`)) {
+    if (!(await confirmAction(`${direction === "credit" ? "Ajouter" : "Retirer"} ${formatTokens(numericAmount)} ${direction === "credit" ? "à" : "de"} ${formatUser(account.user)} ?`))) {
       return;
     }
     try {

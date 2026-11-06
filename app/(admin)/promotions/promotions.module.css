@@ -1,0 +1,143 @@
+/* Styles propres a la page, extraits des attributs style= en ligne.
+   Classe doublee: meme priorite qu'avant face aux regles partagees. */
+.m0FlexCenterGap8.m0FlexCenterGap8 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.p1620Radius18Border1SolidRgba61213152025BackgroundRgba612131.p1620Radius18Border1SolidRgba61213152025BackgroundRgba612131 {
+  padding: 16px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(61,213,152,0.25);
+  background: rgba(61,213,152,0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.m0SemiboldText105.m0SemiboldText105 {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.success.success {
+  color: var(--color-success);
+}
+
+.text88.text88 {
+  font-size: 0.88rem;
+}
+
+.verticalAlignMiddleMr4.verticalAlignMiddleMr4 {
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.primaryDecorationNoneSemibold.primaryDecorationNoneSemibold {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.text82.text82 {
+  font-size: 0.82rem;
+}
+
+.flexCenterGap8.flexCenterGap8 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text85.text85 {
+  font-size: 0.85rem;
+}
+
+.m0Text2Bold.m0Text2Bold {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.text8M0.text8M0 {
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.minWidth140.minWidth140 {
+  min-width: 140px;
+}
+
+.fontMonospaceBoldText95PrimaryLetterSpacing006Em.fontMonospaceBoldText95PrimaryLetterSpacing006Em {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-primary);
+  letter-spacing: 0.06em;
+}
+
+.minHeight30P48Radius8Text75Gap4.minHeight30P48Radius8Text75Gap4 {
+  min-height: 30px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  gap: 4px;
+}
+
+.semibold.semibold {
+  font-weight: 600;
+}
+
+.flexDirColumnGap4.flexDirColumnGap4 {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.w100PctBackgroundRgba25525525501Radius4H6.w100PctBackgroundRgba25525525501Radius4H6 {
+  width: 100%;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  height: 6px;
+}
+
+.text78.text78 {
+  font-size: 0.78rem;
+}
+
+.text85M0.text85M0 {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.flexCenterGap10.flexCenterGap10 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.text16.text16 {
+  font-size: 1.6rem;
+}
+
+.m0Text8.m0Text8 {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.m0Text87.m0Text87 {
+  margin: 0;
+  font-size: 0.87rem;
+}
+
+.m0.m0 {
+  margin: 0;
+}
+
+.paddingLeft20M0.paddingLeft20M0 {
+  padding-left: 20px;
+  margin: 0;
+}

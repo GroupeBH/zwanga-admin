@@ -75,7 +75,7 @@ export const payoutRecoveryApi = baseApi.injectEndpoints({
       invalidatesTags: [...financialTags],
     }),
     retryPayout: builder.mutation<RecoveryWithdrawal, PayoutTarget & {
-      body: ResolveNotPaidPayload & { confirmedNotReceived: true };
+      body: ResolveNotPaidPayload & { confirmedNotReceived: true; otpCode?: string };
     }>({
       query: ({ body, ...target }) => ({ url: `${payoutPath(target)}/retry`, method: "POST", body }),
       invalidatesTags: [...financialTags],

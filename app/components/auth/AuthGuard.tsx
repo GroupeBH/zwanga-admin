@@ -28,7 +28,8 @@ const PUBLIC_ROUTES = [
 
 const PUBLIC_ROUTE_PREFIXES = ["/track/", "/payments/return/", "/subscriptions/payment/"];
 
-const MARKETER_ROUTES = new Set(["/dashboard", "/settings", "/profile"]);
+// These workspaces additionally enforce the per-feature permissions returned by NestJS.
+const MARKETER_ROUTES = new Set(["/dashboard", "/settings", "/profile", "/stores", "/mobile-operations"]);
 
 export const AuthGuard = ({ children }: AuthGuardProps) => {
   const router = useRouter();

@@ -1,0 +1,118 @@
+/* Styles propres a la page, extraits des attributs style= en ligne.
+   Classe doublee: meme priorite qu'avant face aux regles partagees. */
+.inlineFlexCenterGap2.inlineFlexCenterGap2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.flexCenterGap8Warning.flexCenterGap8Warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-warning);
+}
+
+.m0Text85.m0Text85 {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.m0Text2Bold.m0Text2Bold {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.text1MutedMl4.text1MutedMl4 {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin-left: 4px;
+}
+
+.text8.text8 {
+  font-size: 0.8rem;
+}
+
+.flexCenterGap8Success.flexCenterGap8Success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-success);
+}
+
+.text1MutedMl2.text1MutedMl2 {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin-left: 2px;
+}
+
+.flexCenterGap8Danger.flexCenterGap8Danger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-danger);
+}
+
+.flexCenterGap8M0.flexCenterGap8M0 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.mt4.mt4 {
+  margin-top: 4px;
+}
+
+.bold.bold {
+  font-weight: 700;
+}
+
+.m0.m0 {
+  margin: 0;
+}
+
+.m0BoldFlexCenterGap6Danger.m0BoldFlexCenterGap6Danger {
+  margin: 0;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-danger);
+}
+
+.text85.text85 {
+  font-size: 0.85rem;
+}
+
+.m0BoldFlexCenterGap6Warning.m0BoldFlexCenterGap6Warning {
+  margin: 0;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-warning);
+}
+
+.m0BoldFlexCenterGap6Primary.m0BoldFlexCenterGap6Primary {
+  margin: 0;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-primary);
+}
+
+.m0BoldFlexCenterGap6Success.m0BoldFlexCenterGap6Success {
+  margin: 0;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-success);
+}
+
+.fontMonospace.fontMonospace {
+  font-family: monospace;
+}

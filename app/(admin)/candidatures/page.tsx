@@ -14,6 +14,8 @@ import {
 import shared from "../styles/page.module.css";
 import styles from "./candidatures.module.css";
 
+import { confirmAction } from "@/app/components/ui/Feedback";
+
 type CandidatureItem = {
   id: string;
   createdAt: string;
@@ -150,7 +152,7 @@ export default function CandidaturesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Supprimer définitivement cette candidature ?")) return;
+    if (!(await confirmAction("Supprimer définitivement cette candidature ?"))) return;
     setDeletingId(id);
     try {
       const response = await fetch(`/api/recrutement-terrain?id=${id}`, {

@@ -1,3 +1,17 @@
+export const STORE_DOWNLOAD_REFRESH = {
+  pollingInterval: 15000,
+  skipPollingIfUnfocused: true,
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+  refetchOnMountOrArgChange: true,
+} as const;
+
+/** Counts are kept as decimal strings by PostgreSQL, including very large ones. */
+export function formatStoreCount(value: string | null | undefined) {
+  if (value == null || !/^\d+(?:\.0+)?$/.test(value)) return "Indisponible";
+  return BigInt(value.split(".")[0]).toLocaleString("fr-CD");
+}
+
 export function storeDailyValues(
   from: string,
   to: string,

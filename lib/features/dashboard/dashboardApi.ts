@@ -38,9 +38,9 @@ const toKycDocuments = (payload: unknown): KycDocument[] =>
 
 /* Les listes paginees du backend exposent leur total soit a la racine
    (signalements) soit sous `meta` (support). */
-const readTotal = (payload: unknown): number => {
+const readTotal = (payload: unknown): number | null => {
   if (!payload || typeof payload !== "object") {
-    return 0;
+    return null;
   }
 
   const record = payload as Record<string, unknown>;
@@ -56,11 +56,15 @@ const readTotal = (payload: unknown): number => {
     }
   }
 
-  return 0;
+  return null;
 };
+
+const TRIP_SAMPLE_SIZE = 1000;
 
 const formatInteger = (value: number) =>
   new Intl.NumberFormat("fr-CD").format(Number.isFinite(value) ? value : 0);
+const formatCounter = (value: number | null) =>
+  value === null ? "Indisponible" : formatInteger(value);
 
 const formatAmount = (amount: number, currency: string) => {
   const rounded = Number.isFinite(amount) ? Math.round(amount) : 0;
@@ -73,7 +77,7 @@ const getGreeting = () => {
     return "Bonjour";
   }
   if (hour < 18) {
-    return "Bon apres-midi";
+    return "Bon après-midi";
   }
   return "Bonsoir";
 };
@@ -96,9 +100,20 @@ const summarizeLifecycle = (trips: Trip[]) => {
 
 /** Volumes de moderation, comptes par le serveur et non par la page. */
 interface ModerationCounts {
-  pendingReports: number;
-  openSupportTickets: number;
+  pendingKyc: number | null;
+  pendingReports: number | null;
+  openSupportTickets: number | null;
 }
+
+interface TripSample {
+  loaded: number;
+  total: number | null;
+}
+
+const sampleHelper = (sample: TripSample) =>
+  sample.total !== null && sample.total > sample.loaded
+    ? ` · sur les ${formatInteger(sample.loaded)} plus récents`
+    : "";
 
 const buildMetricCards = (
   userStats: PlatformUserStats,
@@ -106,10 +121,12 @@ const buildMetricCards = (
   kycDocuments: KycDocument[],
   fundingRequests: DocumentFundingRequest[],
   planCurrencies: string[],
-  moderation: ModerationCounts
+  moderation: ModerationCounts,
+  sample: TripSample
 ): MetricCard[] => {
   const lifecycle = summarizeLifecycle(trips);
-  const pendingKyc = kycDocuments.filter((item) => item.status === "pending").length;
+  const pendingKyc = moderation.pendingKyc;
+  const partial = sampleHelper(sample);
   const paymentOverview = buildPaymentOverview([], fundingRequests);
   const pendingFundingCurrency = planCurrencies[0] ?? "CDF";
 
@@ -138,37 +155,42 @@ const buildMetricCards = (
     {
       id: "published",
       label: "Trajets publiés",
-      value: formatInteger(trips.length),
-      helper: `${formatInteger(lifecycle.ongoing + lifecycle.upcoming)} encore ouverts`,
+      value: formatInteger(sample.total ?? trips.length),
+      helper: `${formatInteger(lifecycle.ongoing + lifecycle.upcoming)} encore ouverts${partial}`,
       tone: "neutral",
     },
     {
       id: "ongoing",
       label: "En cours",
       value: formatInteger(lifecycle.ongoing),
-      helper: "trajets actuellement actifs",
+      helper: `trajets actuellement actifs${partial}`,
       tone: lifecycle.ongoing > 0 ? "success" : "neutral",
     },
     {
       id: "upcoming",
       label: "À venir",
       value: formatInteger(lifecycle.upcoming),
-      helper: "publications programmées",
+      helper: `publications programmées${partial}`,
       tone: lifecycle.upcoming > 0 ? "neutral" : "success",
     },
     {
       id: "expired",
       label: "Expirés",
       value: formatInteger(lifecycle.expired),
-      helper: "départ dépassé de plus de 2h",
+      helper: `départ dépassé de plus de 2 h${partial}`,
       tone: lifecycle.expired > 0 ? "warning" : "success",
     },
     {
       id: "kyc",
       label: "KYC en attente",
-      value: formatInteger(pendingKyc),
-      helper: pendingKyc > 0 ? "validation admin requise" : "aucun dossier bloque",
-      tone: pendingKyc > 0 ? "warning" : "success",
+      value: formatCounter(pendingKyc),
+      helper:
+        pendingKyc === null
+          ? "compteur indisponible"
+          : pendingKyc > 0
+            ? "validation admin requise"
+            : "aucun dossier bloqué",
+      tone: pendingKyc === null ? "neutral" : pendingKyc > 0 ? "warning" : "success",
     },
     {
       id: "funding",
@@ -176,29 +198,43 @@ const buildMetricCards = (
       value: formatInteger(paymentOverview.pendingFundingRequests),
       helper:
         paymentOverview.pendingFundingRequests > 0
-          ? `${formatAmount(paymentOverview.pendingAmount, pendingFundingCurrency)} a valider`
+          ? `${formatAmount(paymentOverview.pendingAmount, pendingFundingCurrency)} à valider`
           : "aucune demande ouverte",
       tone: paymentOverview.pendingFundingRequests > 0 ? "warning" : "success",
     },
     {
       id: "reports",
-      label: "Signalements a traiter",
-      value: formatInteger(moderation.pendingReports),
+      label: "Signalements à traiter",
+      value: formatCounter(moderation.pendingReports),
       helper:
-        moderation.pendingReports > 0
-          ? "personne ne s'en occupe encore"
-          : "aucun signalement en attente",
-      tone: moderation.pendingReports > 0 ? "danger" : "success",
+        moderation.pendingReports === null
+          ? "compteur indisponible"
+          : moderation.pendingReports > 0
+            ? "personne ne s'en occupe encore"
+            : "aucun signalement en attente",
+      tone:
+        moderation.pendingReports === null
+          ? "neutral"
+          : moderation.pendingReports > 0
+            ? "danger"
+            : "success",
     },
     {
       id: "support",
       label: "Tickets support ouverts",
-      value: formatInteger(moderation.openSupportTickets),
+      value: formatCounter(moderation.openSupportTickets),
       helper:
-        moderation.openSupportTickets > 0
-          ? "demandes sans prise en charge"
-          : "aucune demande ouverte",
-      tone: moderation.openSupportTickets > 0 ? "warning" : "success",
+        moderation.openSupportTickets === null
+          ? "compteur indisponible"
+          : moderation.openSupportTickets > 0
+            ? "demandes sans prise en charge"
+            : "aucune demande ouverte",
+      tone:
+        moderation.openSupportTickets === null
+          ? "neutral"
+          : moderation.openSupportTickets > 0
+            ? "warning"
+            : "success",
     },
   ];
 };
@@ -210,7 +246,7 @@ const buildAlerts = (
   moderation: ModerationCounts
 ) => {
   const lifecycle = summarizeLifecycle(trips);
-  const pendingKyc = kycDocuments.filter((item) => item.status === "pending").length;
+  const pendingKyc = moderation.pendingKyc ?? 0;
   const pendingFunding = fundingRequests.filter((item) => item.status === "pending");
   const rejectedFunding = fundingRequests.filter((item) => item.status === "rejected");
 
@@ -220,7 +256,7 @@ const buildAlerts = (
     alerts.push({
       id: "alert-kyc",
       type: "kyc" as const,
-      message: `${pendingKyc} dossier(s) KYC attendent une verification`,
+      message: `${pendingKyc} dossier(s) KYC attendent une vérification`,
       severity: pendingKyc >= 5 ? ("high" as const) : ("medium" as const),
       timestamp:
         kycDocuments
@@ -232,24 +268,25 @@ const buildAlerts = (
     });
   }
 
-  if (moderation.pendingReports > 0) {
+  const pendingReports = moderation.pendingReports ?? 0;
+  if (pendingReports > 0) {
     alerts.push({
       id: "alert-reports",
       type: "safety" as const,
-      message: `${moderation.pendingReports} signalement(s) attendent une decision`,
-      severity:
-        moderation.pendingReports >= 3 ? ("high" as const) : ("medium" as const),
+      message: `${pendingReports} signalement(s) attendent une décision`,
+      severity: pendingReports >= 3 ? ("high" as const) : ("medium" as const),
       timestamp: new Date().toISOString(),
     });
   }
 
-  if (moderation.openSupportTickets > 0) {
+  const openTickets = moderation.openSupportTickets ?? 0;
+  if (openTickets > 0) {
     alerts.push({
       id: "alert-support",
       type: "support" as const,
-      message: `${moderation.openSupportTickets} ticket(s) support sans prise en charge`,
+      message: `${openTickets} ticket(s) support sans prise en charge`,
       severity:
-        moderation.openSupportTickets >= 5
+        openTickets >= 5
           ? ("medium" as const)
           : ("low" as const),
       timestamp: new Date().toISOString(),
@@ -270,7 +307,7 @@ const buildAlerts = (
     alerts.push({
       id: "alert-funding",
       type: "payment" as const,
-      message: `${pendingFunding.length} demande(s) de financement a traiter`,
+      message: `${pendingFunding.length} demande(s) de financement à traiter`,
       severity: pendingFunding.length >= 3 ? ("medium" as const) : ("low" as const),
       timestamp: pendingFunding[0]?.createdAt ?? new Date().toISOString(),
     });
@@ -280,7 +317,7 @@ const buildAlerts = (
     alerts.push({
       id: "alert-funding-rejected",
       type: "subscription" as const,
-      message: `${rejectedFunding.length} demande(s) de financement ont ete rejetees`,
+      message: `${rejectedFunding.length} demande(s) de financement ont été rejetées`,
       severity: "low" as const,
       timestamp: rejectedFunding[0]?.updatedAt ?? new Date().toISOString(),
     });
@@ -313,7 +350,6 @@ const buildTopDrivers = (trips: Trip[]): DriverHighlight[] => {
       name: `${trip.driver.firstName} ${trip.driver.lastName}`,
       score: 0,
       completed: 0,
-      rating: 4.6,
     };
 
     existing.completed += 1;
@@ -337,7 +373,8 @@ const calculateDashboardMetrics = (
   kycDocuments: KycDocument[],
   subscriptionPlans: SubscriptionOffering[],
   fundingRequests: DocumentFundingRequest[],
-  moderation: ModerationCounts
+  moderation: ModerationCounts,
+  sample: TripSample
 ): DashboardResponse => {
   const lifecycleBuckets = buildTripLifecycleBuckets(trips);
   const planCurrencies = subscriptionPlans.map((item) => item.documentFundingCurrency);
@@ -352,14 +389,15 @@ const calculateDashboardMetrics = (
 
   return {
     greeting: `${getGreeting()}, pilotage admin Zwanga`,
-    dateRange: `Mis a jour le ${dateLabel}`,
+    dateRange: `Mis à jour le ${dateLabel}`,
     metrics: buildMetricCards(
       userStats,
       trips,
       kycDocuments,
       fundingRequests,
       planCurrencies,
-      moderation
+      moderation,
+      sample
     ),
     tripTrends: buildTripTimeline(trips),
     tripLifecycle: lifecycleBuckets,
@@ -380,6 +418,12 @@ const calculateDashboardMetrics = (
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       )
       .slice(0, 5),
+    queues: {
+      pendingKyc: moderation.pendingKyc,
+      pendingReports: moderation.pendingReports,
+      openSupportTickets: moderation.openSupportTickets,
+    },
+    tripSample: sample,
   };
 };
 
@@ -398,7 +442,10 @@ export const dashboardApi = baseApi.injectEndpoints({
             openTicketsResult,
           ] = await Promise.all([
             fetchWithBQ("/admin/users/stats"),
-            fetchWithBQ({ url: "/admin/trips", params: { page: 1, limit: 1000 } }),
+            fetchWithBQ({
+              url: "/admin/trips",
+              params: { page: 1, limit: TRIP_SAMPLE_SIZE },
+            }),
             fetchWithBQ({
               url: "/admin/kyc",
               params: { status: "pending", page: 1, limit: 50 },
@@ -425,11 +472,19 @@ export const dashboardApi = baseApi.injectEndpoints({
           }
 
           let kycDocuments = toKycDocuments(kycHistoryResult.data);
+          // La liste est limitee a 50 dossiers: seul le total serveur est exact.
+          let pendingKyc: number | null = kycHistoryResult.error
+            ? null
+            : readTotal(kycHistoryResult.data) ??
+              kycDocuments.filter((item) => item.status === "pending").length;
           if (kycHistoryResult.error) {
             const pendingResult = await fetchWithBQ("/admin/kyc/pending");
             kycDocuments = pendingResult.error
               ? []
               : toKycDocuments(pendingResult.data);
+            pendingKyc = pendingResult.error
+              ? null
+              : readTotal(pendingResult.data) ?? kycDocuments.length;
           }
 
           const userStats = userStatsResult.data as PlatformUserStats;
@@ -439,15 +494,21 @@ export const dashboardApi = baseApi.injectEndpoints({
             fundingResult.data
           );
 
-          /* Ces deux comptes sont secondaires: une erreur ne doit pas priver
-             l'admin de tout le tableau de bord. */
+          /* Ces comptes sont secondaires: une erreur ne doit pas priver
+             l'admin de tout le tableau de bord, ni s'afficher comme
+             « rien a traiter ». */
           const moderation: ModerationCounts = {
+            pendingKyc,
             pendingReports: pendingReportsResult.error
-              ? 0
+              ? null
               : readTotal(pendingReportsResult.data),
             openSupportTickets: openTicketsResult.error
-              ? 0
+              ? null
               : readTotal(openTicketsResult.data),
+          };
+          const sample: TripSample = {
+            loaded: trips.length,
+            total: readTotal(tripsResult.data),
           };
 
           const dashboard = calculateDashboardMetrics(
@@ -456,7 +517,8 @@ export const dashboardApi = baseApi.injectEndpoints({
             kycDocuments,
             subscriptionPlans,
             fundingRequests,
-            moderation
+            moderation,
+            sample
           );
 
           return { data: dashboard };

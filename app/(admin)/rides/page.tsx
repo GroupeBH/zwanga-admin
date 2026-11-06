@@ -14,25 +14,43 @@ import { useExportAdminXlsMutation } from "@/lib/features/admin/exportApi";
 import {
   useDeactivateAdminTripMutation,
   useDeleteAdminTripMutation,
-  useGetAllTripsQuery,
+  useGetTripsPageQuery,
   useUpdateAdminTripMutation,
   type UpdateTripPayload,
 } from "@/lib/features/trips/tripsApi";
+import { confirmAction, notify } from "@/app/components/ui/Feedback";
+import { Pagination } from "@/app/components/ui/Pagination";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/utils/apiErrors";
 import { datedExportName, downloadBlob } from "@/lib/utils/downloadBlob";
 
 import TripStatement from "../trips/TripStatement";
 import shared from "../styles/page.module.css";
 
+import { SkeletonList } from "@/app/components/ui/Skeleton";
+
+/* Statut enregistre par le conducteur; il peut differer de la lecture admin
+   (ex. « à venir » cote base mais expire car le depart est passe). */
 const backendStatusLabelMap: Record<TripStatus, string> = {
-  upcoming: "API: upcoming",
-  ongoing: "API: ongoing",
-  completed: "API: completed",
-  cancelled: "API: cancelled",
+  upcoming: "Statut enregistré : à venir",
+  ongoing: "Statut enregistré : en cours",
+  completed: "Statut enregistré : terminé",
+  cancelled: "Statut enregistré : annulé",
 };
 
+const tripStatusOptions: Array<[TripStatus, string]> = [
+  ["upcoming", "À venir"],
+  ["ongoing", "En cours"],
+  ["completed", "Terminé"],
+  ["cancelled", "Annulé"],
+];
+
+const PAGE_SIZE = 50;
+
 export function RidesPage() {
-  const { data: trips = [], isFetching, error } = useGetAllTripsQuery({ page: 1, limit: 100 });
+  const [page, setPage] = useState(1);
+  const { data, isFetching, error } = useGetTripsPageQuery({ page, limit: PAGE_SIZE });
+  const trips = useMemo(() => data?.trips ?? [], [data]);
+  const total = data?.total ?? null;
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
@@ -47,7 +65,7 @@ export function RidesPage() {
     ? getApiErrorMessage(
         error,
         errorStatus === 401 || errorStatus === 403
-          ? "Le compte connecte n'a pas les droits admin necessaires pour lire les trajets."
+          ? "Le compte connecté n’a pas les droits admin nécessaires pour lire les trajets."
           : "Impossible de charger les trajets depuis le backend."
       )
     : null;
@@ -135,27 +153,43 @@ export function RidesPage() {
       closeEditModal();
     } catch (submitError) {
       console.error("Failed to update trip:", submitError);
-      alert("Impossible de modifier ce trajet.");
+      notify(getApiErrorMessage(submitError, "Impossible de modifier ce trajet."), "error");
+      return;
     }
+    notify("Trajet modifié.", "success");
   };
 
   const handleDeactivateTrip = async (trip: Trip) => {
-    if (!confirm("Désactiver ce trajet ? Il passera au statut annulé.")) return;
+    const confirmed = await confirmAction({
+      title: "Désactiver ce trajet ?",
+      message: `${trip.departureLocation} → ${trip.arrivalLocation}\nLe trajet passera au statut annulé et ne sera plus proposé aux passagers.`,
+      confirmLabel: "Désactiver",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       await deactivateTrip(trip.id).unwrap();
+      notify("Trajet désactivé.", "success");
     } catch (deactivateError) {
       console.error("Failed to deactivate trip:", deactivateError);
-      alert("Impossible de désactiver ce trajet.");
+      notify(getApiErrorMessage(deactivateError, "Impossible de désactiver ce trajet."), "error");
     }
   };
 
   const handleDeleteTrip = async (trip: Trip) => {
-    if (!confirm("Supprimer définitivement ce trajet ?")) return;
+    const confirmed = await confirmAction({
+      title: "Supprimer définitivement ce trajet ?",
+      message: `${trip.departureLocation} → ${trip.arrivalLocation}\nCette action est irréversible. Pour simplement retirer le trajet de l’application, préférez « Désactiver ».`,
+      confirmLabel: "Supprimer",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       await deleteTrip(trip.id).unwrap();
+      notify("Trajet supprimé.", "success");
     } catch (deleteError) {
       console.error("Failed to delete trip:", deleteError);
-      alert("Impossible de supprimer ce trajet.");
+      notify(getApiErrorMessage(deleteError, "Impossible de supprimer ce trajet."), "error");
     }
   };
 
@@ -174,16 +208,18 @@ export function RidesPage() {
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h2>Gestion des trajets publiés</h2>
+            <h1>Trajets publiés</h1>
             <p className={shared.filterSummary}>
-              {filtered.length} trajet{filtered.length > 1 ? "s" : ""} affiché
-              {filtered.length > 1 ? "s" : ""}
+              {total !== null
+                ? `${total.toLocaleString("fr-FR")} trajet${total > 1 ? "s" : ""} au total · `
+                : ""}
+              {filtered.length} affiché{filtered.length > 1 ? "s" : ""} sur cette page
             </p>
           </div>
           <div className={shared.toolbar}>
             <div className={shared.filterField}>
               <label className={shared.filterLabel} htmlFor="trips-search">
-                Rechercher un trajet
+                Rechercher dans cette page
               </label>
               <input
                 id="trips-search"
@@ -204,10 +240,10 @@ export function RidesPage() {
               >
                 <option value="all">Tous les états</option>
                 <option value="ongoing">En cours</option>
-                <option value="upcoming">A venir</option>
-                <option value="completed">Termines</option>
-                <option value="expired">Expires</option>
-                <option value="cancelled">Annules</option>
+                <option value="upcoming">À venir</option>
+                <option value="completed">Terminés</option>
+                <option value="expired">Expirés</option>
+                <option value="cancelled">Annulés</option>
               </select>
             </div>
             <button
@@ -226,8 +262,9 @@ export function RidesPage() {
           <Info size={16} aria-hidden="true" />
           <span>
             « Expiré » signifie que l’heure de départ est dépassée de plus de
-            2 heures sans clôture par le conducteur. Les compteurs ci-dessous
-            reflètent toujours le filtre actif.
+            2 heures sans clôture par le conducteur. La recherche, le filtre et
+            les compteurs portent sur la page affichée ({PAGE_SIZE} trajets les
+            plus récents par page).
           </span>
         </p>
 
@@ -249,8 +286,8 @@ export function RidesPage() {
           </div>
         ) : null}
 
-        {isFetching ? (
-          <p>Chargement des trajets...</p>
+        {isFetching && !data ? (
+          <SkeletonList count={8} />
         ) : errorMessage ? (
           <p
             style={{
@@ -264,14 +301,18 @@ export function RidesPage() {
             {errorMessage}
           </p>
         ) : (
-          <div className={shared.tableWrapper}>
+          <div
+            className={shared.tableWrapper}
+            style={{ opacity: isFetching ? 0.55 : 1, transition: "opacity .2s" }}
+            aria-busy={isFetching}
+          >
             <table className={shared.table}>
               <thead>
                 <tr>
                   <th>Conducteur</th>
                   <th>Trajet</th>
-                  <th>Publie le</th>
-                  <th>Depart</th>
+                  <th>Publié le</th>
+                  <th>Départ</th>
                   <th>Places</th>
                   <th>Prix/place</th>
                   <th>Lecture admin</th>
@@ -298,7 +339,7 @@ export function RidesPage() {
                         <strong>{trip.departureLocation}</strong>
                         <br />
                         <small style={{ color: "var(--color-text-muted)" }}>
-                          -&gt; {trip.arrivalLocation}
+                          → {trip.arrivalLocation}
                         </small>
                       </td>
                       <td>{formatDate(trip.createdAt)}</td>
@@ -319,7 +360,7 @@ export function RidesPage() {
                         {trip.isPrivate ? (
                           <>
                             <br />
-                            <small style={{ color: "var(--color-text-muted)" }}>Trajet prive</small>
+                            <small style={{ color: "var(--color-text-muted)" }}>Trajet privé</small>
                           </>
                         ) : null}
                       </td>
@@ -382,9 +423,24 @@ export function RidesPage() {
 
         {filtered.length === 0 && !isFetching && !error && (
           <p style={{ textAlign: "center", color: "var(--color-text-muted)" }}>
-            Aucun trajet ne correspond aux filtres
+            Aucun trajet ne correspond aux filtres sur cette page
           </p>
         )}
+
+        {!error ? (
+          <Pagination
+            page={page}
+            limit={PAGE_SIZE}
+            total={total}
+            pageCount={trips.length}
+            disabled={isFetching}
+            noun="trajets"
+            onChange={(next) => {
+              setPage(next);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
+        ) : null}
       </section>
 
       {selectedTrip ? (
@@ -404,7 +460,7 @@ export function RidesPage() {
             <h3 id="edit-trip-title">Modifier le trajet</h3>
             <div className={shared.grid}>
               <label>
-                Depart
+                Départ
                 <input
                   value={tripForm.departureLocation ?? ""}
                   onChange={(event) =>
@@ -416,7 +472,7 @@ export function RidesPage() {
                 />
               </label>
               <label>
-                Arrivee
+                Arrivée
                 <input
                   value={tripForm.arrivalLocation ?? ""}
                   onChange={(event) =>
@@ -480,10 +536,11 @@ export function RidesPage() {
                     }))
                   }
                 >
-                  <option value="upcoming">upcoming</option>
-                  <option value="ongoing">ongoing</option>
-                  <option value="completed">completed</option>
-                  <option value="cancelled">cancelled</option>
+                  {tripStatusOptions.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>

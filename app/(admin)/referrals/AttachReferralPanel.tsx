@@ -11,6 +11,8 @@ import UserSearchField from "@/app/components/admin/UserSearchField";
 
 import styles from "../finance.module.css";
 
+import { confirmAction } from "@/app/components/ui/Feedback";
+
 const displayName = (user: { firstName?: string; lastName?: string }) =>
   `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || "Utilisateur sans nom";
 
@@ -31,9 +33,9 @@ export function AttachReferralPanel() {
       return;
     }
     if (
-      !window.confirm(
+      !(await confirmAction(
         `Rattacher ${displayName(filleul)} à ${displayName(parrain)} ? Ce parrain ne pourra pas être remplacé. Le bonus de rattachement sera accordé une seule fois, sans commissions rétroactives.`,
-      )
+      ))
     ) {
       return;
     }

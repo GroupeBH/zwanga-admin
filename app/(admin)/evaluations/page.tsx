@@ -21,6 +21,8 @@ import { useGetReportsQuery } from "@/lib/features/reports/reportsApi";
 import { useGetUsersQuery } from "@/lib/features/users/usersApi";
 import shared from "../styles/page.module.css";
 
+import local from "./evaluations.module.css";
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Formate une date ISO en chaîne lisible (fr-CD). */
@@ -210,7 +212,7 @@ export default function EvaluationsPage() {
     }
     return (
       <span
-        style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
+        className={local.inlineFlexCenterGap2}
         aria-label={`${rating} étoiles sur 5`}
       >
         {stars}
@@ -274,35 +276,26 @@ export default function EvaluationsPage() {
           {/* KPI 1 — Note moyenne estimée */}
           <div className={shared.card}>
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                color: "var(--color-warning)",
-              }}
+              className={local.flexCenterGap8Warning}
             >
               <Star size={20} aria-hidden="true" />
               <span
-                className={shared.mutedText}
-                style={{ margin: 0, fontSize: "0.85rem" }}
+                className={`${shared.mutedText} ${local.m0Text85}`}
+
               >
                 Note moyenne estimée
               </span>
             </div>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }}>
+            <p className={local.m0Text2Bold}>
               {avgRating}
               <span
-                style={{
-                  fontSize: "1rem",
-                  color: "var(--color-text-muted)",
-                  marginLeft: 4,
-                }}
+                className={local.text1MutedMl4}
               >
                 / 5
               </span>
             </p>
             <div>{renderStars(avgRating)}</div>
-            <p className={shared.mutedText} style={{ fontSize: "0.8rem" }}>
+            <p className={`${shared.mutedText} ${local.text8}`}>
               Basée sur {totalTrips} trajet{totalTrips > 1 ? "s" : ""}
             </p>
           </div>
@@ -310,34 +303,25 @@ export default function EvaluationsPage() {
           {/* KPI 2 — Taux de completion */}
           <div className={shared.card}>
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                color: "var(--color-success)",
-              }}
+              className={local.flexCenterGap8Success}
             >
               <TrendingUp size={20} aria-hidden="true" />
               <span
-                className={shared.mutedText}
-                style={{ margin: 0, fontSize: "0.85rem" }}
+                className={`${shared.mutedText} ${local.m0Text85}`}
+
               >
                 Taux de complétion
               </span>
             </div>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }}>
+            <p className={local.m0Text2Bold}>
               {completionRate}
               <span
-                style={{
-                  fontSize: "1rem",
-                  color: "var(--color-text-muted)",
-                  marginLeft: 2,
-                }}
+                className={local.text1MutedMl2}
               >
                 %
               </span>
             </p>
-            <p className={shared.mutedText} style={{ fontSize: "0.8rem" }}>
+            <p className={`${shared.mutedText} ${local.text8}`}>
               {completedTrips} trajet{completedTrips > 1 ? "s" : ""} complété
               {completedTrips > 1 ? "s" : ""} sur {totalTrips}
             </p>
@@ -346,34 +330,25 @@ export default function EvaluationsPage() {
           {/* KPI 3 — Taux d'annulation */}
           <div className={shared.card}>
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                color: "var(--color-danger)",
-              }}
+              className={local.flexCenterGap8Danger}
             >
               <AlertTriangle size={20} aria-hidden="true" />
               <span
-                className={shared.mutedText}
-                style={{ margin: 0, fontSize: "0.85rem" }}
+                className={`${shared.mutedText} ${local.m0Text85}`}
+
               >
                 Taux d&apos;annulation
               </span>
             </div>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }}>
+            <p className={local.m0Text2Bold}>
               {cancellationRate}
               <span
-                style={{
-                  fontSize: "1rem",
-                  color: "var(--color-text-muted)",
-                  marginLeft: 2,
-                }}
+                className={local.text1MutedMl2}
               >
                 %
               </span>
             </p>
-            <p className={shared.mutedText} style={{ fontSize: "0.8rem" }}>
+            <p className={`${shared.mutedText} ${local.text8}`}>
               {cancelledTrips} trajet{cancelledTrips > 1 ? "s" : ""} annulé
               {cancelledTrips > 1 ? "s" : ""}
             </p>
@@ -394,16 +369,16 @@ export default function EvaluationsPage() {
             >
               <ThumbsUp size={20} aria-hidden="true" />
               <span
-                className={shared.mutedText}
-                style={{ margin: 0, fontSize: "0.85rem" }}
+                className={`${shared.mutedText} ${local.m0Text85}`}
+
               >
                 Signalements en attente
               </span>
             </div>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }}>
+            <p className={local.m0Text2Bold}>
               {pendingReportsCount}
             </p>
-            <p className={shared.mutedText} style={{ fontSize: "0.8rem" }}>
+            <p className={`${shared.mutedText} ${local.text8}`}>
               {pendingReportsCount === 0
                 ? "Aucun signalement à traiter"
                 : `${pendingReportsCount} signalement${pendingReportsCount > 1 ? "s" : ""} nécessite${pendingReportsCount > 1 ? "nt" : ""} une action`}
@@ -417,17 +392,12 @@ export default function EvaluationsPage() {
         <div className={shared.sectionHeader}>
           <div>
             <h2
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                margin: 0,
-              }}
+              className={local.flexCenterGap8M0}
             >
               <Award size={20} aria-hidden="true" />
               Classement des conducteurs
             </h2>
-            <p className={shared.mutedText} style={{ marginTop: 4 }}>
+            <p className={`${shared.mutedText} ${local.mt4}`}>
               {driverRankings.length} conducteur
               {driverRankings.length > 1 ? "s" : ""} actif
               {driverRankings.length > 1 ? "s" : ""} sur la plateforme
@@ -494,7 +464,7 @@ export default function EvaluationsPage() {
 
                     {/* Note estimée avec étoiles */}
                     <td>
-                      <span style={{ fontWeight: 700 }}>
+                      <span className={local.bold}>
                         {driver.estimatedRating}
                       </span>{" "}
                       {renderStars(driver.estimatedRating)}
@@ -514,8 +484,8 @@ export default function EvaluationsPage() {
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h2 style={{ margin: 0 }}>Signalements récents</h2>
-            <p className={shared.mutedText} style={{ marginTop: 4 }}>
+            <h2 className={local.m0}>Signalements récents</h2>
+            <p className={`${shared.mutedText} ${local.mt4}`}>
               Les 5 derniers signalements reçus (tous statuts)
             </p>
           </div>
@@ -587,7 +557,7 @@ export default function EvaluationsPage() {
       {/* ── Seuils de qualité ─────────────────────────────────────────────── */}
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
-          <h2 style={{ margin: 0 }}>Seuils de qualité &amp; règles de surveillance</h2>
+          <h2 className={local.m0}>Seuils de qualité &amp; règles de surveillance</h2>
         </div>
 
         <p className={shared.mutedText}>
@@ -599,19 +569,12 @@ export default function EvaluationsPage() {
           {/* Seuil note conducteur */}
           <div className={shared.card}>
             <p
-              style={{
-                margin: 0,
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                color: "var(--color-danger)",
-              }}
+              className={local.m0BoldFlexCenterGap6Danger}
             >
               <AlertTriangle size={16} aria-hidden="true" />
               Note &lt; 3,5 → Examen manuel
             </p>
-            <p className={shared.mutedText} style={{ fontSize: "0.85rem" }}>
+            <p className={`${shared.mutedText} ${local.text85}`}>
               Tout conducteur dont la note estimée est inférieure à{" "}
               <strong>3,5 / 5</strong> fait l&apos;objet d&apos;un examen manuel
               par l&apos;équipe de modération. Son compte peut être temporairement
@@ -622,19 +585,12 @@ export default function EvaluationsPage() {
           {/* Seuil taux d'annulation */}
           <div className={shared.card}>
             <p
-              style={{
-                margin: 0,
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                color: "var(--color-warning)",
-              }}
+              className={local.m0BoldFlexCenterGap6Warning}
             >
               <AlertTriangle size={16} aria-hidden="true" />
               Annulations &gt; 10 % → Avertissement
             </p>
-            <p className={shared.mutedText} style={{ fontSize: "0.85rem" }}>
+            <p className={`${shared.mutedText} ${local.text85}`}>
               Un conducteur qui annule plus de <strong>10 %</strong> de ses
               trajets reçoit un avertissement automatique. Au-delà de{" "}
               <strong>25 %</strong>, son accès à la création de nouveaux trajets
@@ -645,19 +601,12 @@ export default function EvaluationsPage() {
           {/* Signalements répétés */}
           <div className={shared.card}>
             <p
-              style={{
-                margin: 0,
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                color: "var(--color-primary)",
-              }}
+              className={local.m0BoldFlexCenterGap6Primary}
             >
               <ThumbsUp size={16} aria-hidden="true" />
               ≥ 3 signalements en attente → Priorité haute
             </p>
-            <p className={shared.mutedText} style={{ fontSize: "0.85rem" }}>
+            <p className={`${shared.mutedText} ${local.text85}`}>
               Lorsqu&apos;un utilisateur cumule <strong>3 signalements ou plus</strong>{" "}
               sans décision, son dossier est marqué comme prioritaire et doit
               être traité dans les <strong>48 heures</strong>.
@@ -667,21 +616,14 @@ export default function EvaluationsPage() {
           {/* Lecture de la note estimée */}
           <div className={shared.card}>
             <p
-              style={{
-                margin: 0,
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                color: "var(--color-success)",
-              }}
+              className={local.m0BoldFlexCenterGap6Success}
             >
               <Star size={16} aria-hidden="true" />
               Comment lire la note estimée ?
             </p>
-            <p className={shared.mutedText} style={{ fontSize: "0.85rem" }}>
+            <p className={`${shared.mutedText} ${local.text85}`}>
               La note est calculée comme{" "}
-              <code style={{ fontFamily: "monospace" }}>
+              <code className={local.fontMonospace}>
                 3,5 + (complétés / total × 1,5)
               </code>
               . Elle reflète la <strong>fiabilité</strong> du conducteur (sa

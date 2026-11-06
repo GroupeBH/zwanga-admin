@@ -100,6 +100,23 @@ export const tripsApi = baseApi.injectEndpoints({
       providesTags: (result) => listProvidesTags("Rides", result),
     }),
 
+    /* Meme liste, mais garde le total serveur pour paginer: la page Trajets ne
+       doit plus se limiter aux 100 trajets les plus recents. */
+    getTripsPage: builder.query<{ trips: Trip[]; total: number | null }, TripsQueryParams>({
+      query: ({ page = 1, limit = 50 }) => ({
+        url: "/admin/trips",
+        params: { page, limit },
+      }),
+      transformResponse: (response: PaginatedTripsResponse | Trip[]) => ({
+        trips: unwrapList<Trip>(response, "trips"),
+        total:
+          !Array.isArray(response) && typeof response?.total === "number"
+            ? response.total
+            : null,
+      }),
+      providesTags: (result) => listProvidesTags("Rides", result?.trips),
+    }),
+
     // Get single trip details
     getTripById: builder.query<Trip, string>({
       query: (tripId) => `/trips/${tripId}`,
@@ -162,6 +179,7 @@ export const tripsApi = baseApi.injectEndpoints({
 
 export const {
   useGetAllTripsQuery,
+  useGetTripsPageQuery,
   useGetTripByIdQuery,
   useGetTripStatementQuery,
   useGetAvailableTripsQuery,

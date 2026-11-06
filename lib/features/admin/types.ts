@@ -42,7 +42,6 @@ export interface DriverHighlight {
   name: string;
   score: number;
   completed: number;
-  rating: number;
 }
 
 export type TripLifecycleStatus =
@@ -261,6 +260,14 @@ export interface DashboardResponse {
   topDrivers: DriverHighlight[];
   recentFundingRequests: DocumentFundingRequest[];
   kycQueueShortlist: KycDocument[];
+  /** Compteurs serveur; null = compteur indisponible, a ne jamais lire comme zero. */
+  queues: {
+    pendingKyc: number | null;
+    pendingReports: number | null;
+    openSupportTickets: number | null;
+  };
+  /** Les courbes et classements sont calcules sur un echantillon des trajets. */
+  tripSample: { loaded: number; total: number | null };
 }
 
 // Admin user profile with stats

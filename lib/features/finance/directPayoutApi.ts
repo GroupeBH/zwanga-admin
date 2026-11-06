@@ -8,6 +8,7 @@ export interface DirectPayoutInput {
   currency: 'CDF';
   reason: string;
   confirmed: true;
+  otpCode?: string;
 }
 export interface DirectPayoutResult {
   id: string;

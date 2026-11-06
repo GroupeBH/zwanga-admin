@@ -26,6 +26,8 @@ import { getApiErrorMessage } from "@/lib/utils/apiErrors";
 
 import shared from "../styles/page.module.css";
 
+import { confirmAction } from "@/app/components/ui/Feedback";
+
 const dateFormatter = new Intl.DateTimeFormat("fr-CD", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -183,9 +185,9 @@ export default function SettingsPage() {
     setAdminMessage(null);
     const actionLabel = account.isActive ? "désactiver" : "réactiver";
     if (
-      !window.confirm(
+      !(await confirmAction(
         `Voulez-vous ${actionLabel} le compte de ${account.firstName} ${account.lastName} ?`
-      )
+      ))
     ) {
       return;
     }

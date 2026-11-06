@@ -7,6 +7,8 @@ import { useGetAdminVehiclesQuery } from "@/lib/features/vehicles/vehiclesApi";
 
 import shared from "../styles/page.module.css";
 
+import { SkeletonRows } from "@/app/components/ui/Skeleton";
+
 const vehicleTypeLabel: Record<string, string> = {
   car: "Voiture",
   motorcycle_2_wheels: "Moto",
@@ -153,11 +155,13 @@ export default function VehiclesPage() {
               </tr>
             </thead>
             <tbody>
-              {vehicles.length === 0 ? (
+              {vehicles.length === 0 && isFetching ? (
+                <SkeletonRows columns={6} />
+              ) : vehicles.length === 0 ? (
                 <tr>
                   <td colSpan={6}>
                     <p className={shared.emptyState}>
-                      {isFetching ? "Chargement des véhicules..." : "Aucun véhicule ne correspond à ces filtres."}
+                      {"Aucun véhicule ne correspond à ces filtres."}
                     </p>
                   </td>
                 </tr>

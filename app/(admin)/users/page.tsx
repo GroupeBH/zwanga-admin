@@ -19,6 +19,10 @@ import UserDetailsPage from "./UserDetails";
 
 import shared from "../styles/page.module.css";
 
+import { confirmAction } from "@/app/components/ui/Feedback";
+
+import { SkeletonRows } from "@/app/components/ui/Skeleton";
+
 const statusLabel: Record<string, string> = {
   active: "Actif",
   inactive: "Désactivé",
@@ -276,7 +280,7 @@ function UsersList() {
   // explicite et rapporte son échec au lieu d'échouer en silence.
   const handleSuspend = async (user: User) => {
     setActionError(null);
-    const confirmed = window.confirm(
+    const confirmed = await confirmAction(
       `Suspendre le compte de ${user.firstName} ${user.lastName} ?\n\nLa personne ne pourra plus se connecter jusqu'a sa reactivation.`
     );
     if (!confirmed) {
@@ -342,7 +346,7 @@ function UsersList() {
       <section className={shared.section}>
         <div className={shared.sectionHeader}>
           <div>
-            <h2>Gestion utilisateurs</h2>
+            <h1>Utilisateurs</h1>
             <p className={shared.filterSummary}>
               {total} compte{total > 1 ? "s" : ""} · {segmentLabel[roleFilter]}
               {vehicleType ? ` · ${vehicleTypeLabel[vehicleType]}` : ""}
@@ -540,13 +544,13 @@ function UsersList() {
               </tr>
             </thead>
             <tbody key={`${roleFilter}-${vehicleType}-${registeredFrom}-${registeredTo}-${page}`}>
-              {filtered.length === 0 ? (
+              {filtered.length === 0 && isFetching ? (
+                <SkeletonRows columns={7} />
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7}>
                     <p className={shared.emptyState}>
-                      {isFetching
-                        ? "Chargement des utilisateurs..."
-                        : registrationRangeInvalid
+                      {registrationRangeInvalid
                           ? "Corrigez la période d’enregistrement pour afficher les comptes."
                           : registeredFrom || registeredTo
                             ? "Aucun utilisateur enregistré sur cette période."

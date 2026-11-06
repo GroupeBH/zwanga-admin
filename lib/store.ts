@@ -4,6 +4,7 @@ import { combineSlices, configureStore } from "@reduxjs/toolkit";
 import { baseApi } from "./features/api/baseApi";
 import { uiSlice } from "./features/ui/uiSlice";
 import authReducer from "./features/auth/authSlice";
+import { redactFinanceAction } from './features/finance/financeOtpPrivacy';
 
 // `combineSlices` automatically combines the reducers using
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.
@@ -20,6 +21,7 @@ export type RootState = ReturnType<typeof rootReducer>;
 export const makeStore = () => {
   return configureStore({
     reducer: rootReducer,
+    devTools: process.env.NODE_ENV !== 'production' ? { actionSanitizer: redactFinanceAction } : false,
     // Adding the api middleware enables caching, invalidation, polling,
     // and other useful features of `rtk-query`.
     middleware: (getDefaultMiddleware) => {

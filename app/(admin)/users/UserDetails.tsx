@@ -16,6 +16,8 @@ import shared from "../styles/page.module.css";
 import UserFinancialActions from "./UserFinancialActions";
 import UserKycDecision from "./UserKycDecision";
 
+import { confirmAction } from "@/app/components/ui/Feedback";
+
 const formatDate = (dateString?: string | null) => {
   if (!dateString) return "—";
   const parsed = new Date(dateString);
@@ -164,7 +166,7 @@ export default function UserDetailsPage({ userId }: { userId: string }) {
   const [activateUser, { isLoading: isActivating }] = useActivateUserMutation();
 
   const handleDeactivate = async () => {
-    if (!data?.user || !confirm("Désactiver ce compte utilisateur ?")) return;
+    if (!data?.user || !(await confirmAction("Désactiver ce compte utilisateur ?"))) return;
     await deactivateUser(data.user.id).unwrap();
   };
 
@@ -354,7 +356,7 @@ function TripsSection({ trips }: { trips: Trip[] }) {
           <thead>
             <tr>
               <th>Trajet</th>
-              <th>Depart</th>
+              <th>Départ</th>
               <th>Places</th>
               <th>Prix</th>
               <th>Statut</th>

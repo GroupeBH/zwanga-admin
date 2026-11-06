@@ -1,0 +1,95 @@
+/* Styles propres a la page, extraits des attributs style= en ligne.
+   Classe doublee: meme priorite qu'avant face aux regles partagees. */
+.gap10.gap10 {
+  gap: 10px;
+}
+
+.flexCenterGap8.flexCenterGap8 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text8MutedSemibold.text8MutedSemibold {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.m0Text16BoldLh1.m0Text16BoldLh1 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.text78.text78 {
+  font-size: 0.78rem;
+}
+
+.m0FlexCenterGap10.m0FlexCenterGap10 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mt4.mt4 {
+  margin-top: 4px;
+}
+
+.gap8.gap8 {
+  gap: 8px;
+}
+
+.flexGap10WrapWrap.flexGap10WrapWrap {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.m0FlexCenterGap8.m0FlexCenterGap8 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text82.text82 {
+  font-size: 0.82rem;
+}
+
+.m0.m0 {
+  margin: 0;
+}
+
+.mt8.mt8 {
+  margin-top: 8px;
+}
+
+.m0016Text95.m0016Text95 {
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+}
+
+.mt10Text8.mt10Text8 {
+  margin-top: 10px;
+  font-size: 0.8rem;
+}
+
+.backgroundRgba25520871008BorderColorRgba2552087102WarningFle.backgroundRgba25520871008BorderColorRgba2552087102WarningFle {
+  background: rgba(255, 208, 71, 0.08);
+  border-color: rgba(255, 208, 71, 0.2);
+  color: var(--color-warning);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 0.86rem;
+}
+
+.mt2Shrink0.mt2Shrink0 {
+  margin-top: 2px;
+  flex-shrink: 0;
+}

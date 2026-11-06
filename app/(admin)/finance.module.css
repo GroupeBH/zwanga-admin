@@ -133,6 +133,35 @@
   place-items: center;
 }
 
+.healthLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 0.84rem;
+  color: var(--color-text-muted);
+}
+
+.healthLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.healthLegend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.healthLegend b {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.healthLegend em {
+  font-style: normal;
+}
+
 .metricStrip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

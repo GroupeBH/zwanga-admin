@@ -5,6 +5,8 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
+  CircleHelp,
+  LifeBuoy,
   RefreshCw,
   ShieldCheck,
   Wallet,
@@ -22,10 +24,11 @@ import {
   useGetDashboardQuery,
   useGetMarketingStatsQuery,
 } from "@/lib/features/dashboard/dashboardApi";
-import { useGetPendingKycsQuery } from "@/lib/features/kyc/kycApi";
 import { useGetCurrentUserProfileQuery } from "@/lib/features/profile/profileApi";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/utils/apiErrors";
 
+import { Skeleton, SkeletonCards } from "@/app/components/ui/Skeleton";
+import shared from "../styles/page.module.css";
 import styles from "./dashboard.module.css";
 
 const formatDateTime = (value: string) =>
@@ -52,6 +55,16 @@ const ALERT_SEVERITY_LABEL: Record<string, string> = {
 const formatCount = (value: number) =>
   new Intl.NumberFormat("fr-CD").format(Number.isFinite(value) ? value : 0);
 
+const DashboardSkeleton = ({ label }: { label: string }) => (
+  <div className={styles.page} aria-busy="true">
+    <span className="sr-only" role="status">{label}</span>
+    <Skeleton width="min(320px, 60%)" height={34} />
+    <SkeletonCards count={4} height={72} />
+    <SkeletonCards count={4} />
+    <SkeletonCards count={2} height={300} />
+  </div>
+);
+
 export default function DashboardPage() {
   const { data: profile, isLoading: isProfileLoading } = useGetCurrentUserProfileQuery();
   const marketer = isMarketerRole(profile?.user.role);
@@ -61,16 +74,9 @@ export default function DashboardPage() {
     skip: !roleReady || marketer,
   });
 
-  const { data: pendingKycList } = useGetPendingKycsQuery(undefined, {
-    skip: !roleReady || marketer,
-  });
-
   if (!roleReady || isProfileLoading) {
     return (
-      <div className={styles.stateCard} aria-busy="true">
-        <h2>Chargement du tableau de bord</h2>
-        <p>Les chiffres arrivent, cela prend quelques secondes.</p>
-      </div>
+<DashboardSkeleton label="Chargement du tableau de bord" />
     );
   }
 
@@ -95,10 +101,7 @@ export default function DashboardPage() {
 
     if (marketing.isLoading || !marketing.data) {
       return (
-        <div className={styles.stateCard} aria-busy="true">
-          <h2>Chargement des statistiques</h2>
-          <p>Les chiffres arrivent, cela prend quelques secondes.</p>
-        </div>
+<DashboardSkeleton label="Chargement des statistiques" />
       );
     }
 
@@ -158,7 +161,7 @@ export default function DashboardPage() {
     const errorMessage = getApiErrorMessage(
       error,
       isPermissionIssue
-        ? "Le compte connecte n'a pas les droits admin necessaires pour afficher le tableau de bord."
+        ? "Le compte connecté n’a pas les droits admin nécessaires pour afficher le tableau de bord."
         : "Impossible de charger le tableau de bord depuis le backend."
     );
 
@@ -185,10 +188,7 @@ export default function DashboardPage() {
 
   if (isLoading || !data) {
     return (
-      <div className={styles.stateCard} aria-busy="true">
-        <h2>Chargement du tableau de bord</h2>
-        <p>Les chiffres arrivent, cela prend quelques secondes.</p>
-      </div>
+<DashboardSkeleton label="Chargement du tableau de bord" />
     );
   }
 
@@ -200,18 +200,20 @@ export default function DashboardPage() {
     expired: CHART_COLORS.grey,
   };
 
-  const pendingKyc = (Array.isArray(pendingKycList) ? pendingKycList : []).filter(
-    (request) => request.status === "pending"
-  ).length;
-  const urgentAlerts = data.alerts.filter((alert) => alert.severity === "high");
   const pendingFunding = data.paymentOverview.pendingFundingRequests;
+  /* Courbes et classements reposent sur les trajets les plus recents: on le dit
+     des que le serveur en compte davantage. */
+  const sampleNote =
+    data.tripSample.total !== null && data.tripSample.total > data.tripSample.loaded
+      ? ` · calculé sur les ${formatCount(data.tripSample.loaded)} trajets les plus récents (sur ${formatCount(data.tripSample.total)})`
+      : "";
 
   /* Ce que l'admin doit faire maintenant: un chiffre, un verbe, un lien. */
   const todo = [
     {
       id: "kyc",
       icon: ShieldCheck,
-      count: pendingKyc,
+      count: data.queues.pendingKyc,
       title: "Identités à vérifier",
       hint: "Dossiers KYC en attente de décision",
       href: "/kyc",
@@ -227,13 +229,22 @@ export default function DashboardPage() {
       cta: "Traiter",
     },
     {
-      id: "alerts",
+      id: "reports",
       icon: AlertTriangle,
-      count: urgentAlerts.length,
-      title: "Alertes urgentes",
-      hint: "Priorité haute à examiner",
+      count: data.queues.pendingReports,
+      title: "Signalements à traiter",
+      hint: "Incidents en attente de décision",
       href: "/reports",
-      cta: "Voir",
+      cta: "Examiner",
+    },
+    {
+      id: "support",
+      icon: LifeBuoy,
+      count: data.queues.openSupportTickets,
+      title: "Tickets support ouverts",
+      hint: "Demandes sans prise en charge",
+      href: "/support",
+      cta: "Répondre",
     },
   ];
 
@@ -257,7 +268,7 @@ export default function DashboardPage() {
 
       <section aria-label="À traiter" className={styles.todoGrid}>
         {todo.map((item) => {
-          const Icon = item.icon;
+          const Icon = item.count === null ? CircleHelp : item.icon;
           const clear = item.count === 0;
           return (
             <Link
@@ -270,9 +281,20 @@ export default function DashboardPage() {
               </span>
               <span className={styles.todoText}>
                 <strong>
-                  {clear ? "Rien à traiter" : formatCount(item.count)} · {item.title}
+                  {item.count === null
+                    ? "Compteur indisponible"
+                    : clear
+                      ? "Rien à traiter"
+                      : formatCount(item.count)}{" "}
+                  · {item.title}
                 </strong>
-                <small>{clear ? `${item.title} : tout est à jour` : item.hint}</small>
+                <small>
+                  {item.count === null
+                    ? "Ouvrez la page pour vérifier la file"
+                    : clear
+                      ? `${item.title} : tout est à jour`
+                      : item.hint}
+                </small>
               </span>
               {clear ? null : (
                 <span className={styles.todoCta}>
@@ -302,7 +324,7 @@ export default function DashboardPage() {
             <div>
               <strong>Activité des trajets</strong>
               <p className={styles.panelHint}>
-                Trajets publiés et trajets terminés, jour par jour
+                Trajets publiés et trajets terminés, jour par jour{sampleNote}
               </p>
             </div>
           </div>
@@ -314,16 +336,39 @@ export default function DashboardPage() {
             }))}
             series={[
               { label: "Publiés", color: CHART_COLORS.orange },
-              { label: "Terminés", color: CHART_COLORS.green },
+              { label: "Terminés", color: CHART_COLORS.blue },
             ]}
           />
+          <details>
+            <summary className={styles.panelHint}>Voir les données</summary>
+            <div className={shared.tableWrapper}>
+              <table className={shared.table} style={{ minWidth: 0 }}>
+                <thead>
+                  <tr>
+                    <th>Jour</th>
+                    <th>Publiés</th>
+                    <th>Terminés</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.tripTrends.map((point) => (
+                    <tr key={point.label}>
+                      <td>{point.label}</td>
+                      <td>{formatCount(point.published)}</td>
+                      <td>{formatCount(point.completed)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
         </section>
 
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
               <strong>Où en sont les trajets</strong>
-              <p className={styles.panelHint}>Répartition de tous les trajets publiés</p>
+              <p className={styles.panelHint}>Répartition des trajets publiés{sampleNote}</p>
             </div>
           </div>
           <DonutChart
@@ -344,7 +389,7 @@ export default function DashboardPage() {
           <div className={styles.panelHeader}>
             <div>
               <strong>Trajets les plus publiés</strong>
-              <p className={styles.panelHint}>Les 5 liaisons les plus demandées</p>
+              <p className={styles.panelHint}>Les 5 liaisons les plus demandées{sampleNote}</p>
             </div>
           </div>
           <BarList
@@ -364,7 +409,7 @@ export default function DashboardPage() {
           <div className={styles.panelHeader}>
             <div>
               <strong>Conducteurs les plus actifs</strong>
-              <p className={styles.panelHint}>Classés par nombre de trajets terminés</p>
+              <p className={styles.panelHint}>Classés par nombre de trajets terminés{sampleNote}</p>
             </div>
           </div>
           <BarList
@@ -373,7 +418,6 @@ export default function DashboardPage() {
               label: driver.name,
               value: driver.completed,
               valueLabel: `${formatCount(driver.completed)} trajet${driver.completed > 1 ? "s" : ""}`,
-              sub: `Note estimée ${driver.rating.toFixed(1)} / 5`,
             }))}
           />
         </section>

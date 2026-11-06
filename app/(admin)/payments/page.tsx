@@ -35,11 +35,18 @@ import type {
 } from "@/lib/features/finance/types";
 import type { PaymentStatus } from "@/lib/features/admin/types";
 
+import { SegmentedBar } from "@/app/components/charts/DataCharts";
 import styles from "../finance.module.css";
 import { DriverPayoutReviews } from "./DriverPayoutReviews";
 import { PayoutRecoveryDrawer } from "./PayoutRecoveryDrawer";
 import { DirectPayoutDrawer } from "./DirectPayoutDrawer";
 import type { PayoutTarget } from "@/lib/features/finance/payoutRecovery";
+
+import { confirmAction } from "@/app/components/ui/Feedback";
+
+import { useUrlState } from "@/lib/utils/useUrlState";
+
+import { SkeletonList } from "@/app/components/ui/Skeleton";
 
 const statusClass = (status: PaymentStatus) => {
   if (status === "succeeded") return `${styles.badge} ${styles.badgeSuccess}`;
@@ -64,12 +71,12 @@ const errorMessage = (error: unknown) => {
 };
 
 export default function PaymentsPage() {
-  const [view, setView] = useState<"transactions" | "driver-payouts">("transactions");
+  const [view, setView] = useUrlState<"transactions" | "driver-payouts">("vue", "transactions");
   const [directPayoutOpen, setDirectPayoutOpen] = useState(false);
   const [recoveryTarget, setRecoveryTarget] = useState<PayoutTarget | null>(null);
-  const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<PaymentStatus | "all">("all");
-  const [purpose, setPurpose] = useState<PaymentPurpose | "all">("all");
+  const [page, setPage] = useUrlState<number>("page", 1);
+  const [status, setStatus] = useUrlState<PaymentStatus | "all">("statut", "all");
+  const [purpose, setPurpose] = useUrlState<PaymentPurpose | "all">("objet", "all");
   const [searchDraft, setSearchDraft] = useState("");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<AdminPaymentTransaction | null>(null);
@@ -139,14 +146,16 @@ export default function PaymentsPage() {
       selected.purpose === "driver_payout"
         ? "ce versement de gains"
         : "ce retrait";
+    // Verrou pris avant la confirmation: elle est asynchrone, un second clic ne doit pas passer.
+    paymentActionLock.current = true;
     if (
-      !confirm(
+      !(await confirmAction(
         `Annuler ${label} encore en file chez PawaPay ? Le montant réservé redevient disponible. Si l’opérateur a déjà envoyé l’argent, l’annulation est refusée.`
-      )
+      ))
     ) {
+      paymentActionLock.current = false;
       return;
     }
-    paymentActionLock.current = true;
     const paymentId = selected.id;
     setReconcileNotice(null);
     reconcileState.reset();
@@ -168,10 +177,11 @@ export default function PaymentsPage() {
   const handleReconcile = async () => {
     if (!selected || data?.source !== "admin-api" || !canReconcilePayments || paymentActionLock.current ||
       reconcileState.isLoading || cancelState.isLoading || selected.status === "succeeded") return;
-    if (!confirm(`Vérifier la transaction ${selected.reference} auprès de ${selected.provider === "pawapay" ? "PawaPay" : "FlexPay"}, sans envoyer à nouveau d’argent ?`)) {
+    paymentActionLock.current = true;
+    if (!(await confirmAction(`Vérifier la transaction ${selected.reference} auprès de ${selected.provider === "pawapay" ? "PawaPay" : "FlexPay"}, sans envoyer à nouveau d’argent ?`))) {
+      paymentActionLock.current = false;
       return;
     }
-    paymentActionLock.current = true;
     setReconcileNotice(null);
     setCancelNotice(null);
     cancelState.reset();
@@ -248,6 +258,45 @@ export default function PaymentsPage() {
           helper="à surveiller"
         />
       </section>
+
+      {summary && summary.total > 0 ? (
+        <section className={styles.panel} aria-label="Répartition des transactions">
+          <div className={styles.panelHeader}>
+            <div>
+              <h2>Santé des encaissements</h2>
+              <p>
+                {(() => {
+                  const finished = summary.succeeded + summary.failed;
+                  return finished
+                    ? `${Math.round((summary.succeeded / finished) * 1000) / 10} % de réussite parmi les transactions terminées`
+                    : "Aucune transaction terminée sur ce périmètre";
+                })()}
+              </p>
+            </div>
+          </div>
+          <SegmentedBar
+            label="Répartition des transactions"
+            parts={[
+              { label: "Réussies", value: summary.succeeded, color: "var(--color-success)" },
+              { label: "À rapprocher", value: summary.pending, color: "var(--color-warning)" },
+              { label: "Échecs et annulations", value: summary.failed, color: "var(--color-danger)" },
+            ]}
+          />
+          <div className={styles.healthLegend}>
+            {[
+              ["Réussies", summary.succeeded, "var(--color-success)"],
+              ["À rapprocher", summary.pending, "var(--color-warning)"],
+              ["Échecs et annulations", summary.failed, "var(--color-danger)"],
+            ].map(([label, value, color]) => (
+              <span key={label as string}>
+                <i style={{ background: color as string }} />
+                {label} <b>{Number(value).toLocaleString("fr-FR")}</b>{" "}
+                <em>{Math.round((Number(value) / summary.total) * 100)} %</em>
+              </span>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {data?.notice ? <div className={styles.notice}>{data.notice}</div> : null}
 
@@ -329,7 +378,7 @@ export default function PaymentsPage() {
 
         {error ? <div className={styles.error}>{errorMessage(error)}</div> : null}
         {isFetching && payments.length === 0 ? (
-          <div className={styles.empty}>Chargement du registre…</div>
+          <SkeletonList count={6} />
         ) : payments.length === 0 ? (
           <div className={styles.empty}>Aucune transaction ne correspond aux filtres.</div>
         ) : (

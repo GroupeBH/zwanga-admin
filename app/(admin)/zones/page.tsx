@@ -13,6 +13,8 @@ import { MapPin, Activity, CheckCircle, XCircle, TrendingUp } from "lucide-react
 import { useGetAllTripsQuery } from "@/lib/features/trips/tripsApi";
 import shared from "../styles/page.module.css";
 
+import local from "./zones.module.css";
+
 // ---------------------------------------------------------------------------
 // Données statiques des zones de Kinshasa
 // ---------------------------------------------------------------------------
@@ -74,8 +76,8 @@ export default function ZonesPage() {
       {/* ------------------------------------------------------------------ */}
       {/* En-tête                                                             */}
       {/* ------------------------------------------------------------------ */}
-      <h1 style={{ margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
-        <MapPin size={28} aria-hidden="true" style={{ color: "var(--color-primary)" }} />
+      <h1 className={local.m0FlexCenterGap10}>
+        <MapPin size={28} aria-hidden="true" className={local.primary} />
         Zones géographiques
       </h1>
 
@@ -84,7 +86,7 @@ export default function ZonesPage() {
       {/* ------------------------------------------------------------------ */}
       <section className={shared.section} aria-labelledby="kpi-title">
         <div className={shared.sectionHeader}>
-          <h2 id="kpi-title" style={{ margin: 0 }}>
+          <h2 id="kpi-title" className={local.m0}>
             Vue d'ensemble
           </h2>
           {isFetching && (
@@ -97,11 +99,11 @@ export default function ZonesPage() {
         <div className={shared.grid}>
           {/* KPI 1 — Zones actives */}
           <article className={shared.card} aria-label={`${activeCount} zones actives`}>
-            <span style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text-muted)" }}>
-              <CheckCircle size={16} aria-hidden="true" style={{ color: "var(--color-success)" }} />
+            <span className={local.flexCenterGap8Muted}>
+              <CheckCircle size={16} aria-hidden="true" className={local.success} />
               Zones actives
             </span>
-            <strong style={{ fontSize: "2rem", color: "var(--color-success)" }}>
+            <strong className={local.text2Success}>
               {activeCount}
             </strong>
             <small className={shared.mutedText}>
@@ -111,11 +113,11 @@ export default function ZonesPage() {
 
           {/* KPI 2 — Zones en préparation */}
           <article className={shared.card} aria-label={`${pendingCount} zones en préparation`}>
-            <span style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text-muted)" }}>
-              <XCircle size={16} aria-hidden="true" style={{ color: "var(--color-warning)" }} />
+            <span className={local.flexCenterGap8Muted}>
+              <XCircle size={16} aria-hidden="true" className={local.warning} />
               Zones en préparation
             </span>
-            <strong style={{ fontSize: "2rem", color: "var(--color-warning)" }}>
+            <strong className={local.text2Warning}>
               {pendingCount}
             </strong>
             <small className={shared.mutedText}>
@@ -125,11 +127,11 @@ export default function ZonesPage() {
 
           {/* KPI 3 — Trajets analysés */}
           <article className={shared.card} aria-label={`${totalTripsAnalysed} trajets analysés`}>
-            <span style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text-muted)" }}>
-              <TrendingUp size={16} aria-hidden="true" style={{ color: "var(--color-primary)" }} />
+            <span className={local.flexCenterGap8Muted}>
+              <TrendingUp size={16} aria-hidden="true" className={local.primary} />
               Trajets analysés
             </span>
-            <strong style={{ fontSize: "2rem", color: "var(--color-primary)" }}>
+            <strong className={local.text2Primary}>
               {isFetching ? "…" : totalTripsAnalysed}
             </strong>
             <small className={shared.mutedText}>
@@ -144,7 +146,7 @@ export default function ZonesPage() {
       {/* ------------------------------------------------------------------ */}
       <section className={shared.section} aria-labelledby="map-title">
         <div className={shared.sectionHeader}>
-          <h2 id="map-title" style={{ margin: 0 }}>
+          <h2 id="map-title" className={local.m0}>
             Carte de Kinshasa
           </h2>
           <span
@@ -158,25 +160,19 @@ export default function ZonesPage() {
 
         {/* Iframe OpenStreetMap centrée sur Kinshasa */}
         <div
-          style={{
-            borderRadius: "18px",
-            overflow: "hidden",
-            border: "1px solid var(--color-border)",
-            height: "320px",
-            background: "rgba(255,255,255,0.02)",
-          }}
+          className={local.radius18OverflowHiddenBorder1SolidVarColorBorderH320Backgrou}
         >
           <iframe
             title="Carte de Kinshasa — zones opérationnelles Zwanga"
             src="https://www.openstreetmap.org/export/embed.html?bbox=15.20,-4.55,15.45,-4.25&layer=mapnik"
-            style={{ width: "100%", height: "100%", border: 0, display: "block" }}
+            className={local.w100PctH100PctBorder0Block}
             loading="lazy"
             allowFullScreen
           />
         </div>
 
-        <p className={shared.mutedText} style={{ fontSize: "0.82rem", margin: 0 }}>
-          © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary)" }}>OpenStreetMap</a> contributeurs — Les limites de zones affichées sont indicatives.
+        <p className={`${shared.mutedText} ${local.text82M0}`}>
+          © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className={local.primary}>OpenStreetMap</a> contributeurs — Les limites de zones affichées sont indicatives.
         </p>
       </section>
 
@@ -186,10 +182,10 @@ export default function ZonesPage() {
       <section className={shared.section} aria-labelledby="zones-table-title">
         <div className={shared.sectionHeader}>
           <div>
-            <h2 id="zones-table-title" style={{ margin: 0 }}>
+            <h2 id="zones-table-title" className={local.m0}>
               Détail des zones
             </h2>
-            <p className={shared.mutedText} style={{ margin: "4px 0 0", fontSize: "0.88rem" }}>
+            <p className={`${shared.mutedText} ${local.m400Text88}`}>
               {KINSHASA_ZONES.length} zones répertoriées · détection par mots-clés dans les trajets
             </p>
           </div>
@@ -216,7 +212,7 @@ export default function ZonesPage() {
                   <tr key={zone.id}>
                     {/* Colonne Zone */}
                     <td>
-                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span className={local.flexCenterGap8}>
                         <span
                           aria-hidden="true"
                           style={{
@@ -234,7 +230,7 @@ export default function ZonesPage() {
 
                     {/* Colonne Description */}
                     <td>
-                      <span className={shared.mutedText} style={{ fontSize: "0.88rem" }}>
+                      <span className={`${shared.mutedText} ${local.text88}`}>
                         {zone.description}
                       </span>
                     </td>
@@ -270,22 +266,11 @@ export default function ZonesPage() {
                       <div
                         title={`${activityPct}% de l'activité max`}
                         aria-label={`Activité : ${activityPct}%`}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          minWidth: 120,
-                        }}
+                        className={local.flexCenterGap8MinWidth120}
                       >
                         <div
                           aria-hidden="true"
-                          style={{
-                            flex: 1,
-                            height: 6,
-                            borderRadius: 999,
-                            background: "rgba(255,255,255,0.07)",
-                            overflow: "hidden",
-                          }}
+                          className={local.flex1H6Radius999BackgroundRgba255255255007OverflowHidden}
                         >
                           <div
                             style={{
@@ -297,7 +282,7 @@ export default function ZonesPage() {
                             }}
                           />
                         </div>
-                        <span className={shared.mutedText} style={{ fontSize: "0.78rem", minWidth: 34, textAlign: "right" }}>
+                        <span className={`${shared.mutedText} ${local.text78MinWidth34TextRight}`}>
                           {activityPct}%
                         </span>
                       </div>
@@ -314,12 +299,12 @@ export default function ZonesPage() {
       {/* Note explicative — géofencing                                        */}
       {/* ------------------------------------------------------------------ */}
       <section className={shared.section} aria-labelledby="help-title">
-        <h2 id="help-title" style={{ margin: 0, fontSize: "1rem" }}>
+        <h2 id="help-title" className={local.m0Text1}>
           À propos de la détection des zones
         </h2>
 
-        <p className={shared.mutedText} style={{ margin: 0, lineHeight: 1.65 }}>
-          La colonne <strong style={{ color: "var(--color-text)" }}>Trajets détectés</strong> est calculée
+        <p className={`${shared.mutedText} ${local.m0Lh165}`}>
+          La colonne <strong className={local.text}>Trajets détectés</strong> est calculée
           côté client par recherche de mots-clés dans les champs{" "}
           <em>departureLocation</em> et <em>arrivalLocation</em> des 500 derniers trajets. Cette méthode
           est approximative : un trajet peut traverser plusieurs zones ou employer un libellé différent
@@ -327,21 +312,10 @@ export default function ZonesPage() {
         </p>
 
         <div
-          style={{
-            marginTop: 4,
-            padding: "12px 14px",
-            borderRadius: 14,
-            border: "1px solid rgba(255, 208, 71, 0.25)",
-            background: "rgba(255, 208, 71, 0.07)",
-            color: "var(--color-warning)",
-            fontSize: "0.88rem",
-            display: "flex",
-            gap: 10,
-            alignItems: "flex-start",
-          }}
+          className={local.mt4P1214Radius14Border1SolidRgba25520871025BackgroundRgba255}
           role="note"
         >
-          <Activity size={16} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+          <Activity size={16} aria-hidden="true" className={local.shrink0Mt2} />
           <span>
             <strong>Géofencing précis :</strong> pour une couverture géographique exacte (polygones de
             zones, attribution automatique des trajets, alertes hors-zone), une configuration backend

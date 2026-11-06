@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { FeedbackProvider } from "@/app/components/ui/Feedback";
 import { setSidebarOpen } from "@/lib/features/ui/uiSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
@@ -78,7 +79,9 @@ export const AdminShell = ({ children }: Props) => {
       ) : null}
       <div className={styles.workbench}>
         <Topbar />
-        <main id="contenu-principal" tabIndex={-1} className={styles.content}>{children}</main>
+        <main id="contenu-principal" tabIndex={-1} className={styles.content}>
+          <FeedbackProvider>{children}</FeedbackProvider>
+        </main>
       </div>
     </div>
   );
